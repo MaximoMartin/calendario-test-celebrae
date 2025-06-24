@@ -14,19 +14,228 @@ export interface Shop {
   userId: string;
   businessHours?: BusinessHours[];
   bookingSettings?: BookingSettings;
+  resources?: Resource[]; // Recursos físicos del negocio
 }
 
-export interface Kit {
+// ==================== NUEVA ARQUITECTURA ====================
+
+// RECURSOS: Entidades físicas que pueden ser compartidas entre items
+export interface Resource {
   id: string;
   name: string;
-  price: number;
-  maxCapacity: number;
-  duration: number; // in minutes
-  items?: any[];
-  extras?: any[];
+  type: 'ROOM' | 'EQUIPMENT' | 'STAFF' | 'VEHICLE' | 'TABLE' | 'OTHER';
   shopId: string;
-  slots?: TimeSlot[];
+  maxConcurrentUse: number; // Cuántas veces puede usarse simultáneamente
+  description?: string;
+  isActive: boolean;
 }
+
+// ITEM: Actividad específica con horario, precio y recursos
+export interface BundleItem {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  maxCapacity: number; // Cuántas personas máximo
+  duration: number; // Duración en minutos
+  
+  // HORARIOS ESPECÍFICOS DEL ITEM
+  availableTimeSlots: ItemTimeSlot[];
+  
+  // RECURSOS REQUERIDOS
+  requiredResources: ItemResourceRequirement[];
+  
+  // DEPENDENCIAS Y SECUENCIA
+  dependencies?: ItemDependency[]; // Items que deben realizarse antes
+  canRunConcurrently?: boolean; // Si puede ejecutarse al mismo tiempo que otros items del bundle
+  
+  // CONFIGURACIÓN
+  isRequired: boolean; // Si es obligatorio en el bundle
+  isActive: boolean;
+  
+  // UBICACIÓN (si es relevante)
+  location?: string;
+  address?: string;
+}
+
+// EXTRA: Complementos opcionales sin horario específico
+export interface BundleExtra {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  maxQuantity: number; // Cuántos se pueden agregar
+  isPerPerson: boolean; // Si el precio es por persona o fijo
+  isActive: boolean;
+  
+  // DISPONIBILIDAD (sin horarios específicos)
+  maxDailyQuantity?: number; // Límite diario de este extra
+}
+
+// BUNDLE: Paquete de experiencias que contiene items y extras
+export interface Bundle {
+  id: string;
+  name: string;
+  description?: string;
+  shopId: string;
+  
+  // CONTENIDO DEL BUNDLE
+  items: BundleItem[];
+  extras: BundleExtra[];
+  
+  // CONFIGURACIÓN DE SELECCIÓN
+  minItemsRequired: number; // Mínimo de items que deben seleccionarse
+  maxItemsAllowed: number; // Máximo de items que pueden seleccionarse
+  
+  // PRICING
+  bundleDiscount?: number; // Descuento por comprar el bundle completo
+  basePrice?: number; // Precio base si no depende solo de items
+  
+  // CONFIGURACIÓN
+  isActive: boolean;
+  tags?: string[];
+  
+  // RESTRICCIONES TEMPORALES
+  availableDays?: number[]; // Días de la semana disponibles (0-6)
+  seasonalRestrictions?: SeasonalRestriction[];
+}
+
+// ==================== HORARIOS Y DISPONIBILIDAD ====================
+
+export interface ItemTimeSlot {
+  id: string;
+  itemId: string;
+  
+  // HORARIO
+  startTime: string; // HH:mm format
+  endTime: string; // HH:mm format
+  
+  // DISPONIBILIDAD
+  daysOfWeek: number[]; // 0-6 (Sunday-Saturday)
+  maxBookings: number; // Cuántas reservas máximo en este slot
+  
+  // CONFIGURACIÓN
+  isActive: boolean;
+  
+  // RESTRICCIONES ESPECIALES
+  minimumAdvanceHours?: number;
+  maximumAdvanceDays?: number;
+  
+  // PRECIOS DINÁMICOS
+  priceMultiplier?: number; // Multiplicador de precio para este horario
+}
+
+export interface ItemResourceRequirement {
+  resourceId: string;
+  quantityNeeded: number;
+  
+  // TIEMPO DE USO (puede ser diferente a la duración del item)
+  setupTimeMinutes?: number; // Tiempo de preparación antes
+  cleanupTimeMinutes?: number; // Tiempo de limpieza después
+  
+  // FLEXIBILIDAD
+  isOptional: boolean;
+  alternativeResourceIds?: string[]; // Recursos alternativos
+}
+
+export interface ItemDependency {
+  dependsOnItemId: string;
+  type: 'MUST_COMPLETE_BEFORE' | 'MUST_START_AFTER' | 'CONCURRENT_ONLY';
+  timingOffsetMinutes?: number; // Tiempo entre items (positivo = después, negativo = antes)
+}
+
+export interface SeasonalRestriction {
+  startDate: string; // ISO date
+  endDate: string; // ISO date
+  type: 'UNAVAILABLE' | 'PRICE_INCREASE' | 'LIMITED_CAPACITY';
+  modifier?: number; // Para price increase o capacity reduction
+  reason?: string;
+}
+
+// ==================== SISTEMA DE RESERVAS ACTUALIZADO ====================
+
+export interface BookingItemSelection {
+  itemId: string;
+  selectedTimeSlotId: string;
+  numberOfPeople: number;
+  
+  // HORARIO CALCULADO (basado en el item y slot seleccionado)
+  startTime: string;
+  endTime: string;
+  date: string;
+  
+  // RECURSOS ASIGNADOS
+  assignedResources: BookingResourceAssignment[];
+  
+  // PRICING
+  itemPrice: number;
+  totalPrice: number; // item price * people + modifiers
+}
+
+export interface BookingExtraSelection {
+  extraId: string;
+  quantity: number;
+  totalPrice: number;
+}
+
+export interface BookingResourceAssignment {
+  resourceId: string;
+  quantityAssigned: number;
+  startTime: string;
+  endTime: string;
+  
+  // TIEMPO EXTENDIDO (setup + item + cleanup)
+  effectiveStartTime: string;
+  effectiveEndTime: string;
+}
+
+export interface Booking {
+  id: string;
+  bundleId: string;
+  bundleName: string;
+  shopId: string;
+  
+  // CUSTOMER INFO
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  
+  // SELECTIONS
+  selectedItems: BookingItemSelection[];
+  selectedExtras: BookingExtraSelection[];
+  
+  // CALCULATED TIMING (basado en items seleccionados)
+  earliestStartTime: string; // Hora más temprana de todos los items
+  latestEndTime: string; // Hora más tardía de todos los items
+  totalDuration: number; // Duración total en minutos
+  
+  // DATES
+  date: string; // ISO date string
+  createdAt: string;
+  
+  // PRICING
+  itemsTotal: number;
+  extrasTotal: number;
+  bundleDiscount: number;
+  finalTotal: number;
+  
+  // STATUS & MANAGEMENT
+  status: 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW' | 'RESCHEDULED' | 'PARTIAL_REFUND';
+  isManual: boolean;
+  notes?: string;
+  
+  // RESCHEDULING & CANCELLATION
+  rescheduledFrom?: string;
+  refundAmount?: number;
+  cancellationReason?: string;
+  
+  // OPERATIONAL
+  checkInTime?: string;
+  checkOutTime?: string;
+  staffAssigned?: string[];
+}
+
+// ==================== HORARIOS DE NEGOCIO (sin cambios) ====================
 
 export interface BusinessHoursPeriod {
   startTime: string; // HH:mm format
@@ -37,63 +246,6 @@ export interface BusinessHours {
   dayOfWeek: number; // 0-6 (Sunday-Saturday)
   isActive: boolean;
   periods: BusinessHoursPeriod[]; // Multiple periods per day
-}
-
-export interface TimeSlot {
-  id: string;
-  kitId: string;
-  startTime: string; // HH:mm format
-  endTime: string; // HH:mm format
-  maxBookings: number;
-  isActive: boolean;
-}
-
-export interface Booking {
-  id: string;
-  kitId: string;
-  kitName: string;
-  shopId: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  date: string; // ISO date string
-  timeSlot: string; // HH:mm format
-  numberOfPeople: number;
-  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW' | 'RESCHEDULED' | 'PARTIAL_REFUND';
-  isManual: boolean; // true if created by shop owner
-  createdAt: string;
-  notes?: string;
-  rescheduledFrom?: string; // original date if rescheduled
-  refundAmount?: number; // amount refunded for partial refunds
-  cancellationReason?: string;
-}
-
-export interface BookingSettings {
-  hoursBeforeBooking: number; // minimum hours before booking
-  maxAdvanceBookingDays: number; // maximum days in advance
-  allowSameDayBooking: boolean;
-  autoConfirmBookings: boolean;
-}
-
-export interface CalendarEvent {
-  id: string;
-  title: string;
-  start: Date;
-  end: Date;
-  resource: Booking;
-}
-
-export type ViewType = 'month' | 'week' | 'day';
-
-export interface BookingFormData {
-  kitId: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  date: string;
-  timeSlot: string;
-  numberOfPeople: number;
-  notes?: string;
 }
 
 export interface BusinessHoursFormData {
@@ -111,18 +263,88 @@ export interface BusinessHourDay {
   periods: BusinessHoursPeriod[];
 }
 
-export interface TimeSlotFormData {
-  kitId: string;
-  startTime: string;
-  endTime: string;
-  maxBookings: number;
+// ==================== CONFIGURACIONES ====================
+
+export interface BookingSettings {
+  hoursBeforeBooking: number;
+  maxAdvanceBookingDays: number;
+  allowSameDayBooking: boolean;
+  autoConfirmBookings: boolean;
+  
+  // NUEVAS CONFIGURACIONES
+  allowPartialBookings: boolean; // Si se permite reservar solo algunos items del bundle
+  requireAllItemssametime: boolean; // Si todos los items deben ser el mismo día
+  maxConcurrentBookingsPerCustomer: number;
+  
+  // CANCELACIÓN Y MODIFICACIÓN
+  cancellationPolicyHours: number;
+  modificationPolicyHours: number;
+  refundPolicy: 'FULL' | 'PARTIAL' | 'NONE';
 }
 
-// Gestión de Excepciones y Disponibilidad Avanzada
+// ==================== CALENDARIO Y EVENTOS ====================
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
+  resource: CalendarEventResource;
+}
+
+export interface CalendarEventResource {
+  type: 'BOOKING_ITEM' | 'RESOURCE_BLOCKED' | 'MAINTENANCE' | 'EXCEPTION';
+  booking?: Booking;
+  bookingItem?: BookingItemSelection;
+  resourceId?: string;
+  resourceName?: string;
+  bundleName?: string;
+  customerName?: string;
+  status?: Booking['status'];
+}
+
+export type ViewType = 'month' | 'week' | 'day' | 'resource'; // Agregamos vista por recurso
+
+// ==================== FORMULARIOS ====================
+
+export interface BookingFormData {
+  bundleId: string;
+  shopId: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  date: string;
+  
+  // SELECTIONS (new simplified format for wizard)
+  selectedItems?: {
+    itemId: string;
+    timeSlotId: string;
+    numberOfPeople: number;
+    date: string;
+  }[];
+  totalPrice?: number;
+  timeline?: {
+    earliest: string;
+    latest: string;
+  };
+  
+  // SELECTIONS (legacy format)
+  selectedItemIds?: string[];
+  itemSelections?: Record<string, {
+    timeSlotId: string;
+    numberOfPeople: number;
+  }>;
+  
+  selectedExtras?: Record<string, number>; // extraId -> quantity
+  notes?: string;
+}
+
+// ==================== GESTIÓN DE EXCEPCIONES ====================
+
 export interface ShopException {
   id: string;
   shopId: string;
-  date: string; // ISO date string
+  date: string;
   type: 'CLOSED' | 'SPECIAL_HOURS' | 'PRIVATE_EVENT' | 'MAINTENANCE';
   title: string;
   description?: string;
@@ -130,7 +352,12 @@ export interface ShopException {
     startTime: string;
     endTime: string;
   };
-  affectedKits?: string[]; // kit IDs affected, empty array means all kits
+  
+  // AFECTACIÓN ESPECÍFICA
+  affectedBundles?: string[];
+  affectedItems?: string[];
+  affectedResources?: string[];
+  
   isActive: boolean;
   createdAt: string;
 }
@@ -138,36 +365,50 @@ export interface ShopException {
 export interface AvailabilityBlock {
   id: string;
   shopId: string;
-  kitId?: string; // if not specified, applies to all kits
+  
+  // AFECTACIÓN ESPECÍFICA
+  bundleId?: string;
+  itemId?: string;
+  resourceId?: string;
+  
   startDate: string;
   endDate: string;
-  type: 'BLOCKED' | 'SPECIAL_PRICING' | 'LIMITED_CAPACITY';
+  type: 'BLOCKED' | 'SPECIAL_PRICING' | 'LIMITED_CAPACITY' | 'MAINTENANCE';
   reason: string;
+  
   settings?: {
     maxBookings?: number;
-    priceMultiplier?: number; // for special pricing
-    allowedStatuses?: Booking['status'][]; // which booking statuses are allowed
+    priceMultiplier?: number;
+    allowedStatuses?: Booking['status'][];
+    capacityReduction?: number;
   };
+  
   isActive: boolean;
 }
+
+// ==================== BÚSQUEDA Y FILTROS ====================
 
 export interface SearchFilters {
   query?: string;
   dateFrom?: string;
   dateTo?: string;
   status?: Booking['status'][];
-  kitIds?: string[];
+  bundleIds?: string[];
+  itemIds?: string[];
+  resourceIds?: string[];
   isManual?: boolean;
   customerEmail?: string;
   customerPhone?: string;
+  minPrice?: number;
+  maxPrice?: number;
 }
 
 export interface GlobalSearchResult {
-  type: 'booking' | 'customer' | 'kit';
+  type: 'booking' | 'customer' | 'bundle' | 'item' | 'resource';
   id: string;
   title: string;
   subtitle: string;
-  data: Booking | Kit | CustomerInfo;
+  data: Booking | Bundle | BundleItem | Resource | CustomerInfo;
   relevance: number;
 }
 
@@ -179,4 +420,124 @@ export interface CustomerInfo {
   totalBookings: number;
   lastBookingDate?: string;
   notes?: string;
+  totalSpent?: number;
+  preferredBundles?: string[];
+}
+
+// ==================== DISPONIBILIDAD Y CONFLICTOS ====================
+
+export interface AvailabilityCheck {
+  itemId: string;
+  date: string;
+  timeSlotId: string;
+  numberOfPeople: number;
+}
+
+export interface AvailabilityResult {
+  isAvailable: boolean;
+  reason?: string;
+  conflicts?: AvailabilityConflict[];
+  remainingCapacity?: number;
+  nextAvailableSlot?: string;
+  alternativeItems?: string[];
+  resourceAvailability?: ResourceAvailabilityInfo[];
+}
+
+export interface AvailabilityConflict {
+  type: 'TIME_CONFLICT' | 'BUSINESS_HOURS' | 'CAPACITY_EXCEEDED' | 'RESOURCE_UNAVAILABLE' | 'DEPENDENCY_UNMET';
+  message: string;
+  itemId?: string;
+  resourceId?: string;
+  timeSlot?: string;
+  suggestedAlternative?: string;
+}
+
+export interface ResourceAvailabilityInfo {
+  resourceId: string;
+  resourceName: string;
+  totalCapacity: number;
+  usedCapacity: number;
+  availableCapacity: number;
+  nextAvailableTime?: string;
+}
+
+// ==================== LEGACY COMPATIBILITY ====================
+// Mantenemos algunos tipos para compatibilidad temporal
+
+export interface Kit {
+  id: string;
+  name: string;
+  price: number;
+  maxCapacity: number;
+  duration: number;
+  items?: any[];
+  extras?: any[];
+  shopId: string;
+  slots?: TimeSlot[];
+}
+
+export interface TimeSlot {
+  id: string;
+  kitId: string;
+  startTime: string;
+  endTime: string;
+  maxBookings: number;
+  isActive: boolean;
+}
+
+export interface TimeSlotFormData {
+  kitId: string;
+  startTime: string;
+  endTime: string;
+  maxBookings: number;
+}
+
+// ==================== MOTOR DE DISPONIBILIDAD ====================
+
+export interface AvailabilityCheck {
+  itemId: string;
+  date: string;
+  timeSlotId: string;
+  numberOfPeople: number;
+}
+
+export interface AvailabilityResult {
+  isAvailable: boolean;
+  reason?: string;
+  conflicts?: AvailabilityConflict[];
+  remainingCapacity?: number;
+  nextAvailableSlot?: string;
+  alternativeItems?: string[];
+  resourceAvailability?: ResourceAvailabilityInfo[];
+}
+
+export interface AvailabilityConflict {
+  type: 'TIME_CONFLICT' | 'BUSINESS_HOURS' | 'CAPACITY_EXCEEDED' | 'RESOURCE_UNAVAILABLE' | 'DEPENDENCY_UNMET';
+  message: string;
+  itemId?: string;
+  resourceId?: string;
+  timeSlot?: string;
+  suggestedAlternative?: string;
+}
+
+export interface ResourceAvailabilityInfo {
+  resourceId: string;
+  resourceName: string;
+  totalCapacity: number;
+  usedCapacity: number;
+  availableCapacity: number;
+  nextAvailableTime?: string;
+}
+
+// Engine de validación completa
+export interface BookingValidationResult {
+  isValid: boolean;
+  conflicts: AvailabilityConflict[];
+  totalPrice: number;
+  discountApplied?: number;
+  timeline: {
+    earliest: string;
+    latest: string;
+  };
+  resourceAssignments?: BookingResourceAssignment[];
 } 

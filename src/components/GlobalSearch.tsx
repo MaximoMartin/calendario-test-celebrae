@@ -153,9 +153,9 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
                     Estados: {filters.status.length} filtros
                   </span>
                 )}
-                {filters.kitIds && filters.kitIds.length > 0 && (
+                {filters.itemIds && filters.itemIds.length > 0 && (
                   <span className="text-sm text-gray-600">
-                    Servicios: {filters.kitIds.length} filtros
+                    Servicios: {filters.itemIds.length} filtros
                   </span>
                 )}
               </div>
@@ -199,10 +199,10 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
                 <Select
                   multiple
                   options={kitOptions}
-                  value={filters.kitIds || []}
+                  value={filters.itemIds || []}
                   onChange={(e) => {
                     const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
-                    updateFilters({ kitIds: selectedOptions });
+                    updateFilters({ itemIds: selectedOptions });
                   }}
                   className="text-sm"
                 />

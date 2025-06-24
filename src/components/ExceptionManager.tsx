@@ -4,7 +4,7 @@ import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
-import { mockExceptions } from '../mockData';
+import { mockShopExceptions } from '../mockData'; 
 import type { ShopException, Kit } from '../types';
 
 interface ExceptionManagerProps {
@@ -18,13 +18,13 @@ export const ExceptionManager: React.FC<ExceptionManagerProps> = ({
   kits,
   onClose
 }) => {
-  const [exceptions, setExceptions] = useState<ShopException[]>(mockExceptions);
+  const [exceptions, setExceptions] = useState<ShopException[]>(mockShopExceptions);
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<ShopException>>({
     type: 'CLOSED',
     isActive: true,
-    affectedKits: []
+    affectedItems: []
   });
 
   const exceptionTypes = [
@@ -54,7 +54,7 @@ export const ExceptionManager: React.FC<ExceptionManagerProps> = ({
       title: formData.title!,
       description: formData.description,
       specialHours: formData.specialHours,
-      affectedKits: formData.affectedKits || [],
+      affectedItems: formData.affectedItems || [],
       isActive: formData.isActive ?? true,
       createdAt: new Date().toISOString()
     };
@@ -74,7 +74,7 @@ export const ExceptionManager: React.FC<ExceptionManagerProps> = ({
     setFormData({
       type: 'CLOSED',
       isActive: true,
-      affectedKits: []
+      affectedItems: []
     });
     setIsCreating(false);
     setEditingId(null);
@@ -203,7 +203,7 @@ export const ExceptionManager: React.FC<ExceptionManagerProps> = ({
                             )}
 
                             <div className="text-xs text-gray-500">
-                              <span className="font-medium">Afecta a:</span> {getKitNames(exception.affectedKits || [])}
+                              <span className="font-medium">Afecta a:</span> {getKitNames(exception.affectedItems || [])}
                             </div>
                           </div>
                         </div>
@@ -351,10 +351,10 @@ export const ExceptionManager: React.FC<ExceptionManagerProps> = ({
                     </label>
                     <Select
                       multiple
-                      value={formData.affectedKits || []}
+                      value={formData.affectedItems || []}
                       onChange={(e) => {
                         const selectedKits = Array.from(e.target.selectedOptions, option => option.value);
-                        setFormData(prev => ({ ...prev, affectedKits: selectedKits }));
+                        setFormData(prev => ({ ...prev, affectedItems: selectedKits }));
                       }}
                       options={kitOptions}
                       className="h-32"

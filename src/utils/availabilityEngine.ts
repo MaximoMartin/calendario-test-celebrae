@@ -2,23 +2,10 @@ import { format, parse, isValid, isAfter, isBefore, addDays, startOfDay, addMinu
 import type { 
   BusinessHours, BookingSettings, Booking, Bundle, BundleItem, Resource, ItemTimeSlot,
   AvailabilityCheck, AvailabilityResult, AvailabilityConflict, ResourceAvailabilityInfo,
-  BookingItemSelection, BookingResourceAssignment, ItemResourceRequirement
+  BookingItemSelection, BookingResourceAssignment, ItemResourceRequirement, BookingValidationResult
 } from '../types';
 
 // ==================== UTILIDADES BÁSICAS ====================
-
-export const formatTime = (time: string): string => {
-  const [hours, minutes] = time.split(':');
-  return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
-};
-
-export const formatDate = (date: Date): string => {
-  return format(date, 'yyyy-MM-dd');
-};
-
-export const formatDateTime = (date: Date): string => {
-  return format(date, 'yyyy-MM-dd HH:mm');
-};
 
 export const parseTime = (timeString: string): Date => {
   return parse(timeString, 'HH:mm', new Date());
@@ -26,6 +13,12 @@ export const parseTime = (timeString: string): Date => {
 
 export const parseDateTime = (dateString: string, timeString: string): Date => {
   return parse(`${dateString} ${timeString}`, 'yyyy-MM-dd HH:mm', new Date());
+};
+
+export const addMinutesToTime = (time: string, minutes: number): string => {
+  const timeDate = parseTime(time);
+  const newTime = addMinutes(timeDate, minutes);
+  return format(newTime, 'HH:mm');
 };
 
 export const isTimeInRange = (time: string, startTime: string, endTime: string): boolean => {
@@ -38,18 +31,6 @@ export const isTimeInRange = (time: string, startTime: string, endTime: string):
 
 export const isTimeInAnyPeriod = (time: string, periods: { startTime: string; endTime: string }[]): boolean => {
   return periods.some(period => isTimeInRange(time, period.startTime, period.endTime));
-};
-
-export const addMinutesToTime = (time: string, minutes: number): string => {
-  const timeDate = parseTime(time);
-  const newTime = addMinutes(timeDate, minutes);
-  return format(newTime, 'HH:mm');
-};
-
-export const getMinutesDifference = (startTime: string, endTime: string): number => {
-  const start = parseTime(startTime);
-  const end = parseTime(endTime);
-  return differenceInMinutes(end, start);
 };
 
 // ==================== VALIDACIONES DE HORARIOS DE NEGOCIO ====================
@@ -555,88 +536,163 @@ export const validateItemDependencies = (
   return conflicts;
 };
 
-// ==================== UTILIDADES PARA FORMULARIOS ====================
+// ==================== UTILIDADES DE VALIDACIÓN COMPLETA ====================
 
-export const generateTimeOptions = (startHour: number = 6, endHour: number = 23, step: number = 30): string[] => {
-  const times: string[] = [];
-  
-  for (let hour = startHour; hour <= endHour; hour++) {
-    for (let minute = 0; minute < 60; minute += step) {
-      if (hour === endHour && minute > 0) break;
-      const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-      times.push(timeString);
-    }
-  }
-  
-  return times;
-};
-
-export const getDayOfWeekName = (dayOfWeek: number): string => {
-  const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  return days[dayOfWeek] || '';
-};
-
-// ==================== LEGACY COMPATIBILITY ====================
-
-export const isBookingAllowed = (
-  bookingDate: string,
-  bookingTime: string,
-  bookingSettings: BookingSettings,
-  businessHours: BusinessHours[]
-): { isAllowed: boolean; reason?: string } => {
-  const targetDate = new Date(bookingDate);
-  const now = new Date();
-  const dayOfWeek = targetDate.getDay();
-
-  if (!isValid(targetDate)) {
-    return { isAllowed: false, reason: 'Fecha inválida' };
-  }
-
-  if (isBefore(targetDate, startOfDay(now))) {
-    return { isAllowed: false, reason: 'No se pueden hacer reservas en fechas pasadas' };
-  }
-
-  if (!bookingSettings.allowSameDayBooking && 
-      format(targetDate, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd')) {
-    return { isAllowed: false, reason: 'No se permiten reservas el mismo día' };
-  }
-
-  if (!isShopOpenOnDay(dayOfWeek, businessHours)) {
-    return { isAllowed: false, reason: 'El negocio está cerrado ese día' };
-  }
-
-  if (!isTimeWithinBusinessHours(bookingTime, dayOfWeek, businessHours)) {
-    const dayHours = getShopHoursForDay(dayOfWeek, businessHours);
-    const periodsStr = dayHours?.periods
-      ?.map(p => `${p.startTime}-${p.endTime}`)
-      .join(', ') || '';
-    return { 
-      isAllowed: false, 
-      reason: `El horario debe estar en los períodos: ${periodsStr}` 
+export const validateCompleteBooking = (
+  bundleId: string,
+  selectedItems: { itemId: string; timeSlotId: string; numberOfPeople: number; date: string }[],
+  bundles: Bundle[],
+  allBookings: Booking[],
+  shopResources: Resource[],
+  businessHours: BusinessHours[],
+  bookingSettings: BookingSettings
+): BookingValidationResult => {
+  const bundle = bundles.find(b => b.id === bundleId);
+  if (!bundle) {
+    return {
+      isValid: false,
+      conflicts: [{ type: 'TIME_CONFLICT', message: 'Bundle no encontrado' }],
+      totalPrice: 0,
+      timeline: { earliest: '', latest: '' }
     };
   }
 
-  return { isAllowed: true };
+  const allConflicts: AvailabilityConflict[] = [];
+  let totalPrice = 0;
+  let earliestTime = '23:59';
+  let latestTime = '00:00';
+
+  // 1. Validar selección mínima/máxima de items
+  if (selectedItems.length < bundle.minItemsRequired) {
+    allConflicts.push({
+      type: 'DEPENDENCY_UNMET',
+      message: `Se requiere seleccionar al menos ${bundle.minItemsRequired} items`
+    });
+  }
+
+  if (selectedItems.length > bundle.maxItemsAllowed) {
+    allConflicts.push({
+      type: 'CAPACITY_EXCEEDED',
+      message: `No se pueden seleccionar más de ${bundle.maxItemsAllowed} items`
+    });
+  }
+
+  // 2. Validar cada item individual
+  for (const selection of selectedItems) {
+    const check: AvailabilityCheck = {
+      itemId: selection.itemId,
+      date: selection.date,
+      timeSlotId: selection.timeSlotId,
+      numberOfPeople: selection.numberOfPeople
+    };
+
+    const result = checkItemAvailability(
+      check,
+      bundle,
+      allBookings,
+      shopResources,
+      businessHours,
+      bookingSettings
+    );
+
+    if (!result.isAvailable && result.conflicts) {
+      allConflicts.push(...result.conflicts);
+    }
+
+    // Calcular precio y timeline
+    const item = bundle.items.find(i => i.id === selection.itemId);
+    const timeSlot = item?.availableTimeSlots.find(s => s.id === selection.timeSlotId);
+    
+    if (item && timeSlot) {
+      const itemPrice = item.price * selection.numberOfPeople;
+      const priceWithMultiplier = itemPrice * (timeSlot.priceMultiplier || 1);
+      totalPrice += priceWithMultiplier;
+
+      if (timeSlot.startTime < earliestTime) earliestTime = timeSlot.startTime;
+      if (timeSlot.endTime > latestTime) latestTime = timeSlot.endTime;
+    }
+  }
+
+  // 3. Validar dependencias entre items
+  const dependencyConflicts = validateItemDependencies(selectedItems, bundle);
+  allConflicts.push(...dependencyConflicts);
+
+  // 4. Aplicar descuento de bundle si corresponde
+  const discountApplied = bundle.bundleDiscount && selectedItems.length > 1 ? bundle.bundleDiscount : undefined;
+  if (discountApplied) {
+    totalPrice = totalPrice * (1 - discountApplied);
+  }
+
+  return {
+    isValid: allConflicts.length === 0,
+    conflicts: allConflicts,
+    totalPrice,
+    discountApplied,
+    timeline: { earliest: earliestTime, latest: latestTime }
+  };
 };
 
-// Funciones legacy mantenidas para compatibilidad
-export const getAvailableTimeSlots = (
+// ==================== API PARA COMPONENTES ====================
+
+export const getAvailableSlotsForItem = (
+  itemId: string,
   date: string,
-  kitId: string,
-  timeSlots: any[],
-  existingBookings: any[]
-): any[] => {
-  // Implementación legacy simplificada
-  return timeSlots.filter(slot => slot.kitId === kitId && slot.isActive);
+  bundle: Bundle,
+  allBookings: Booking[],
+  shopResources: Resource[],
+  businessHours: BusinessHours[],
+  bookingSettings: BookingSettings
+): { slot: ItemTimeSlot; isAvailable: boolean; conflicts?: AvailabilityConflict[] }[] => {
+  const item = bundle.items.find(i => i.id === itemId);
+  if (!item) return [];
+
+  const dayOfWeek = new Date(date).getDay();
+  
+  return item.availableTimeSlots
+    .filter(slot => slot.isActive && slot.daysOfWeek.includes(dayOfWeek))
+    .map(slot => {
+      const check: AvailabilityCheck = {
+        itemId,
+        date,
+        timeSlotId: slot.id,
+        numberOfPeople: 1 // Verificación básica
+      };
+
+      const result = checkItemAvailability(
+        check,
+        bundle,
+        allBookings,
+        shopResources,
+        businessHours,
+        bookingSettings
+      );
+
+      return {
+        slot,
+        isAvailable: result.isAvailable,
+        conflicts: result.conflicts
+      };
+    })
+    .sort((a, b) => parseTime(a.slot.startTime).getTime() - parseTime(b.slot.startTime).getTime());
 };
 
-export const getBookingConflicts = (
+export const getResourceUtilization = (
+  shopId: string,
   date: string,
-  timeSlot: string,
-  kitId: string,
-  existingBookings: any[],
-  excludeBookingId?: string
-): number => {
-  // Implementación legacy simplificada
-  return 0;
+  resources: Resource[],
+  allBookings: Booking[]
+): { resourceId: string; name: string; utilization: number; conflicts: number }[] => {
+  return resources
+    .filter(r => r.shopId === shopId && r.isActive)
+    .map(resource => {
+      const conflicts = getResourceConflicts(resource.id, date, '00:00', '23:59', allBookings);
+      const utilization = conflicts.length / resource.maxConcurrentUse;
+      
+      return {
+        resourceId: resource.id,
+        name: resource.name,
+        utilization: Math.min(1, utilization),
+        conflicts: conflicts.length
+      };
+    });
 }; 

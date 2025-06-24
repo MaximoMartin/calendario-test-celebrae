@@ -11,18 +11,23 @@ import { BusinessHoursForm } from './components/BusinessHoursForm';
 import { GlobalSearch } from './components/GlobalSearch';
 import { ExceptionManager } from './components/ExceptionManager';
 import { AvailabilityManager } from './components/AvailabilityManager';
+import { AvailabilityDemo } from './components/AvailabilityDemo';
+import { BookingWizard } from './components/BookingWizard';
+import { ModernCalendar } from './components/ModernCalendar';
 import { BookingDetailModal } from './components/BookingDetailModal';
 import { Button } from './components/ui/Button';
 import { Card } from './components/ui/Card';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'calendar' | 'bookings' | 'settings'>('calendar');
+  const [activeTab, setActiveTab] = useState<'calendar' | 'modern-calendar' | 'bookings' | 'settings' | 'availability'>('modern-calendar');
   const [selectedShopId, setSelectedShopId] = useState<string>(mockShops[0].id);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [showBusinessHoursForm, setShowBusinessHoursForm] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [showExceptionManager, setShowExceptionManager] = useState(false);
   const [showAvailabilityManager, setShowAvailabilityManager] = useState(false);
+  const [showAvailabilityDemo, setShowAvailabilityDemo] = useState(false);
+  const [showBookingWizard, setShowBookingWizard] = useState(false);
   const [showBookingDetail, setShowBookingDetail] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [selectedKitFilter, setSelectedKitFilter] = useState<string>('all');
@@ -121,8 +126,10 @@ function App() {
   };
 
   const tabs = [
-    { id: 'calendar' as const, label: 'Calendario', icon: CalendarIcon },
+    { id: 'calendar' as const, label: 'Calendario Legacy', icon: CalendarIcon },
+    { id: 'modern-calendar' as const, label: 'Calendario Moderno', icon: CalendarIcon },
     { id: 'bookings' as const, label: 'Reservas', icon: Plus },
+    { id: 'availability' as const, label: 'Motor Disponibilidad', icon: AlertTriangle },
     { id: 'settings' as const, label: 'Configuración', icon: Settings },
   ];
 
@@ -173,7 +180,16 @@ function App() {
                 <span>Búsqueda</span>
               </Button>
               <Button
+                variant="outline"
                 onClick={() => setShowBookingForm(true)}
+                className="flex items-center space-x-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden xl:inline">Reserva Rápida</span>
+                <span className="xl:hidden">Rápida</span>
+              </Button>
+              <Button
+                onClick={() => setShowBookingWizard(true)}
                 className="flex items-center space-x-2"
               >
                 <Plus className="w-4 h-4" />
@@ -331,6 +347,19 @@ function App() {
           </div>
         )}
 
+        {activeTab === 'modern-calendar' && (
+          <div className="space-y-4 lg:space-y-8">
+            <ModernCalendar
+              selectedShopId={selectedShopId}
+              onSelectBooking={(booking) => {
+                setSelectedBooking(booking);
+                setShowBookingDetail(true);
+              }}
+              onSelectSlot={handleCalendarSlotSelect}
+            />
+          </div>
+        )}
+
         {activeTab === 'bookings' && (
           <div className="space-y-4 lg:space-y-8">
             <BookingList
@@ -342,6 +371,12 @@ function App() {
                 setShowBookingDetail(true);
               }}
             />
+          </div>
+        )}
+
+        {activeTab === 'availability' && (
+          <div className="space-y-4 lg:space-y-8">
+            <AvailabilityDemo />
           </div>
         )}
 
@@ -450,6 +485,17 @@ function App() {
           shopId={selectedShopId}
           kits={shopKits}
           onClose={() => setShowAvailabilityManager(false)}
+        />
+      )}
+
+      {showBookingWizard && (
+        <BookingWizard
+          initialShopId={selectedShopId}
+          onSubmit={(data) => {
+            console.log('Nueva reserva via wizard:', data);
+            setShowBookingWizard(false);
+          }}
+          onCancel={() => setShowBookingWizard(false)}
         />
       )}
 

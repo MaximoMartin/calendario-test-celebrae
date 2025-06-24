@@ -69,7 +69,7 @@ export const AvailabilityManager: React.FC<AvailabilityManagerProps> = ({
     const newBlock: AvailabilityBlock = {
       id: editingId || `block_${Date.now()}`,
       shopId,
-      kitId: formData.kitId || undefined,
+      itemId: formData.itemId || undefined,
       startDate: formData.startDate!,
       endDate: formData.endDate!,
       type: formData.type as AvailabilityBlock['type'],
@@ -211,7 +211,7 @@ export const AvailabilityManager: React.FC<AvailabilityManagerProps> = ({
                                 
                                 <div className="flex items-center space-x-1">
                                   <Users className="w-4 h-4" />
-                                  <span>{getKitName(block.kitId)}</span>
+                                  <span>{getKitName(block.itemId)}</span>
                                 </div>
 
                                 {block.settings && (
@@ -352,8 +352,8 @@ export const AvailabilityManager: React.FC<AvailabilityManagerProps> = ({
                       Servicio Afectado
                     </label>
                     <Select
-                      value={formData.kitId || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, kitId: e.target.value || undefined }))}
+                      value={formData.itemId || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, itemId: e.target.value || undefined }))}
                       options={kitOptions}
                     />
                     <p className="text-xs text-gray-500 mt-1">
