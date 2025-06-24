@@ -28,11 +28,15 @@ export interface Kit {
   slots?: TimeSlot[];
 }
 
-export interface BusinessHours {
-  dayOfWeek: number; // 0-6 (Sunday-Saturday)
+export interface BusinessHoursPeriod {
   startTime: string; // HH:mm format
   endTime: string; // HH:mm format
+}
+
+export interface BusinessHours {
+  dayOfWeek: number; // 0-6 (Sunday-Saturday)
   isActive: boolean;
+  periods: BusinessHoursPeriod[]; // Multiple periods per day
 }
 
 export interface TimeSlot {
@@ -104,8 +108,7 @@ export interface BusinessHoursFormData {
 
 export interface BusinessHourDay {
   isActive: boolean;
-  startTime: string;
-  endTime: string;
+  periods: BusinessHoursPeriod[];
 }
 
 export interface TimeSlotFormData {

@@ -346,7 +346,7 @@ function App() {
         )}
 
         {activeTab === 'settings' && (
-          <div className="space-y-4 lg:space-y-8">
+          <div className="space-y-4 lg:space-y-8 max-w-1/2">
             <Card title="Configuración del Negocio">
               <div className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

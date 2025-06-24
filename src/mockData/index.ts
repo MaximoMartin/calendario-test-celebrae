@@ -1,4 +1,4 @@
-import type { User, Shop, Kit, Booking, BusinessHours, TimeSlot, BookingSettings, ShopException, AvailabilityBlock } from '../types';
+import type { User, Shop, Kit, Booking, BusinessHours, BusinessHoursPeriod, TimeSlot, BookingSettings, ShopException, AvailabilityBlock } from '../types';
 
 export const mockUser: User = {
   id: "87IZYWdezwJQsILiU57z",
@@ -9,13 +9,13 @@ export const mockUser: User = {
 };
 
 export const mockBusinessHours: BusinessHours[] = [
-  { dayOfWeek: 1, startTime: "09:00", endTime: "18:00", isActive: true }, // Monday
-  { dayOfWeek: 2, startTime: "09:00", endTime: "18:00", isActive: true }, // Tuesday
-  { dayOfWeek: 3, startTime: "09:00", endTime: "18:00", isActive: true }, // Wednesday
-  { dayOfWeek: 4, startTime: "09:00", endTime: "18:00", isActive: true }, // Thursday
-  { dayOfWeek: 5, startTime: "09:00", endTime: "18:00", isActive: true }, // Friday
-  { dayOfWeek: 6, startTime: "10:00", endTime: "16:00", isActive: true }, // Saturday
-  { dayOfWeek: 0, startTime: "10:00", endTime: "14:00", isActive: false }, // Sunday
+  { dayOfWeek: 1, isActive: true, periods: [{ startTime: "09:00", endTime: "13:00" }, { startTime: "14:00", endTime: "18:00" }] }, // Monday
+  { dayOfWeek: 2, isActive: true, periods: [{ startTime: "09:00", endTime: "13:00" }, { startTime: "14:00", endTime: "18:00" }] }, // Tuesday
+  { dayOfWeek: 3, isActive: true, periods: [{ startTime: "09:00", endTime: "13:00" }, { startTime: "14:00", endTime: "18:00" }] }, // Wednesday
+  { dayOfWeek: 4, isActive: true, periods: [{ startTime: "09:00", endTime: "13:00" }, { startTime: "14:00", endTime: "18:00" }] }, // Thursday
+  { dayOfWeek: 5, isActive: true, periods: [{ startTime: "09:00", endTime: "13:00" }, { startTime: "14:00", endTime: "18:00" }] }, // Friday
+  { dayOfWeek: 6, isActive: true, periods: [{ startTime: "10:00", endTime: "16:00" }] }, // Saturday - horario continuo
+  { dayOfWeek: 0, isActive: false, periods: [{ startTime: "10:00", endTime: "14:00" }] }, // Sunday
 ];
 
 export const mockBookingSettings: BookingSettings = {
@@ -43,13 +43,13 @@ export const mockShops: Shop[] = [
     shopStatus: "ENABLED",
     userId: "87IZYWdezwJQsILiU57z",
     businessHours: [
-      { dayOfWeek: 1, startTime: "08:00", endTime: "22:00", isActive: true },
-      { dayOfWeek: 2, startTime: "08:00", endTime: "22:00", isActive: true },
-      { dayOfWeek: 3, startTime: "08:00", endTime: "22:00", isActive: true },
-      { dayOfWeek: 4, startTime: "08:00", endTime: "22:00", isActive: true },
-      { dayOfWeek: 5, startTime: "08:00", endTime: "24:00", isActive: true },
-      { dayOfWeek: 6, startTime: "10:00", endTime: "24:00", isActive: true },
-      { dayOfWeek: 0, startTime: "10:00", endTime: "20:00", isActive: true },
+      { dayOfWeek: 1, isActive: true, periods: [{ startTime: "08:00", endTime: "12:00" }, { startTime: "15:00", endTime: "22:00" }] },
+      { dayOfWeek: 2, isActive: true, periods: [{ startTime: "08:00", endTime: "12:00" }, { startTime: "15:00", endTime: "22:00" }] },
+      { dayOfWeek: 3, isActive: true, periods: [{ startTime: "08:00", endTime: "12:00" }, { startTime: "15:00", endTime: "22:00" }] },
+      { dayOfWeek: 4, isActive: true, periods: [{ startTime: "08:00", endTime: "12:00" }, { startTime: "15:00", endTime: "22:00" }] },
+      { dayOfWeek: 5, isActive: true, periods: [{ startTime: "08:00", endTime: "24:00" }] }, // Viernes horario extendido
+      { dayOfWeek: 6, isActive: true, periods: [{ startTime: "10:00", endTime: "24:00" }] }, // Sábado horario extendido
+      { dayOfWeek: 0, isActive: true, periods: [{ startTime: "10:00", endTime: "20:00" }] }, // Domingo
     ],
     bookingSettings: mockBookingSettings
   },
@@ -60,13 +60,13 @@ export const mockShops: Shop[] = [
     shopStatus: "ENABLED",
     userId: "87IZYWdezwJQsILiU57z",
     businessHours: [
-      { dayOfWeek: 1, startTime: "12:00", endTime: "15:00", isActive: true },
-      { dayOfWeek: 2, startTime: "12:00", endTime: "15:00", isActive: true },
-      { dayOfWeek: 3, startTime: "12:00", endTime: "15:00", isActive: true },
-      { dayOfWeek: 4, startTime: "12:00", endTime: "15:00", isActive: true },
-      { dayOfWeek: 5, startTime: "12:00", endTime: "15:00", isActive: true },
-      { dayOfWeek: 6, startTime: "12:00", endTime: "15:00", isActive: true },
-      { dayOfWeek: 0, startTime: "12:00", endTime: "15:00", isActive: false },
+      { dayOfWeek: 1, isActive: true, periods: [{ startTime: "12:00", endTime: "15:00" }] },
+      { dayOfWeek: 2, isActive: true, periods: [{ startTime: "12:00", endTime: "15:00" }] },
+      { dayOfWeek: 3, isActive: true, periods: [{ startTime: "12:00", endTime: "15:00" }] },
+      { dayOfWeek: 4, isActive: true, periods: [{ startTime: "12:00", endTime: "15:00" }] },
+      { dayOfWeek: 5, isActive: true, periods: [{ startTime: "12:00", endTime: "15:00" }] },
+      { dayOfWeek: 6, isActive: true, periods: [{ startTime: "12:00", endTime: "15:00" }] },
+      { dayOfWeek: 0, isActive: false, periods: [{ startTime: "12:00", endTime: "15:00" }] },
     ],
     bookingSettings: mockBookingSettings
   }

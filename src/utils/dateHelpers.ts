@@ -35,6 +35,10 @@ export const getShopHoursForDay = (dayOfWeek: number, businessHours: BusinessHou
   return businessHours.find(hours => hours.dayOfWeek === dayOfWeek && hours.isActive) || null;
 };
 
+export const isTimeInAnyPeriod = (time: string, periods: { startTime: string; endTime: string }[]): boolean => {
+  return periods.some(period => isTimeInRange(time, period.startTime, period.endTime));
+};
+
 export const isBookingAllowed = (
   bookingDate: string,
   bookingTime: string,
@@ -88,10 +92,13 @@ export const isBookingAllowed = (
 
   // Check if time is within business hours
   const dayHours = getShopHoursForDay(dayOfWeek, businessHours);
-  if (dayHours && !isTimeInRange(bookingTime, dayHours.startTime, dayHours.endTime)) {
+  if (dayHours && dayHours.periods && !isTimeInAnyPeriod(bookingTime, dayHours.periods)) {
+    const periodsStr = dayHours.periods
+      .map(p => `${p.startTime}-${p.endTime}`)
+      .join(', ');
     return { 
       isAllowed: false, 
-      reason: `El horario debe estar entre ${dayHours.startTime} y ${dayHours.endTime}` 
+      reason: `El horario debe estar en los períodos: ${periodsStr}` 
     };
   }
 
