@@ -1,4 +1,4 @@
-import { format, parse, isValid, isAfter, isBefore, addDays, startOfDay, endOfDay } from 'date-fns';
+import { format, parse, isValid, isAfter, isBefore, addDays, startOfDay } from 'date-fns';
 import type { BusinessHours, BookingSettings, TimeSlot, Booking } from '../types';
 
 export const formatTime = (time: string): string => {

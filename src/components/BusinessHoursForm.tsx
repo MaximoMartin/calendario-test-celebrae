@@ -5,8 +5,7 @@ import { z } from 'zod';
 import type { BusinessHoursFormData, BusinessHours } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Input } from './ui/Input';
-import { getDayOfWeekName, generateTimeOptions } from '../utils/dateHelpers';
+import { generateTimeOptions } from '../utils/dateHelpers';
 
 const businessHoursDaySchema = z.object({
   isActive: z.boolean(),

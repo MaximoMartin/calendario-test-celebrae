@@ -124,8 +124,10 @@ export const BookingForm: React.FC<BookingFormProps> = ({
   const minDate = formatDate(new Date(Date.now() + 24 * 60 * 60 * 1000));
 
   return (
-    <Card title="Nueva Reserva" className="max-w-2xl">
-      <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
+    <div className="fixed inset-0 bg-opacity-20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <Card title="Nueva Reserva">
+          <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
             <Select
@@ -243,5 +245,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
         </div>
       </form>
     </Card>
+      </div>
+    </div>
   );
 }; 

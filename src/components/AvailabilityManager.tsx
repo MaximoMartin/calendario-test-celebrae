@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, Users, TrendingUp, Ban, Plus, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Calendar, Users, TrendingUp, Ban, Plus, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
-import { mockAvailabilityBlocks, mockKits } from '../mockData';
+import { mockAvailabilityBlocks } from '../mockData';
 import type { AvailabilityBlock, Kit } from '../types';
 
 interface AvailabilityManagerProps {

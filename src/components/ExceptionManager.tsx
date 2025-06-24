@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Calendar, Clock, Settings, Plus, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
+import { AlertTriangle, Calendar, Clock, Plus, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
-import { mockExceptions, mockKits } from '../mockData';
+import { mockExceptions } from '../mockData';
 import type { ShopException, Kit } from '../types';
 
 interface ExceptionManagerProps {

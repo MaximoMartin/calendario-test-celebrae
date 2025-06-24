@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import type { Booking, Kit, SearchFilters, GlobalSearchResult, CustomerInfo } from '../types';
+import type { SearchFilters, GlobalSearchResult, CustomerInfo } from '../types';
 import { mockBookings, mockKits } from '../mockData';
 
 export const useGlobalSearch = () => {

@@ -2,9 +2,9 @@ import type { User, Shop, Kit, Booking, BusinessHours, TimeSlot, BookingSettings
 
 export const mockUser: User = {
   id: "87IZYWdezwJQsILiU57z",
-  name: "Maxi",
+  name: "Maxi Martin Lanfranchi",
   email: "maximo.martinl@hotmail.com",
-  roles: ["SELLER", "ADMIN"],
+  roles: ["SELLER", "BUYER", "ADMIN", "ESSENTIAL"],
   phoneNumber: "3515050672"
 };
 
@@ -25,446 +25,456 @@ export const mockBookingSettings: BookingSettings = {
   autoConfirmBookings: false
 };
 
-export const mockShop: Shop = {
-  id: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-  name: "La vuelta del Maxi",
-  address: "Via Catania, 12, Turin, Italy",
-  shopStatus: "ENABLED",
-  userId: "87IZYWdezwJQsILiU57z",
-  businessHours: mockBusinessHours,
-  bookingSettings: mockBookingSettings
-};
-
-export const mockTimeSlots: TimeSlot[] = [
-  // Car Rental Catania Italy
-  { id: "ts1", kitId: "5b9e0bd3-a992-440e-8610-51ed43467fe9", startTime: "09:00", endTime: "12:00", maxBookings: 2, isActive: true },
-  { id: "ts2", kitId: "5b9e0bd3-a992-440e-8610-51ed43467fe9", startTime: "14:00", endTime: "17:00", maxBookings: 2, isActive: true },
-  
-  // Cena Romántica Premium
-  { id: "ts3", kitId: "kit2", startTime: "19:00", endTime: "22:00", maxBookings: 4, isActive: true },
-  { id: "ts3b", kitId: "kit2", startTime: "21:00", endTime: "24:00", maxBookings: 3, isActive: true },
-  
-  // Cata de Vinos Exclusiva
-  { id: "ts4", kitId: "kit3", startTime: "10:00", endTime: "11:30", maxBookings: 8, isActive: true },
-  { id: "ts5", kitId: "kit3", startTime: "15:00", endTime: "16:30", maxBookings: 8, isActive: true },
-  { id: "ts5b", kitId: "kit3", startTime: "17:00", endTime: "18:30", maxBookings: 6, isActive: true },
-  
-  // Tour Fotográfico Barcelona
-  { id: "ts6", kitId: "kit4", startTime: "08:00", endTime: "12:00", maxBookings: 3, isActive: true },
-  { id: "ts7", kitId: "kit4", startTime: "14:00", endTime: "18:00", maxBookings: 3, isActive: true },
-  
-  // Clase de Cocina Italiana
-  { id: "ts8", kitId: "kit5", startTime: "10:00", endTime: "12:30", maxBookings: 2, isActive: true },
-  { id: "ts9", kitId: "kit5", startTime: "16:00", endTime: "18:30", maxBookings: 2, isActive: true },
-  
-  // Spa Day Completo
-  { id: "ts10", kitId: "kit6", startTime: "09:00", endTime: "15:00", maxBookings: 4, isActive: true },
-  { id: "ts11", kitId: "kit6", startTime: "10:00", endTime: "16:00", maxBookings: 4, isActive: true },
-  
-  // Kayak + Snorkel Mallorca
-  { id: "ts12", kitId: "kit7", startTime: "09:00", endTime: "12:30", maxBookings: 2, isActive: true },
-  { id: "ts13", kitId: "kit7", startTime: "14:00", endTime: "17:30", maxBookings: 2, isActive: true },
-  
-  // Sesión Yoga al Amanecer
-  { id: "ts14", kitId: "kit8", startTime: "06:00", endTime: "07:30", maxBookings: 1, isActive: true },
-  { id: "ts15", kitId: "kit8", startTime: "07:00", endTime: "08:30", maxBookings: 1, isActive: true },
-  
-  // Escape Room VIP
-  { id: "ts16", kitId: "kit9", startTime: "10:00", endTime: "12:00", maxBookings: 3, isActive: true },
-  { id: "ts17", kitId: "kit9", startTime: "15:00", endTime: "17:00", maxBookings: 3, isActive: true },
-  { id: "ts18", kitId: "kit9", startTime: "18:00", endTime: "20:00", maxBookings: 3, isActive: true },
-  
-  // Paseo en Globo Aerostático
-  { id: "ts19", kitId: "kit10", startTime: "06:00", endTime: "11:00", maxBookings: 1, isActive: true },
-  { id: "ts20", kitId: "kit10", startTime: "15:00", endTime: "20:00", maxBookings: 1, isActive: true },
+// Los 3 negocios del usuario Maxi
+export const mockShops: Shop[] = [
+  {
+    id: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
+    name: "La vuelta del Maxi",
+    address: "Via Catania, 12, Turin, Italy",
+    shopStatus: "ENABLED",
+    userId: "87IZYWdezwJQsILiU57z",
+    businessHours: mockBusinessHours,
+    bookingSettings: mockBookingSettings
+  },
+  {
+    id: "cb4813f2-3bb9-48d3-ae7d-a72eb1e1f4bf",
+    name: "Café Delicias",
+    address: "Centro de la ciudad",
+    shopStatus: "ENABLED",
+    userId: "87IZYWdezwJQsILiU57z",
+    businessHours: [
+      { dayOfWeek: 1, startTime: "08:00", endTime: "22:00", isActive: true },
+      { dayOfWeek: 2, startTime: "08:00", endTime: "22:00", isActive: true },
+      { dayOfWeek: 3, startTime: "08:00", endTime: "22:00", isActive: true },
+      { dayOfWeek: 4, startTime: "08:00", endTime: "22:00", isActive: true },
+      { dayOfWeek: 5, startTime: "08:00", endTime: "24:00", isActive: true },
+      { dayOfWeek: 6, startTime: "10:00", endTime: "24:00", isActive: true },
+      { dayOfWeek: 0, startTime: "10:00", endTime: "20:00", isActive: true },
+    ],
+    bookingSettings: mockBookingSettings
+  },
+  {
+    id: "75cdf85a-67f9-40c4-9fc1-ee1019138bec",
+    name: "El mono epico editado",
+    address: "Arroyito 8767, Córdoba, Argentina",
+    shopStatus: "ENABLED",
+    userId: "87IZYWdezwJQsILiU57z",
+    businessHours: [
+      { dayOfWeek: 1, startTime: "12:00", endTime: "15:00", isActive: true },
+      { dayOfWeek: 2, startTime: "12:00", endTime: "15:00", isActive: true },
+      { dayOfWeek: 3, startTime: "12:00", endTime: "15:00", isActive: true },
+      { dayOfWeek: 4, startTime: "12:00", endTime: "15:00", isActive: true },
+      { dayOfWeek: 5, startTime: "12:00", endTime: "15:00", isActive: true },
+      { dayOfWeek: 6, startTime: "12:00", endTime: "15:00", isActive: true },
+      { dayOfWeek: 0, startTime: "12:00", endTime: "15:00", isActive: false },
+    ],
+    bookingSettings: mockBookingSettings
+  }
 ];
 
+// Para mantener compatibilidad con componentes existentes
+export const mockShop: Shop = mockShops[0];
+
+// Time slots específicos por negocio
+export const mockTimeSlots: TimeSlot[] = [
+  // 🎯 La vuelta del Maxi - Ofertas/Descuentos, Relajación y bienestar
+  // Alquiler de Autos París
+  { id: "ts_auto_1", kitId: "kit_auto_paris", startTime: "09:00", endTime: "12:00", maxBookings: 2, isActive: true },
+  { id: "ts_auto_2", kitId: "kit_auto_paris", startTime: "14:00", endTime: "17:00", maxBookings: 2, isActive: true },
+  
+  // Spa Day Premium
+  { id: "ts_spa_1", kitId: "kit_spa_day", startTime: "09:00", endTime: "15:00", maxBookings: 1, isActive: true },
+  { id: "ts_spa_2", kitId: "kit_spa_day", startTime: "10:00", endTime: "16:00", maxBookings: 1, isActive: true },
+  
+  // Cata de Vinos VIP
+  { id: "ts_vino_1", kitId: "kit_cata_vinos", startTime: "15:00", endTime: "16:30", maxBookings: 6, isActive: true },
+  { id: "ts_vino_2", kitId: "kit_cata_vinos", startTime: "17:00", endTime: "18:30", maxBookings: 6, isActive: true },
+
+  // 🍽️ Café Delicias - Al mediodía, A la noche
+  // Brunch Especial
+  { id: "ts_brunch_1", kitId: "kit_brunch_especial", startTime: "10:00", endTime: "12:00", maxBookings: 4, isActive: true },
+  { id: "ts_brunch_2", kitId: "kit_brunch_especial", startTime: "12:00", endTime: "14:00", maxBookings: 4, isActive: true },
+  
+  // Cena Romántica
+  { id: "ts_cena_1", kitId: "kit_cena_romantica", startTime: "19:00", endTime: "22:00", maxBookings: 3, isActive: true },
+  { id: "ts_cena_2", kitId: "kit_cena_romantica", startTime: "21:00", endTime: "24:00", maxBookings: 2, isActive: true },
+  
+  // Clase de Café y Barista
+  { id: "ts_cafe_1", kitId: "kit_clase_barista", startTime: "14:00", endTime: "16:00", maxBookings: 6, isActive: true },
+  { id: "ts_cafe_2", kitId: "kit_clase_barista", startTime: "16:00", endTime: "18:00", maxBookings: 6, isActive: true },
+
+  // 🐒 El mono epico editado - Al mediodía
+  // Almuerzo Épico
+  { id: "ts_almuerzo_1", kitId: "kit_almuerzo_epico", startTime: "12:00", endTime: "13:30", maxBookings: 3, isActive: true },
+  { id: "ts_almuerzo_2", kitId: "kit_almuerzo_epico", startTime: "13:30", endTime: "15:00", maxBookings: 3, isActive: true },
+  
+  // Experiencia Mono
+  { id: "ts_mono_1", kitId: "kit_experiencia_mono", startTime: "12:00", endTime: "15:00", maxBookings: 1, isActive: true },
+];
+
+// Kits específicos por negocio
 export const mockKits: Kit[] = [
+  // 🎯 LA VUELTA DEL MAXI - Ofertas/Descuentos, Relajación y bienestar
   {
-    id: "5b9e0bd3-a992-440e-8610-51ed43467fe9",
-    name: "Car Rental Catania Italy",
+    id: "kit_auto_paris",
+    name: "Alquiler de Autos en París, Francia",
     price: 120,
     maxCapacity: 4,
     duration: 180, // 3 hours
-    items: [],
-    extras: [],
+    items: [
+      {
+        id: "item_auto_1",
+        title: "Volkswagen Jetta or similar",
+        description: "Vehicle Features AM/FM Stereo Radio Cruise Control 2 Wheel Drive Gasoline Vehicle Air Conditioning Bluetooth",
+        price: 100,
+        isForAdult: true,
+        size: 5
+      }
+    ],
+    extras: [
+      {
+        id: "extra_auto_1",
+        title: "Porta equipaje parisino",
+        description: "Muy parisino el porta equipaje",
+        price: 5,
+        isForAdult: false,
+        quantity: 0
+      }
+    ],
     shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    slots: mockTimeSlots.filter(slot => slot.kitId === "5b9e0bd3-a992-440e-8610-51ed43467fe9")
+    slots: mockTimeSlots.filter(slot => slot.kitId === "kit_auto_paris")
   },
   {
-    id: "kit2",
-    name: "Cena Romántica Premium",
-    price: 85,
-    maxCapacity: 2,
-    duration: 180, // 3 hours
-    items: [],
-    extras: [],
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    slots: mockTimeSlots.filter(slot => slot.kitId === "kit2")
-  },
-  {
-    id: "kit3",
-    name: "Cata de Vinos Exclusiva",
-    price: 45,
-    maxCapacity: 8,
-    duration: 90, // 1.5 hours
-    items: [],
-    extras: [],
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    slots: mockTimeSlots.filter(slot => slot.kitId === "kit3")
-  },
-  // Más kits para simular diferentes negocios y experiencias
-  {
-    id: "kit4",
-    name: "Tour Fotográfico Barcelona",
-    price: 75,
-    maxCapacity: 6,
-    duration: 240, // 4 hours
-    items: [],
-    extras: [],
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    slots: mockTimeSlots.filter(slot => slot.kitId === "kit4")
-  },
-  {
-    id: "kit5",
-    name: "Clase de Cocina Italiana",
-    price: 95,
-    maxCapacity: 10,
-    duration: 150, // 2.5 hours
-    items: [],
-    extras: [],
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    slots: mockTimeSlots.filter(slot => slot.kitId === "kit5")
-  },
-  {
-    id: "kit6",
-    name: "Spa Day Completo",
+    id: "kit_spa_day",
+    name: "Spa Day Premium Completo",
     price: 180,
     maxCapacity: 1,
     duration: 360, // 6 hours
     items: [],
     extras: [],
     shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    slots: mockTimeSlots.filter(slot => slot.kitId === "kit6")
+    slots: mockTimeSlots.filter(slot => slot.kitId === "kit_spa_day")
   },
   {
-    id: "kit7",
-    name: "Kayak + Snorkel Mallorca",
-    price: 65,
-    maxCapacity: 8,
-    duration: 210, // 3.5 hours
-    items: [],
-    extras: [],
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    slots: mockTimeSlots.filter(slot => slot.kitId === "kit7")
-  },
-  {
-    id: "kit8",
-    name: "Sesión Yoga al Amanecer",
-    price: 35,
-    maxCapacity: 15,
+    id: "kit_cata_vinos",
+    name: "Cata de Vinos VIP Exclusiva",
+    price: 75,
+    maxCapacity: 6,
     duration: 90, // 1.5 hours
     items: [],
     extras: [],
     shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    slots: mockTimeSlots.filter(slot => slot.kitId === "kit8")
+    slots: mockTimeSlots.filter(slot => slot.kitId === "kit_cata_vinos")
+  },
+
+  // 🍽️ CAFÉ DELICIAS - Al mediodía, A la noche
+  {
+    id: "kit_brunch_especial",
+    name: "Brunch Especial Gourmet",
+    price: 45,
+    maxCapacity: 2,
+    duration: 120, // 2 hours
+    items: [],
+    extras: [],
+    shopId: "cb4813f2-3bb9-48d3-ae7d-a72eb1e1f4bf",
+    slots: mockTimeSlots.filter(slot => slot.kitId === "kit_brunch_especial")
   },
   {
-    id: "kit9",
-    name: "Escape Room VIP",
-    price: 150,
+    id: "kit_cena_romantica",
+    name: "Cena Romántica Premium",
+    price: 95,
+    maxCapacity: 2,
+    duration: 180, // 3 hours
+    items: [],
+    extras: [],
+    shopId: "cb4813f2-3bb9-48d3-ae7d-a72eb1e1f4bf",
+    slots: mockTimeSlots.filter(slot => slot.kitId === "kit_cena_romantica")
+  },
+  {
+    id: "kit_clase_barista",
+    name: "Clase de Café y Barista Profesional",
+    price: 65,
     maxCapacity: 6,
     duration: 120, // 2 hours
     items: [],
     extras: [],
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    slots: mockTimeSlots.filter(slot => slot.kitId === "kit9")
+    shopId: "cb4813f2-3bb9-48d3-ae7d-a72eb1e1f4bf",
+    slots: mockTimeSlots.filter(slot => slot.kitId === "kit_clase_barista")
   },
+
+  // 🐒 EL MONO EPICO EDITADO - Al mediodía
   {
-    id: "kit10",
-    name: "Paseo en Globo Aerostático",
-    price: 220,
-    maxCapacity: 4,
-    duration: 300, // 5 hours
+    id: "kit_almuerzo_epico",
+    name: "Almuerzo Épico Monardo",
+    price: 35,
+    maxCapacity: 3,
+    duration: 90, // 1.5 hours
     items: [],
     extras: [],
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    slots: mockTimeSlots.filter(slot => slot.kitId === "kit10")
+    shopId: "75cdf85a-67f9-40c4-9fc1-ee1019138bec",
+    slots: mockTimeSlots.filter(slot => slot.kitId === "kit_almuerzo_epico")
+  },
+  {
+    id: "kit_experiencia_mono",
+    name: "Experiencia Mono Completa",
+    price: 85,
+    maxCapacity: 1,
+    duration: 180, // 3 hours
+    items: [],
+    extras: [],
+    shopId: "75cdf85a-67f9-40c4-9fc1-ee1019138bec",
+    slots: mockTimeSlots.filter(slot => slot.kitId === "kit_experiencia_mono")
   }
 ];
 
+// Reservas distribuidas entre los 3 negocios
 export const mockBookings: Booking[] = [
-  // Reservas para junio 2025
+  // 🎯 Reservas para "La vuelta del Maxi"
   {
-    id: "booking1",
-    kitId: "5b9e0bd3-a992-440e-8610-51ed43467fe9",
-    kitName: "Car Rental Catania Italy",
+    id: "booking_maxi_1",
+    kitId: "kit_auto_paris",
+    kitName: "Alquiler de Autos en París, Francia",
     shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    customerName: "Juan Pérez",
-    customerEmail: "juan.perez@email.com",
-    customerPhone: "+34 600 123 456",
+    customerName: "Sofia García",
+    customerEmail: "sofia.garcia@email.com",
+    customerPhone: "+34 612345678",
     date: "2025-06-25",
     timeSlot: "09:00",
     numberOfPeople: 2,
     status: "CONFIRMED",
     isManual: false,
-    createdAt: "2025-06-20T10:30:00Z",
-    notes: "Reserva online confirmada"
+    createdAt: "2025-06-20T10:30:00.000Z",
+    notes: "Luna de miel en París"
   },
   {
-    id: "booking2",
-    kitId: "kit2",
-    kitName: "Cena Romántica Premium",
+    id: "booking_maxi_2",
+    kitId: "kit_spa_day",
+    kitName: "Spa Day Premium Completo",
     shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    customerName: "Ana García",
-    customerEmail: "ana.garcia@email.com",
-    customerPhone: "+34 600 789 012",
+    customerName: "Elena Rossi",
+    customerEmail: "elena.rossi@hotmail.it",
+    customerPhone: "+39 3201234567",
     date: "2025-06-26",
-    timeSlot: "19:00",
-    numberOfPeople: 2,
+    timeSlot: "10:00",
+    numberOfPeople: 1,
     status: "PENDING",
     isManual: true,
-    createdAt: "2025-06-22T15:45:00Z",
-    notes: "Reserva telefónica - Aniversario"
-  },
-  {
-    id: "booking3",
-    kitId: "kit3",
-    kitName: "Cata de Vinos Exclusiva",
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    customerName: "Carlos Martín",
-    customerEmail: "carlos.martin@email.com",
-    customerPhone: "+34 600 345 678",
-    date: "2025-06-27",
-    timeSlot: "15:00",
-    numberOfPeople: 4,
-    status: "CONFIRMED",
-    isManual: false,
-    createdAt: "2025-06-21T09:15:00Z"
-  },
-  {
-    id: "booking4",
-    kitId: "kit4",
-    kitName: "Tour Fotográfico Barcelona",
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    customerName: "María López",
-    customerEmail: "maria.lopez@email.com",
-    customerPhone: "+34 600 901 234",
-    date: "2025-06-28",
-    timeSlot: "08:00",
-    numberOfPeople: 3,
-    status: "CONFIRMED",
-    isManual: true,
-    createdAt: "2025-06-23T11:20:00Z",
-    notes: "Cliente VIP - Descuento aplicado"
-  },
-  {
-    id: "booking5",
-    kitId: "kit5",
-    kitName: "Clase de Cocina Italiana",
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    customerName: "Roberto Silva",
-    customerEmail: "roberto.silva@email.com",
-    customerPhone: "+34 600 555 123",
-    date: "2025-06-29",
-    timeSlot: "10:00",
-    numberOfPeople: 6,
-    status: "CONFIRMED",
-    isManual: false,
-    createdAt: "2025-06-24T08:30:00Z",
-    notes: "Grupo empresarial"
-  },
-  {
-    id: "booking6",
-    kitId: "kit6",
-    kitName: "Spa Day Completo",
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    customerName: "Laura Fernández",
-    customerEmail: "laura.fernandez@email.com",
-    customerPhone: "+34 600 777 890",
-    date: "2025-06-30",
-    timeSlot: "09:00",
-    numberOfPeople: 1,
-    status: "CONFIRMED",
-    isManual: true,
-    createdAt: "2025-06-23T14:15:00Z",
+    createdAt: "2025-06-22T14:15:00.000Z",
     notes: "Regalo de cumpleaños"
   },
   {
-    id: "booking7",
-    kitId: "kit7",
-    kitName: "Kayak + Snorkel Mallorca",
+    id: "booking_maxi_3",
+    kitId: "kit_cata_vinos",
+    kitName: "Cata de Vinos VIP Exclusiva",
     shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    customerName: "Pedro Martínez",
-    customerEmail: "pedro.martinez@email.com",
-    customerPhone: "+34 600 333 456",
-    date: "2025-06-25",
-    timeSlot: "09:00",
-    numberOfPeople: 4,
-    status: "PENDING",
-    isManual: false,
-    createdAt: "2025-06-22T16:45:00Z",
-    notes: "Vacaciones familiares"
-  },
-  {
-    id: "booking8",
-    kitId: "kit8",
-    kitName: "Sesión Yoga al Amanecer",
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    customerName: "Sofia Ruiz",
-    customerEmail: "sofia.ruiz@email.com",
-    customerPhone: "+34 600 222 789",
-    date: "2025-06-26",
-    timeSlot: "06:00",
-    numberOfPeople: 1,
-    status: "CONFIRMED",
-    isManual: true,
-    createdAt: "2025-06-21T19:30:00Z",
-    notes: "Experiencia de bienestar"
-  },
-  {
-    id: "booking9",
-    kitId: "kit9",
-    kitName: "Escape Room VIP",
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    customerName: "Daniel Torres",
-    customerEmail: "daniel.torres@email.com",
-    customerPhone: "+34 600 111 234",
+    customerName: "Carlos Mendoza",
+    customerEmail: "carlos.mendoza@empresa.com",
+    customerPhone: "+54 9 11 2345-6789",
     date: "2025-06-27",
-    timeSlot: "18:00",
-    numberOfPeople: 5,
-    status: "CONFIRMED",
-    isManual: false,
-    createdAt: "2025-06-20T12:00:00Z",
-    notes: "Despedida de soltero"
-  },
-  {
-    id: "booking10",
-    kitId: "kit10",
-    kitName: "Paseo en Globo Aerostático",
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    customerName: "Carmen Herrera",
-    customerEmail: "carmen.herrera@email.com",
-    customerPhone: "+34 600 999 567",
-    date: "2025-06-28",
-    timeSlot: "06:00",
-    numberOfPeople: 2,
-    status: "CANCELLED",
-    isManual: true,
-    createdAt: "2025-06-19T10:45:00Z",
-    notes: "Cancelado por mal tiempo"
-  },
-  // Más reservas para mostrar variedad
-  {
-    id: "booking11",
-    kitId: "kit3",
-    kitName: "Cata de Vinos Exclusiva",
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    customerName: "Alberto Vega",
-    customerEmail: "alberto.vega@email.com",
-    customerPhone: "+34 600 444 123",
-    date: "2025-06-29",
     timeSlot: "17:00",
-    numberOfPeople: 3,
-    status: "PENDING",
+    numberOfPeople: 4,
+    status: "COMPLETED",
     isManual: false,
-    createdAt: "2025-06-24T13:20:00Z",
+    createdAt: "2025-06-18T09:45:00.000Z",
     notes: "Evento corporativo"
   },
+
+  // 🍽️ Reservas para "Café Delicias"
   {
-    id: "booking12",
-    kitId: "kit2",
-    kitName: "Cena Romántica Premium",
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    customerName: "Elena Castillo",
-    customerEmail: "elena.castillo@email.com",
-    customerPhone: "+34 600 666 789",
-    date: "2025-06-30",
-    timeSlot: "21:00",
+    id: "booking_cafe_1",
+    kitId: "kit_brunch_especial",
+    kitName: "Brunch Especial Gourmet",
+    shopId: "cb4813f2-3bb9-48d3-ae7d-a72eb1e1f4bf",
+    customerName: "Ana López",
+    customerEmail: "ana.lopez@gmail.com",
+    customerPhone: "+54 351 123-4567",
+    date: "2025-06-25",
+    timeSlot: "10:00",
     numberOfPeople: 2,
     status: "CONFIRMED",
+    isManual: false,
+    createdAt: "2025-06-23T08:20:00.000Z",
+    notes: "Reunión de amigas"
+  },
+  {
+    id: "booking_cafe_2",
+    kitId: "kit_cena_romantica",
+    kitName: "Cena Romántica Premium",
+    shopId: "cb4813f2-3bb9-48d3-ae7d-a72eb1e1f4bf",
+    customerName: "Miguel Santos",
+    customerEmail: "miguel.santos@yahoo.com",
+    customerPhone: "+54 351 987-6543",
+    date: "2025-06-26",
+    timeSlot: "19:00",
+    numberOfPeople: 2,
+    status: "RESCHEDULED",
+    isManual: false,
+    createdAt: "2025-06-19T16:30:00.000Z",
+    notes: "Aniversario - RESCHEDULED from 2025-06-24",
+    rescheduledFrom: "2025-06-24"
+  },
+  {
+    id: "booking_cafe_3",
+    kitId: "kit_clase_barista",
+    kitName: "Clase de Café y Barista Profesional",
+    shopId: "cb4813f2-3bb9-48d3-ae7d-a72eb1e1f4bf",
+    customerName: "Laura Fernández",
+    customerEmail: "laura.fernandez@universidad.edu",
+    customerPhone: "+54 351 555-0123",
+    date: "2025-06-28",
+    timeSlot: "14:00",
+    numberOfPeople: 1,
+    status: "NO_SHOW",
     isManual: true,
-    createdAt: "2025-06-24T18:00:00Z",
-    notes: "Cena de aniversario - mesa privada"
-  }
-]; 
+    createdAt: "2025-06-21T11:00:00.000Z",
+    notes: "Estudiante de gastronomía"
+  },
+  {
+    id: "booking_cafe_4",
+    kitId: "kit_brunch_especial",
+    kitName: "Brunch Especial Gourmet",
+    shopId: "cb4813f2-3bb9-48d3-ae7d-a72eb1e1f4bf",
+    customerName: "Roberto Silva",
+    customerEmail: "roberto.silva@empresa.net",
+    customerPhone: "+54 351 444-5566",
+    date: "2025-06-29",
+    timeSlot: "12:00",
+    numberOfPeople: 2,
+    status: "CANCELLED",
+    isManual: false,
+    createdAt: "2025-06-22T13:45:00.000Z",
+    notes: "Cancelado por cambio de planes",
+    cancellationReason: "Cambio de planes laborales"
+  },
 
-// Excepciones del negocio
+  // 🐒 Reservas para "El mono epico editado"
+  {
+    id: "booking_mono_1",
+    kitId: "kit_almuerzo_epico",
+    kitName: "Almuerzo Épico Monardo",
+    shopId: "75cdf85a-67f9-40c4-9fc1-ee1019138bec",
+    customerName: "Patricia Morales",
+    customerEmail: "patricia.morales@correo.com",
+    customerPhone: "+54 351 777-8899",
+    date: "2025-06-25",
+    timeSlot: "12:00",
+    numberOfPeople: 3,
+    status: "CONFIRMED",
+    isManual: false,
+    createdAt: "2025-06-22T15:20:00.000Z",
+    notes: "Almuerzo familiar"
+  },
+  {
+    id: "booking_mono_2",
+    kitId: "kit_experiencia_mono",
+    kitName: "Experiencia Mono Completa",
+    shopId: "75cdf85a-67f9-40c4-9fc1-ee1019138bec",
+    customerName: "Javier Ruiz",
+    customerEmail: "javier.ruiz@outlook.com",
+    customerPhone: "+54 351 111-2233",
+    date: "2025-06-27",
+    timeSlot: "12:00",
+    numberOfPeople: 1,
+    status: "PARTIAL_REFUND",
+    isManual: true,
+    createdAt: "2025-06-20T12:10:00.000Z",
+    notes: "Problema con el servicio - reembolso parcial",
+    refundAmount: 40
+  },
+  {
+    id: "booking_mono_3",
+    kitId: "kit_almuerzo_epico",
+    kitName: "Almuerzo Épico Monardo",
+    shopId: "75cdf85a-67f9-40c4-9fc1-ee1019138bec",
+    customerName: "Carmen Vega",
+    customerEmail: "carmen.vega@gmail.com",
+    customerPhone: "+54 351 999-0011",
+    date: "2025-06-30",
+    timeSlot: "13:30",
+    numberOfPeople: 2,
+    status: "PENDING",
+    isManual: false,
+    createdAt: "2025-06-24T09:30:00.000Z",
+    notes: "Celebración cumpleaños"
+  }
+];
+
+// Excepciones distribuidas entre los negocios
 export const mockExceptions: ShopException[] = [
   {
-    id: "exc1",
+    id: "exception_maxi_1",
     shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
     date: "2025-06-29",
     type: "PRIVATE_EVENT",
-    title: "Evento Privado - Boda VIP",
-    description: "Toda la instalación reservada para boda privada",
-    affectedKits: [], // afecta a todos los kits
+    title: "Evento Privado Boda VIP",
+    description: "Celebración privada de boda, servicios exclusivos",
+    affectedKits: ["kit_spa_day"],
     isActive: true,
-    createdAt: "2025-06-15T10:00:00Z"
+    createdAt: "2025-06-15T10:00:00.000Z"
   },
   {
-    id: "exc2",
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
+    id: "exception_cafe_1",
+    shopId: "cb4813f2-3bb9-48d3-ae7d-a72eb1e1f4bf",
     date: "2025-06-30",
     type: "SPECIAL_HOURS",
-    title: "Horario Especial - Fin de Mes",
-    description: "Horario extendido por alta demanda",
+    title: "Horario Especial Fin de Mes",
+    description: "Horario extendido para evento especial",
     specialHours: {
       startTime: "06:00",
-      endTime: "24:00"
+      endTime: "02:00"
     },
-    affectedKits: ["kit6", "kit8"], // Solo Spa y Yoga
+    affectedKits: [],
     isActive: true,
-    createdAt: "2025-06-20T14:30:00Z"
+    createdAt: "2025-06-20T14:30:00.000Z"
   },
   {
-    id: "exc3",
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    date: "2025-06-25",
+    id: "exception_mono_1",
+    shopId: "75cdf85a-67f9-40c4-9fc1-ee1019138bec",
+    date: "2025-06-28",
     type: "MAINTENANCE",
-    title: "Mantenimiento Equipos Acuáticos",
-    description: "Revisión y mantenimiento de equipos de kayak",
-    affectedKits: ["kit7"], // Solo Kayak
+    title: "Mantenimiento Cocina",
+    description: "Renovación de equipos de cocina",
+    affectedKits: ["kit_almuerzo_epico"],
     isActive: true,
-    createdAt: "2025-06-18T09:15:00Z"
+    createdAt: "2025-06-18T11:15:00.000Z"
   }
 ];
 
 // Bloques de disponibilidad avanzada
 export const mockAvailabilityBlocks: AvailabilityBlock[] = [
   {
-    id: "block1",
+    id: "avail_maxi_1",
     shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    kitId: "kit10", // Globo aerostático
+    kitId: "kit_auto_paris",
     startDate: "2025-06-25",
     endDate: "2025-06-27",
-    type: "BLOCKED",
-    reason: "Condiciones meteorológicas adversas",
-    isActive: true
-  },
-  {
-    id: "block2",
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    startDate: "2025-06-28",
-    endDate: "2025-06-30",
     type: "SPECIAL_PRICING",
-    reason: "Promoción fin de semana premium",
+    reason: "Promoción fin de semana París",
     settings: {
-      priceMultiplier: 1.5
+      priceMultiplier: 0.85
     },
     isActive: true
   },
   {
-    id: "block3",
-    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
-    kitId: "kit5", // Cocina italiana
+    id: "avail_cafe_1",
+    shopId: "cb4813f2-3bb9-48d3-ae7d-a72eb1e1f4bf",
+    kitId: "kit_cena_romantica",
     startDate: "2025-06-26",
     endDate: "2025-06-28",
     type: "LIMITED_CAPACITY",
-    reason: "Chef invitado - plazas limitadas",
+    reason: "Chef invitado - capacidad limitada",
     settings: {
       maxBookings: 1
     },
+    isActive: true
+  },
+  {
+    id: "avail_mono_1",
+    shopId: "75cdf85a-67f9-40c4-9fc1-ee1019138bec",
+    startDate: "2025-06-29",
+    endDate: "2025-06-30",
+    type: "BLOCKED",
+    reason: "Preparación evento especial",
     isActive: true
   }
 ];
