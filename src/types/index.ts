@@ -198,7 +198,7 @@ export interface Booking {
   // CUSTOMER INFO
   customerName: string;
   customerEmail: string;
-  customerPhone: string;
+  customerPhone?: string;
   
   // SELECTIONS
   selectedItems: BookingItemSelection[];
@@ -235,7 +235,7 @@ export interface Booking {
   staffAssigned?: string[];
 }
 
-// ==================== HORARIOS DE NEGOCIO (sin cambios) ====================
+// ==================== CONFIGURACIÓN DE NEGOCIO ====================
 
 export interface BusinessHoursPeriod {
   startTime: string; // HH:mm format
@@ -262,8 +262,6 @@ export interface BusinessHourDay {
   isActive: boolean;
   periods: BusinessHoursPeriod[];
 }
-
-// ==================== CONFIGURACIONES ====================
 
 export interface BookingSettings {
   hoursBeforeBooking: number;
@@ -339,7 +337,7 @@ export interface BookingFormData {
   notes?: string;
 }
 
-// ==================== GESTIÓN DE EXCEPCIONES ====================
+// ==================== EXCEPCIONES Y DISPONIBILIDAD ====================
 
 export interface ShopException {
   id: string;
@@ -424,74 +422,6 @@ export interface CustomerInfo {
   preferredBundles?: string[];
 }
 
-// ==================== DISPONIBILIDAD Y CONFLICTOS ====================
-
-export interface AvailabilityCheck {
-  itemId: string;
-  date: string;
-  timeSlotId: string;
-  numberOfPeople: number;
-}
-
-export interface AvailabilityResult {
-  isAvailable: boolean;
-  reason?: string;
-  conflicts?: AvailabilityConflict[];
-  remainingCapacity?: number;
-  nextAvailableSlot?: string;
-  alternativeItems?: string[];
-  resourceAvailability?: ResourceAvailabilityInfo[];
-}
-
-export interface AvailabilityConflict {
-  type: 'TIME_CONFLICT' | 'BUSINESS_HOURS' | 'CAPACITY_EXCEEDED' | 'RESOURCE_UNAVAILABLE' | 'DEPENDENCY_UNMET';
-  message: string;
-  itemId?: string;
-  resourceId?: string;
-  timeSlot?: string;
-  suggestedAlternative?: string;
-}
-
-export interface ResourceAvailabilityInfo {
-  resourceId: string;
-  resourceName: string;
-  totalCapacity: number;
-  usedCapacity: number;
-  availableCapacity: number;
-  nextAvailableTime?: string;
-}
-
-// ==================== LEGACY COMPATIBILITY ====================
-// Mantenemos algunos tipos para compatibilidad temporal
-
-export interface Kit {
-  id: string;
-  name: string;
-  price: number;
-  maxCapacity: number;
-  duration: number;
-  items?: any[];
-  extras?: any[];
-  shopId: string;
-  slots?: TimeSlot[];
-}
-
-export interface TimeSlot {
-  id: string;
-  kitId: string;
-  startTime: string;
-  endTime: string;
-  maxBookings: number;
-  isActive: boolean;
-}
-
-export interface TimeSlotFormData {
-  kitId: string;
-  startTime: string;
-  endTime: string;
-  maxBookings: number;
-}
-
 // ==================== MOTOR DE DISPONIBILIDAD ====================
 
 export interface AvailabilityCheck {
@@ -529,7 +459,6 @@ export interface ResourceAvailabilityInfo {
   nextAvailableTime?: string;
 }
 
-// Engine de validación completa
 export interface BookingValidationResult {
   isValid: boolean;
   conflicts: AvailabilityConflict[];

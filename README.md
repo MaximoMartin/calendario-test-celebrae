@@ -1,191 +1,177 @@
-# Sistema de Gestión de Reservas
+# 🗓️ Sistema de Reservas Moderno
 
-Una aplicación completa de gestión de reservas y turnos desarrollada con React, TypeScript y Tailwind CSS. Diseñada para negocios que ofrecen servicios con citas programadas como restaurantes, alquiler de vehículos, actividades turísticas, etc.
+Sistema completo de gestión de reservas desarrollado con React, TypeScript y la nueva arquitectura Bundle-Item-Resource. Diseñado para negocios que requieren gestión avanzada de recursos físicos, horarios y experiencias complejas.
 
-## 🚀 Características Principales
+## ✨ Características Principales
 
-### ✅ Funcionalidades Implementadas
+### 🏗️ Arquitectura Moderna
+- **Bundles**: Paquetes de experiencias que contienen múltiples items y extras
+- **Items**: Actividades específicas con horarios, recursos y dependencias
+- **Recursos**: Entidades físicas (salas, equipos, personal) compartidas entre items
+- **Sistema de Dependencias**: Items que deben ejecutarse en secuencia o concurrentemente
 
-- **📅 Calendario Visual Interactivo**
-  - Vista por mes, semana y día
-  - Eventos con código de colores por estado
-  - Selección de slots para crear reservas
-  - Filtrado por servicio/kit
+### 📅 Calendario Avanzado
+- Vista de reservas por Bundle, Item o Recurso
+- Navegación fluida entre vistas mes/semana/día
+- Código de colores por estado de reserva
+- Filtros avanzados por Bundle, Item o Recurso
+- Localización completa en español
 
-- **📝 Gestión Integral de Reservas**
-  - Creación manual de reservas
-  - Estados: Pendiente, Confirmada, Cancelada, Completada
-  - Validaciones de horarios y capacidad
-  - Información completa del cliente
+### 🎯 Motor de Disponibilidad
+- Validación en tiempo real de recursos
+- Gestión de conflictos y dependencias
+- Sugerencias de horarios alternativos
+- Verificación de capacidad máxima
+- Validación de horarios de negocio
 
-- **⚙️ Configuración de Negocio**
-  - Horarios de atención por día de la semana
-  - Gestión de servicios/kits
-  - Configuración de slots de tiempo
-  - Límites de reservas por slot
+## 🚀 Tecnologías
 
-- **📊 Dashboard y Estadísticas**
-  - Resumen de reservas por estado
-  - Lista filtrable de reservas
-  - Acciones rápidas (confirmar, cancelar, completar)
-
-- **🎨 Interfaz Moderna**
-  - Diseño responsive
-  - Componentes reutilizables
-  - Estados de carga
-  - Validación de formularios
-
-## 🛠️ Tecnologías Utilizadas
-
-- **React 19** + **TypeScript** - Framework y tipado fuerte
-- **Tailwind CSS** - Estilos utilitarios
-- **React Big Calendar** - Componente de calendario
-- **React Hook Form** + **Zod** - Gestión y validación de formularios
-- **date-fns** - Manipulación de fechas
-- **Lucide React** - Iconografía moderna
-- **Vite** - Build tool y dev server
+- **React 19** con TypeScript
+- **Vite** para desarrollo ultra-rápido
+- **Tailwind CSS v4** para estilos modernos
+- **React Big Calendar** con localización
+- **Moment.js** para manejo de fechas
+- **Lucide React** para iconografía
 
 ## 📁 Estructura del Proyecto
 
 ```
 src/
-├── components/           # Componentes React
-│   ├── ui/              # Componentes base reutilizables
+├── components/
+│   ├── ui/                    # Componentes base reutilizables
 │   │   ├── Button.tsx
+│   │   ├── Card.tsx
 │   │   ├── Input.tsx
-│   │   ├── Select.tsx
-│   │   └── Card.tsx
-│   ├── BookingCalendar.tsx    # Calendario principal
-│   ├── BookingForm.tsx        # Formulario de reservas
-│   ├── BookingList.tsx        # Lista de reservas
-│   ├── BookingStats.tsx       # Estadísticas
+│   │   └── Select.tsx
+│   ├── ModernCalendar.tsx     # Calendario principal con vistas avanzadas
+│   ├── AvailabilityDemo.tsx   # Demo del motor de disponibilidad
 │   └── BusinessHoursForm.tsx  # Configuración de horarios
-├── hooks/               # Custom hooks
-│   └── useBookings.ts   # Hook para gestión de reservas
-├── utils/               # Utilidades
-│   └── dateHelpers.ts   # Helpers para fechas y validaciones
-├── types/               # Definiciones TypeScript
-│   └── index.ts         # Tipos principales
-├── mockData/            # Datos de ejemplo
-│   └── index.ts         # Mock data
-└── App.tsx              # Componente principal
+├── hooks/
+│   ├── useBookings.ts         # Gestión de estado de reservas
+│   └── useAvailability.ts     # Motor de disponibilidad y validaciones
+├── types/
+│   └── index.ts               # Definiciones TypeScript completas
+├── utils/
+│   ├── dateHelpers.ts         # Utilidades para manejo de fechas
+│   └── availabilityEngine.ts  # Lógica del motor de disponibilidad
+├── mockData/
+│   └── index.ts               # Datos de ejemplo realistas
+└── App.tsx                    # Componente principal
 ```
 
-## 🎯 Modelo de Datos
+## 🎮 Funcionalidades Implementadas
 
-### Entidades Principales
+### ✅ Sistema de Reservas Moderno
+- **Estructura Bundle-Item-Resource**: Arquitectura escalable y flexible
+- **Gestión de Recursos**: Asignación automática de recursos físicos
+- **Horarios Complejos**: Items con horarios específicos y dependencias
+- **Pricing Dinámico**: Precios por persona, multiplicadores de horario
 
-- **User**: Usuarios del sistema (SELLER, ADMIN)
-- **Shop**: Negocios/tiendas
-- **Kit**: Servicios/productos ofrecidos
-- **Booking**: Reservas de clientes
-- **TimeSlot**: Slots de tiempo disponibles
-- **BusinessHours**: Horarios de atención
+### ✅ Calendario Visual Avanzado
+- **Múltiples Vistas**: Reservas, Items individuales, Recursos, Timeline
+- **Filtros Inteligentes**: Por Bundle, Item específico o Recurso
+- **Estados Visuales**: Código de colores por estado de reserva
+- **Interactividad**: Selección de slots, navegación fluida
 
-### Flujo de Negocio
+### ✅ Motor de Disponibilidad
+- **Validación en Tiempo Real**: Verificación instantánea de disponibilidad
+- **Gestión de Conflictos**: Detección y resolución de conflictos de recursos
+- **Sugerencias Inteligentes**: Horarios alternativos automáticos
+- **Dependencias**: Validación de secuencias entre items
 
-1. **Configuración**: El dueño configura horarios y servicios
-2. **Reservas**: Se crean reservas manuales o automáticas
-3. **Gestión**: Se confirman, cancelan o completan reservas
-4. **Visualización**: Todo se muestra en el calendario y listas
+### ✅ Configuración Avanzada
+- **Horarios de Negocio**: Configuración por día con múltiples períodos
+- **Recursos Físicos**: Gestión de salas, equipos, personal
+- **Excepciones**: Días especiales, mantenimiento, eventos privados
+
+## 🎯 Datos de Ejemplo
+
+El proyecto incluye datos realistas que simulan:
+
+### 🏪 Negocios Configurados
+1. **La vuelta del Maxi** - Escape Room Center
+2. **Café Delicias** - Experiencias Gastronómicas  
+3. **El Mono Épico Editado** - Experiencias Gourmet
+
+### 🎁 Bundles de Ejemplo
+- **Aventura Egipcia Completa** - Escape room con experiencia inmersiva
+- **Experiencia Gastronómica Completa** - Clase de barista + cena romántica
+- **Catadores y Exploradores** - Experiencias culinarias únicas
+
+### 🔧 Recursos Físicos
+- Salas temáticas (Sala Egipcia)
+- Personal especializado (Game Masters, Chefs)
+- Equipamiento (Sistemas de sonido, máquinas espresso)
+- Mobiliario (Mesas VIP, espacios privados)
 
 ## 🚀 Instalación y Uso
 
-### Prerrequisitos
+```bash
+# Clonar el repositorio
+git clone [repository-url]
+cd calendar-test
 
-- Node.js 18+
-- Yarn
+# Instalar dependencias
+npm install
 
-### Instalación
+# Iniciar servidor de desarrollo
+npm run dev
+
+# Abrir en navegador
+# http://localhost:5174
+```
+
+## 🎨 Personalización
+
+### Agregar Nuevos Bundles
+1. Editar `src/mockData/index.ts`
+2. Definir Items con sus horarios y recursos
+3. Configurar dependencias entre Items
+4. Añadir Extras opcionales
+
+### Configurar Recursos
+1. Agregar recursos en `mockResources`
+2. Asignar a Shop específico
+3. Definir capacidad máxima concurrent
+4. Configurar en `requiredResources` de Items
+
+### Personalizar Horarios
+1. Editar `availableTimeSlots` en Items
+2. Configurar días de la semana disponibles
+3. Establecer multiplicadores de precio
+4. Definir restricciones de anticipación
+
+## 🎯 Casos de Uso Ideales
+
+- **Escape Rooms**: Gestión de salas, game masters y horarios
+- **Restaurantes**: Mesas, chefs, experiencias gastronómicas
+- **Spas**: Salas de tratamiento, terapeutas, equipamiento
+- **Centros de Actividades**: Espacios, instructores, equipos
+- **Estudios de Fotografía**: Salas, fotógrafos, equipamiento
+- **Centros de Eventos**: Salones, personal, servicios
+
+## 📈 Próximas Mejoras
+
+- [ ] **Sistema de Notificaciones**: Email/SMS automáticos
+- [ ] **Reportes y Analytics**: Estadísticas avanzadas
+- [ ] **API Backend**: Integración con base de datos real
+- [ ] **Pagos Online**: Integración con pasarelas de pago
+- [ ] **App Móvil**: Versión nativa para gestión móvil
+- [ ] **Multi-tenant**: Soporte para múltiples organizaciones
+
+## 🔧 Desarrollo
 
 ```bash
-# Clonar e instalar dependencias
-yarn install
-
-# Ejecutar en desarrollo
-yarn dev
+# Lint del código
+npm run lint
 
 # Build para producción
-yarn build
+npm run build
+
+# Preview del build
+npm run preview
 ```
-
-### Acceso
-
-La aplicación estará disponible en `http://localhost:5173`
-
-## 📋 Funcionalidades por Pantalla
-
-### 🏠 Dashboard Principal
-- Estadísticas generales de reservas
-- Navegación por pestañas (Calendario, Reservas, Configuración)
-
-### 📅 Vista Calendario
-- Calendario interactivo con reservas
-- Filtros por servicio
-- Vistas: mes, semana, día
-- Creación rápida de reservas
-
-### 📝 Gestión de Reservas
-- Lista completa de reservas
-- Filtros por estado y servicio
-- Acciones en masa
-- Detalles completos del cliente
-
-### ⚙️ Configuración
-- Horarios de atención del negocio
-- Información de servicios
-- Configuración de slots
-
-## 🔧 Personalización
-
-### Agregar Nuevos Servicios
-
-```typescript
-const newKit: Kit = {
-  id: "unique-id",
-  name: "Nuevo Servicio",
-  price: 50,
-  maxCapacity: 6,
-  duration: 120, // minutos
-  shopId: "shop-id",
-  slots: [...]
-};
-```
-
-### Configurar Validaciones
-
-Las validaciones se encuentran en `src/utils/dateHelpers.ts` y pueden personalizarse según las reglas de negocio.
-
-### Personalizar Estilos
-
-Los estilos están en `src/index.css` y utilizan Tailwind CSS. Puedes modificar colores, espaciados y componentes según tu marca.
-
-## 🔮 Próximas Funcionalidades
-
-- [ ] Notificaciones por email/SMS
-- [ ] Integración con sistemas de pago
-- [ ] Reportes y analytics avanzados
-- [ ] API REST para integraciones
-- [ ] Aplicación móvil
-- [ ] Gestión multi-tienda
-- [ ] Sistema de roles granular
-
-## 🤝 Contribuir
-
-1. Fork del proyecto
-2. Crear feature branch (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit cambios (`git commit -am 'Agregar nueva funcionalidad'`)
-4. Push a la branch (`git push origin feature/nueva-funcionalidad`)
-5. Crear Pull Request
-
-## 📄 Licencia
-
-Este proyecto está bajo la Licencia MIT. Ver archivo `LICENSE` para más detalles.
-
-## 👨‍💻 Desarrollado por
-
-**Maxi** - Sistema completo de gestión de reservas para negocios modernos.
 
 ---
 
-*¿Necesitas ayuda o tienes preguntas? ¡No dudes en abrir un issue!*
+**Desarrollado con ❤️ para modernizar la gestión de reservas**

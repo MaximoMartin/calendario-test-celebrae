@@ -1,9 +1,7 @@
 import type { 
   User, Shop, Bundle, BundleItem, BundleExtra, Resource, ItemTimeSlot, ItemResourceRequirement,
   Booking, BookingItemSelection, BookingExtraSelection, BookingResourceAssignment,
-  BusinessHours, BookingSettings, ShopException, AvailabilityBlock,
-  // Legacy para compatibilidad temporal
-  Kit, TimeSlot
+  BusinessHours, BookingSettings, ShopException, AvailabilityBlock
 } from '../types';
 
 export const mockUser: User = {
@@ -739,32 +737,7 @@ export const mockBookings: Booking[] = [
   }
 ];
 
-// ==================== LEGACY COMPATIBILITY ====================
-// Mantenemos los datos legacy para compatibilidad temporal
+// ==================== EXCEPCIONES Y BLOQUES DE DISPONIBILIDAD ====================
 
-export const mockKits: Kit[] = mockBundles.map(bundle => ({
-  id: bundle.id,
-  name: bundle.name,
-  price: bundle.items[0]?.price || 0,
-  maxCapacity: bundle.items[0]?.maxCapacity || 1,
-  duration: bundle.items[0]?.duration || 60,
-  items: bundle.items,
-  extras: bundle.extras,
-  shopId: bundle.shopId,
-  slots: bundle.items.flatMap(item => 
-    item.availableTimeSlots.map(slot => ({
-      id: slot.id,
-      kitId: bundle.id,
-      startTime: slot.startTime,
-      endTime: slot.endTime,
-      maxBookings: slot.maxBookings,
-      isActive: slot.isActive
-    }))
-  )
-}));
-
-export const mockTimeSlots: TimeSlot[] = mockKits.flatMap(kit => kit.slots || []);
-
-// Para mantener compatibilidad con componentes existentes
 export const mockShopExceptions: ShopException[] = [];
 export const mockAvailabilityBlocks: AvailabilityBlock[] = [];
