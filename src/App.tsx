@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Settings, Calendar as CalendarIcon, AlertTriangle, Building2, Menu, X } from 'lucide-react';
+import { Settings, Calendar as CalendarIcon, AlertTriangle, Building2, Menu, X, HelpCircle } from 'lucide-react';
 import type { BusinessHours, Shop, Booking } from './types';
 import { useBookings } from './hooks/useBookings';
 import { mockBundles, mockShops } from './mockData';
 import { BusinessHoursForm } from './components/BusinessHoursForm';
 import { AvailabilityDemo } from './components/AvailabilityDemo';
 import { ModernCalendar } from './components/ModernCalendar';
+import { InteractiveTutorial, useTutorial } from './components/InteractiveTutorial';
 import { Button } from './components/ui/Button';
 import { Card } from './components/ui/Card';
 
@@ -17,6 +18,7 @@ function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const { bookings } = useBookings();
+  const tutorial = useTutorial();
 
   // Negocio seleccionado
   const selectedShop = useMemo(() => 
@@ -109,20 +111,44 @@ function App() {
               </p>
             </div>
 
-            {/* Mobile menu button */}
-            <div className="lg:hidden">
+            {/* Tutorial and Mobile menu buttons */}
+            <div className="flex items-center space-x-2">
+              {/* Tutorial Button */}
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2"
+                onClick={tutorial.startTutorial}
+                className="p-2 hidden sm:flex items-center space-x-2"
               >
-                {isMobileMenuOpen ? (
-                  <X className="w-5 h-5" />
-                ) : (
-                  <Menu className="w-5 h-5" />
-                )}
+                <HelpCircle className="w-4 h-4" />
+                <span className="hidden lg:inline">Tutorial</span>
               </Button>
+
+              {/* Mobile tutorial button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={tutorial.startTutorial}
+                className="p-2 sm:hidden"
+              >
+                <HelpCircle className="w-5 h-5" />
+              </Button>
+
+              {/* Mobile menu button */}
+              <div className="lg:hidden">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className="p-2"
+                >
+                  {isMobileMenuOpen ? (
+                    <X className="w-5 h-5" />
+                  ) : (
+                    <Menu className="w-5 h-5" />
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -336,6 +362,13 @@ function App() {
           onCancel={() => setShowBusinessHoursForm(false)}
         />
       )}
+
+      {/* Tutorial Interactivo */}
+      <InteractiveTutorial
+        isOpen={tutorial.isOpen}
+        onClose={tutorial.closeTutorial}
+        onStepChange={tutorial.setCurrentStep}
+      />
     </div>
   );
 }
