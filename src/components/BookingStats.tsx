@@ -1,287 +1,593 @@
-import React, { useMemo } from 'react';
-import { TrendingUp, Calendar, Users, Clock, Filter, ChevronDown } from 'lucide-react';
-import type { Booking, Kit, ViewType } from '../types';
-import { 
-  startOfWeek, 
-  endOfWeek, 
-  startOfMonth, 
-  endOfMonth, 
-  startOfDay, 
-  endOfDay,
-  format 
-} from 'date-fns';
+// ========================================
+// ESTADÍSTICAS Y MÉTRICAS AVANZADAS - NUEVO MODELO
+// ========================================
+
+import React, { useState, useMemo, useCallback } from 'react';
+import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subWeeks, subMonths, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
+import type { Booking, Bundle, BookingStatus } from '../types/newModel';
+import { Card } from './ui/Card';
+import { Button } from './ui/Button';
+import { Select } from './ui/Select';
+import { 
+  TrendingUp, TrendingDown, DollarSign, Calendar, 
+  Users, Package, Star, Clock, MapPin, AlertTriangle,
+  BarChart3, PieChart, Activity, Target, Award,
+  ChevronUp, ChevronDown, Download, RefreshCw
+} from 'lucide-react';
 
 interface BookingStatsProps {
   bookings: Booking[];
-  selectedKitId?: string;
-  selectedView?: ViewType;
-  currentDate?: Date;
-  kits?: Kit[];
-  className?: string;
+  bundles: Bundle[];
+  onExportData?: (format: 'csv' | 'pdf') => void;
+  showAdvanced?: boolean;
+}
+
+type TimeRange = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
+type MetricType = 'revenue' | 'bookings' | 'customers' | 'items' | 'occupancy';
+
+interface MetricCard {
+  title: string;
+  value: string | number;
+  change?: number;
+  changeLabel?: string;
+  icon: React.ComponentType<any>;
+  color: string;
+  trend?: 'up' | 'down' | 'stable';
+}
+
+interface ChartData {
+  label: string;
+  value: number;
+  color?: string;
 }
 
 export const BookingStats: React.FC<BookingStatsProps> = ({
   bookings,
-  selectedKitId,
-  selectedView = 'week',
-  currentDate = new Date(),
-  kits = [],
-  className,
+  bundles,
+  onExportData,
+  showAdvanced = true
 }) => {
-  const [showAdditionalStats, setShowAdditionalStats] = React.useState(false);
+  // ========================================
+  // ESTADO LOCAL
+  // ========================================
 
-  // Filtrar reservas según los criterios
-  const filteredBookings = useMemo(() => {
-    let filtered = [...bookings];
+  const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('month');
+  const [selectedMetric, setSelectedMetric] = useState<MetricType>('revenue');
+  const [showComparison, setShowComparison] = useState(true);
+  const [expandedSections, setExpandedSections] = useState<string[]>(['overview']);
 
-    // Filtrar por kit si hay uno seleccionado
-    if (selectedKitId && selectedKitId !== 'all') {
-      filtered = filtered.filter(booking => booking.kitId === selectedKitId);
-    }
+  // ========================================
+  // CÁLCULOS DE FECHAS
+  // ========================================
 
-    // Filtrar por período de tiempo según la vista del calendario
-    const currentDateObj = new Date(currentDate);
-    let startDate: Date;
-    let endDate: Date;
-
-    switch (selectedView) {
-      case 'day':
-        startDate = startOfDay(currentDateObj);
-        endDate = endOfDay(currentDateObj);
-        break;
+  const dateRanges = useMemo(() => {
+    const now = new Date();
+    
+    switch (selectedTimeRange) {
+      case 'today':
+        return {
+          current: { start: now, end: now },
+          previous: { start: subDays(now, 1), end: subDays(now, 1) }
+        };
       case 'week':
-        startDate = startOfWeek(currentDateObj, { weekStartsOn: 1 }); // Lunes
-        endDate = endOfWeek(currentDateObj, { weekStartsOn: 1 });
-        break;
+        return {
+          current: { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) },
+          previous: { start: startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 }), end: endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 }) }
+        };
       case 'month':
-        startDate = startOfMonth(currentDateObj);
-        endDate = endOfMonth(currentDateObj);
-        break;
+        return {
+          current: { start: startOfMonth(now), end: endOfMonth(now) },
+          previous: { start: startOfMonth(subMonths(now, 1)), end: endOfMonth(subMonths(now, 1)) }
+        };
       default:
-        startDate = startOfWeek(currentDateObj, { weekStartsOn: 1 });
-        endDate = endOfWeek(currentDateObj, { weekStartsOn: 1 });
+        return {
+          current: { start: startOfMonth(now), end: endOfMonth(now) },
+          previous: { start: startOfMonth(subMonths(now, 1)), end: endOfMonth(subMonths(now, 1)) }
+        };
     }
+  }, [selectedTimeRange]);
 
-    // Filtrar por rango de fechas
-    filtered = filtered.filter(booking => {
-      const bookingDate = new Date(booking.date);
-      return bookingDate >= startDate && bookingDate <= endDate;
+  // ========================================
+  // FILTROS DE DATOS
+  // ========================================
+
+  const filteredBookings = useMemo(() => {
+    const { current } = dateRanges;
+    return bookings.filter(booking => {
+      const bookingDate = parseISO(booking.date);
+      return bookingDate >= current.start && bookingDate <= current.end;
     });
+  }, [bookings, dateRanges]);
 
-    return filtered;
-  }, [bookings, selectedKitId, selectedView, currentDate]);
+  const previousBookings = useMemo(() => {
+    const { previous } = dateRanges;
+    return bookings.filter(booking => {
+      const bookingDate = parseISO(booking.date);
+      return bookingDate >= previous.start && bookingDate <= previous.end;
+    });
+  }, [bookings, dateRanges]);
 
-  // Calcular estadísticas
-  const stats = useMemo(() => {
+  // ========================================
+  // MÉTRICAS PRINCIPALES
+  // ========================================
+
+  const metrics = useMemo(() => {
+    // Métricas actuales
+    const currentRevenue = filteredBookings.reduce((sum, booking) => sum + booking.pricing.totalAmount, 0);
+    const currentBookingsCount = filteredBookings.length;
+    const currentCustomers = new Set(filteredBookings.map(b => b.customerEmail)).size;
+    const currentItems = filteredBookings.reduce((sum, booking) => sum + booking.itemBookings.length, 0);
+    
+    // Métricas del período anterior
+    const previousRevenue = previousBookings.reduce((sum, booking) => sum + booking.pricing.totalAmount, 0);
+    const previousBookingsCount = previousBookings.length;
+    const previousCustomers = new Set(previousBookings.map(b => b.customerEmail)).size;
+    const previousItems = previousBookings.reduce((sum, booking) => sum + booking.itemBookings.length, 0);
+
+    // Calcular cambios porcentuales
+    const calculateChange = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return ((current - previous) / previous) * 100;
+    };
+
+    const revenueChange = calculateChange(currentRevenue, previousRevenue);
+    const bookingsChange = calculateChange(currentBookingsCount, previousBookingsCount);
+    const customersChange = calculateChange(currentCustomers, previousCustomers);
+    const itemsChange = calculateChange(currentItems, previousItems);
+
     return {
-      total: filteredBookings.length,
-      pending: filteredBookings.filter(b => b.status === 'PENDING').length,
-      confirmed: filteredBookings.filter(b => b.status === 'CONFIRMED').length,
-      cancelled: filteredBookings.filter(b => b.status === 'CANCELLED').length,
-      completed: filteredBookings.filter(b => b.status === 'COMPLETED').length,
-      noShow: filteredBookings.filter(b => b.status === 'NO_SHOW').length,
-      rescheduled: filteredBookings.filter(b => b.status === 'RESCHEDULED').length,
-      partialRefund: filteredBookings.filter(b => b.status === 'PARTIAL_REFUND').length,
+      revenue: {
+        current: currentRevenue,
+        previous: previousRevenue,
+        change: revenueChange
+      },
+      bookings: {
+        current: currentBookingsCount,
+        previous: previousBookingsCount,
+        change: bookingsChange
+      },
+      customers: {
+        current: currentCustomers,
+        previous: previousCustomers,
+        change: customersChange
+      },
+      items: {
+        current: currentItems,
+        previous: previousItems,
+        change: itemsChange
+      },
+      averageBookingValue: currentBookingsCount > 0 ? currentRevenue / currentBookingsCount : 0,
+      customerRetention: 0, // Calcular retención de clientes
+      occupancyRate: 0 // Calcular tasa de ocupación
+    };
+  }, [filteredBookings, previousBookings]);
+
+  // ========================================
+  // MÉTRICAS POR ESTADO
+  // ========================================
+
+  const statusMetrics = useMemo(() => {
+    const statusCounts = filteredBookings.reduce((acc, booking) => {
+      acc[booking.status] = (acc[booking.status] || 0) + 1;
+      return acc;
+    }, {} as Record<BookingStatus, number>);
+
+    const total = filteredBookings.length;
+    
+    return {
+      confirmed: { count: statusCounts.CONFIRMED || 0, percentage: total > 0 ? ((statusCounts.CONFIRMED || 0) / total) * 100 : 0 },
+      pending: { count: statusCounts.PENDING || 0, percentage: total > 0 ? ((statusCounts.PENDING || 0) / total) * 100 : 0 },
+      cancelled: { count: statusCounts.CANCELLED || 0, percentage: total > 0 ? ((statusCounts.CANCELLED || 0) / total) * 100 : 0 },
+      completed: { count: statusCounts.COMPLETED || 0, percentage: total > 0 ? ((statusCounts.COMPLETED || 0) / total) * 100 : 0 },
+      noShow: { count: statusCounts.NO_SHOW || 0, percentage: total > 0 ? ((statusCounts.NO_SHOW || 0) / total) * 100 : 0 }
     };
   }, [filteredBookings]);
 
-  // Información contextual para mostrar qué se está filtrando
-  const getContextInfo = () => {
-    const parts = [];
-    
-    // Información del kit
-    if (selectedKitId && selectedKitId !== 'all') {
-      const kit = kits.find(k => k.id === selectedKitId);
-      if (kit) {
-        parts.push(`Servicio: ${kit.name}`);
-      }
+  // ========================================
+  // BUNDLES MÁS POPULARES
+  // ========================================
+
+  const bundleStats = useMemo(() => {
+    const bundleCounts = filteredBookings.reduce((acc, booking) => {
+      acc[booking.bundleId] = (acc[booking.bundleId] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const bundleRevenue = filteredBookings.reduce((acc, booking) => {
+      acc[booking.bundleId] = (acc[booking.bundleId] || 0) + booking.pricing.totalAmount;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(bundleCounts)
+      .map(([bundleId, count]) => {
+        const bundle = bundles.find(b => b.id === bundleId);
+        return {
+          id: bundleId,
+          name: bundle?.name || 'Bundle Desconocido',
+          bookings: count,
+          revenue: bundleRevenue[bundleId] || 0,
+          percentage: (count / filteredBookings.length) * 100
+        };
+      })
+      .sort((a, b) => b.bookings - a.bookings)
+      .slice(0, 5);
+  }, [filteredBookings, bundles]);
+
+  // ========================================
+  // TENDENCIAS TEMPORALES
+  // ========================================
+
+  const trendData = useMemo(() => {
+    const { current } = dateRanges;
+    let intervals: Date[] = [];
+
+    if (selectedTimeRange === 'week') {
+      intervals = eachDayOfInterval(current);
+    } else if (selectedTimeRange === 'month') {
+      intervals = eachWeekOfInterval(current);
     } else {
-      parts.push('Todos los servicios');
+      intervals = eachDayOfInterval(current);
     }
 
-    // Información del período
-    const currentDateObj = new Date(currentDate);
-    switch (selectedView) {
-      case 'day':
-        parts.push(`Día: ${format(currentDateObj, 'dd/MM/yyyy', { locale: es })}`);
-        break;
-      case 'week':
-        const weekStart = startOfWeek(currentDateObj, { weekStartsOn: 1 });
-        const weekEnd = endOfWeek(currentDateObj, { weekStartsOn: 1 });
-        parts.push(`Semana: ${format(weekStart, 'dd/MM', { locale: es })} - ${format(weekEnd, 'dd/MM/yyyy', { locale: es })}`);
-        break;
-      case 'month':
-        parts.push(`Mes: ${format(currentDateObj, 'MMMM yyyy', { locale: es })}`);
-        break;
-    }
+    return intervals.map(date => {
+      const dayBookings = filteredBookings.filter(booking => {
+        const bookingDate = parseISO(booking.date);
+        if (selectedTimeRange === 'week') {
+          return format(bookingDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd');
+        } else {
+          return bookingDate >= startOfWeek(date, { weekStartsOn: 1 }) && 
+                 bookingDate <= endOfWeek(date, { weekStartsOn: 1 });
+        }
+      });
 
-    return parts.join(' • ');
+      return {
+        label: selectedTimeRange === 'week' 
+          ? format(date, 'dd/MM', { locale: es })
+          : format(date, "'Sem' w", { locale: es }),
+        bookings: dayBookings.length,
+        revenue: dayBookings.reduce((sum, booking) => sum + booking.pricing.totalAmount, 0)
+      };
+    });
+  }, [filteredBookings, dateRanges, selectedTimeRange]);
+
+  // ========================================
+  // HORARIOS PICO
+  // ========================================
+
+  const peakHours = useMemo(() => {
+    const hourCounts = {} as Record<string, number>;
+    
+    filteredBookings.forEach(booking => {
+      booking.itemBookings.forEach(item => {
+        const hour = item.startTime.split(':')[0];
+        hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+      });
+    });
+
+    return Object.entries(hourCounts)
+      .map(([hour, count]) => ({
+        hour: `${hour}:00`,
+        bookings: count,
+        percentage: (count / Object.values(hourCounts).reduce((a, b) => a + b, 0)) * 100
+      }))
+      .sort((a, b) => b.bookings - a.bookings)
+      .slice(0, 5);
+  }, [filteredBookings]);
+
+  // ========================================
+  // HANDLERS
+  // ========================================
+
+  const toggleSection = useCallback((section: string) => {
+    setExpandedSections(prev => 
+      prev.includes(section)
+        ? prev.filter(s => s !== section)
+        : [...prev, section]
+    );
+  }, []);
+
+  const handleExport = useCallback((format: 'csv' | 'pdf') => {
+    onExportData?.(format);
+  }, [onExportData]);
+
+  // ========================================
+  // UTILIDADES DE RENDERIZADO
+  // ========================================
+
+  const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`;
+  const formatPercentage = (value: number) => `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
+
+  const getChangeColor = (change: number) => {
+    if (change > 0) return 'text-green-600';
+    if (change < 0) return 'text-red-600';
+    return 'text-gray-600';
   };
 
-  const mainStatCards = [
+  const getChangeIcon = (change: number) => {
+    if (change > 0) return <TrendingUp className="w-4 h-4" />;
+    if (change < 0) return <TrendingDown className="w-4 h-4" />;
+    return <Activity className="w-4 h-4" />;
+  };
+
+  const metricCards: MetricCard[] = [
     {
-      title: 'Total',
-      value: stats.total,
+      title: 'Ingresos Totales',
+      value: formatCurrency(metrics.revenue.current),
+      change: metrics.revenue.change,
+      changeLabel: formatPercentage(metrics.revenue.change),
+      icon: DollarSign,
+      color: 'bg-green-500',
+      trend: metrics.revenue.change > 0 ? 'up' : metrics.revenue.change < 0 ? 'down' : 'stable'
+    },
+    {
+      title: 'Total Reservas',
+      value: metrics.bookings.current,
+      change: metrics.bookings.change,
+      changeLabel: formatPercentage(metrics.bookings.change),
       icon: Calendar,
-      color: 'text-blue-700',
-      bgColor: 'bg-blue-50',
-      borderColor: 'border-blue-200',
+      color: 'bg-blue-500',
+      trend: metrics.bookings.change > 0 ? 'up' : metrics.bookings.change < 0 ? 'down' : 'stable'
     },
     {
-      title: 'Confirmadas',
-      value: stats.confirmed,
-      icon: TrendingUp,
-      color: 'text-green-700',
-      bgColor: 'bg-green-50',
-      borderColor: 'border-green-200',
-    },
-    {
-      title: 'Pendientes',
-      value: stats.pending,
-      icon: Clock,
-      color: 'text-yellow-700',
-      bgColor: 'bg-yellow-50',
-      borderColor: 'border-yellow-200',
-    },
-    {
-      title: 'Completadas',
-      value: stats.completed,
+      title: 'Clientes Únicos',
+      value: metrics.customers.current,
+      change: metrics.customers.change,
+      changeLabel: formatPercentage(metrics.customers.change),
       icon: Users,
-      color: 'text-gray-700',
-      bgColor: 'bg-gray-50',
-      borderColor: 'border-gray-200',
+      color: 'bg-purple-500',
+      trend: metrics.customers.change > 0 ? 'up' : metrics.customers.change < 0 ? 'down' : 'stable'
     },
+    {
+      title: 'Actividades Vendidas',
+      value: metrics.items.current,
+      change: metrics.items.change,
+      changeLabel: formatPercentage(metrics.items.change),
+      icon: Package,
+      color: 'bg-orange-500',
+      trend: metrics.items.change > 0 ? 'up' : metrics.items.change < 0 ? 'down' : 'stable'
+    }
   ];
 
-  // Estadísticas adicionales si hay espacio
-  const additionalStats = [
-    { label: 'Canceladas', value: stats.cancelled, color: 'text-red-700', bgColor: 'bg-red-50' },
-    { label: 'No se presentó', value: stats.noShow, color: 'text-orange-700', bgColor: 'bg-orange-50' },
-    { label: 'Reprogramadas', value: stats.rescheduled, color: 'text-blue-700', bgColor: 'bg-blue-50' },
-    { label: 'Reembolso parcial', value: stats.partialRefund, color: 'text-purple-700', bgColor: 'bg-purple-50' },
-  ];
-
-  const getPercentage = (value: number) => {
-    if (stats.total === 0) return 0;
-    return Math.round((value / stats.total) * 100);
-  };
+  // ========================================
+  // RENDERIZADO
+  // ========================================
 
   return (
-    <div className={className}>
-      {/* Header con información contextual - Responsive */}
-      <div className="mb-4 p-3 lg:p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg border border-gray-200">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
-          <div className="flex items-center space-x-2 mb-2 sm:mb-0">
-            <Filter className="w-4 h-4 text-gray-500 flex-shrink-0" />
-            <span className="text-sm font-medium text-gray-700">Filtros:</span>
+    <div className="space-y-6">
+      {/* Header con controles */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center space-x-2">
+              <BarChart3 className="w-6 h-6 text-blue-600" />
+              <span>Estadísticas y Métricas</span>
+            </h2>
+            <p className="text-gray-600 mt-1">
+              Analytics completos del rendimiento del negocio
+            </p>
           </div>
-          <span className="text-sm text-gray-600 leading-relaxed">{getContextInfo()}</span>
-        </div>
-      </div>
-
-      {/* Estadísticas principales - Grid responsive mejorado */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-4">
-        {mainStatCards.map((stat) => {
-          const Icon = stat.icon;
-          const percentage = getPercentage(stat.value);
           
-          return (
-            <div
-              key={stat.title}
-              className={`${stat.bgColor} ${stat.borderColor} border rounded-lg p-3 lg:p-4 transition-all hover:shadow-md`}
+          <div className="flex items-center space-x-2">
+            <Select
+              value={selectedTimeRange}
+              onChange={(e) => setSelectedTimeRange(e.target.value as TimeRange)}
+              options={[
+                { value: 'today', label: 'Hoy' },
+                { value: 'week', label: 'Esta Semana' },
+                { value: 'month', label: 'Este Mes' },
+                { value: 'quarter', label: 'Trimestre' },
+                { value: 'year', label: 'Año' }
+              ]}
+            />
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleExport('csv')}
+              className="flex items-center space-x-2"
             >
-              <div className="flex items-center justify-between mb-2">
-                <div className={`p-1.5 lg:p-2 rounded-lg bg-white/80 ${stat.borderColor} border`}>
-                  <Icon className={`w-4 h-4 lg:w-5 lg:h-5 ${stat.color}`} />
-                </div>
-                {stats.total > 0 && (
-                  <span className="text-xs lg:text-sm text-gray-500 font-medium">
-                    {percentage}%
-                  </span>
-                )}
-              </div>
-              <div>
-                <p className="text-xs lg:text-sm font-medium text-gray-600 mb-1">
-                  {stat.title}
-                </p>
-                <p className="text-xl lg:text-2xl font-bold text-gray-900">
-                  {stat.value}
-                </p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              <Download className="w-4 h-4" />
+              <span>Exportar</span>
+            </Button>
+          </div>
+        </div>
 
-      {/* Estadísticas adicionales - Colapsable en móvil */}
-      <div className="space-y-3">
-        {/* Toggle button para móvil */}
-        <button
-          onClick={() => setShowAdditionalStats(!showAdditionalStats)}
-          className="lg:hidden w-full flex items-center justify-center space-x-2 py-2 px-4 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-        >
-          <span>Estadísticas detalladas</span>
-          <ChevronDown className={`w-4 h-4 transition-transform ${showAdditionalStats ? 'rotate-180' : ''}`} />
-        </button>
-
-        {/* Estadísticas adicionales */}
-        <div className={`${showAdditionalStats ? 'block' : 'hidden'} lg:block`}>
-          {additionalStats.some(stat => stat.value > 0) ? (
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <h4 className="text-sm font-medium text-gray-900 mb-3">
-                Estadísticas Detalladas
-              </h4>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {additionalStats.map((stat) => {
-                  if (stat.value === 0) return null;
-                  const percentage = getPercentage(stat.value);
-                  
-                  return (
-                    <div
-                      key={stat.label}
-                      className={`${stat.bgColor} border border-gray-100 rounded-lg p-3`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs text-gray-600 mb-1 leading-tight">
-                            {stat.label}
-                          </p>
-                          <div className="flex items-baseline space-x-2">
-                            <p className={`text-lg font-semibold ${stat.color}`}>
-                              {stat.value}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              ({percentage}%)
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <div className="text-center text-gray-500">
-                <p className="text-sm">No hay estadísticas adicionales para mostrar</p>
-                <p className="text-xs mt-1">Solo se muestran las estadísticas principales</p>
-              </div>
-            </div>
+        {/* Período seleccionado */}
+        <div className="text-sm text-gray-600">
+          Período: {format(dateRanges.current.start, 'dd/MM/yyyy', { locale: es })} - {format(dateRanges.current.end, 'dd/MM/yyyy', { locale: es })}
+          {showComparison && (
+            <span className="ml-2">
+              • Comparando con: {format(dateRanges.previous.start, 'dd/MM/yyyy', { locale: es })} - {format(dateRanges.previous.end, 'dd/MM/yyyy', { locale: es })}
+            </span>
           )}
         </div>
+      </Card>
 
-        {/* Mensaje informativo cuando no hay datos */}
-        {stats.total === 0 && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="text-center text-gray-500">
-              <Calendar className="w-8 h-8 mx-auto mb-3 text-gray-400" />
-              <p className="text-sm font-medium">No hay reservas en el período seleccionado</p>
-              <p className="text-xs mt-1">Intenta cambiar los filtros o el rango de fechas</p>
+      {/* Métricas principales */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {metricCards.map((metric, index) => (
+          <Card key={index} className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className={`${metric.color} rounded-lg p-3`}>
+                <metric.icon className="w-6 h-6 text-white" />
+              </div>
+              {showComparison && metric.change !== undefined && (
+                <div className={`flex items-center space-x-1 ${getChangeColor(metric.change)}`}>
+                  {getChangeIcon(metric.change)}
+                  <span className="text-sm font-medium">{metric.changeLabel}</span>
+                </div>
+              )}
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium text-gray-600">{metric.title}</h3>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{metric.value}</p>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Estados de reservas */}
+      <Card className="p-6">
+        <div 
+          className="flex items-center justify-between cursor-pointer"
+          onClick={() => toggleSection('status')}
+        >
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
+            <PieChart className="w-5 h-5" />
+            <span>Estado de Reservas</span>
+          </h3>
+          {expandedSections.includes('status') ? 
+            <ChevronUp className="w-5 h-5 text-gray-400" /> : 
+            <ChevronDown className="w-5 h-5 text-gray-400" />
+          }
+        </div>
+        
+        {expandedSections.includes('status') && (
+          <div className="mt-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">{statusMetrics.confirmed.count}</div>
+                <div className="text-sm text-gray-600">Confirmadas</div>
+                <div className="text-xs text-green-600">{statusMetrics.confirmed.percentage.toFixed(1)}%</div>
+              </div>
+              
+              <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                <div className="text-2xl font-bold text-yellow-600">{statusMetrics.pending.count}</div>
+                <div className="text-sm text-gray-600">Pendientes</div>
+                <div className="text-xs text-yellow-600">{statusMetrics.pending.percentage.toFixed(1)}%</div>
+              </div>
+              
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <div className="text-2xl font-bold text-gray-600">{statusMetrics.completed.count}</div>
+                <div className="text-sm text-gray-600">Completadas</div>
+                <div className="text-xs text-gray-600">{statusMetrics.completed.percentage.toFixed(1)}%</div>
+              </div>
+              
+              <div className="text-center p-4 bg-red-50 rounded-lg">
+                <div className="text-2xl font-bold text-red-600">{statusMetrics.cancelled.count}</div>
+                <div className="text-sm text-gray-600">Canceladas</div>
+                <div className="text-xs text-red-600">{statusMetrics.cancelled.percentage.toFixed(1)}%</div>
+              </div>
+              
+              <div className="text-center p-4 bg-orange-50 rounded-lg">
+                <div className="text-2xl font-bold text-orange-600">{statusMetrics.noShow.count}</div>
+                <div className="text-sm text-gray-600">No Show</div>
+                <div className="text-xs text-orange-600">{statusMetrics.noShow.percentage.toFixed(1)}%</div>
+              </div>
             </div>
           </div>
         )}
+      </Card>
+
+      {/* Bundles más populares */}
+      <Card className="p-6">
+        <div 
+          className="flex items-center justify-between cursor-pointer"
+          onClick={() => toggleSection('bundles')}
+        >
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
+            <Award className="w-5 h-5" />
+            <span>Servicios Más Populares</span>
+          </h3>
+          {expandedSections.includes('bundles') ? 
+            <ChevronUp className="w-5 h-5 text-gray-400" /> : 
+            <ChevronDown className="w-5 h-5 text-gray-400" />
+          }
+        </div>
+        
+        {expandedSections.includes('bundles') && (
+          <div className="mt-6 space-y-4">
+            {bundleStats.map((bundle, index) => (
+              <div key={bundle.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full text-sm font-bold">
+                    {index + 1}
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900">{bundle.name}</h4>
+                    <p className="text-sm text-gray-600">{bundle.bookings} reservas • {bundle.percentage.toFixed(1)}% del total</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-gray-900">{formatCurrency(bundle.revenue)}</p>
+                  <p className="text-sm text-gray-600">Ingresos</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Horarios pico */}
+      {showAdvanced && (
+        <Card className="p-6">
+          <div 
+            className="flex items-center justify-between cursor-pointer"
+            onClick={() => toggleSection('hours')}
+          >
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
+              <Clock className="w-5 h-5" />
+              <span>Horarios Pico</span>
+            </h3>
+            {expandedSections.includes('hours') ? 
+              <ChevronUp className="w-5 h-5 text-gray-400" /> : 
+              <ChevronDown className="w-5 h-5 text-gray-400" />
+            }
+          </div>
+          
+          {expandedSections.includes('hours') && (
+            <div className="mt-6">
+              <div className="space-y-3">
+                {peakHours.map((hour, index) => (
+                  <div key={hour.hour} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-2 h-8 bg-blue-500 rounded" style={{ 
+                        height: `${Math.max(12, (hour.percentage / 100) * 32)}px` 
+                      }}></div>
+                      <span className="font-medium">{hour.hour}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-semibold text-gray-900">{hour.bookings}</span>
+                      <span className="text-sm text-gray-600 ml-2">({hour.percentage.toFixed(1)}%)</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* Métricas adicionales */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="p-6 text-center">
+          <Target className="w-8 h-8 text-blue-600 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-gray-900">Valor Promedio</h3>
+          <p className="text-2xl font-bold text-blue-600 mt-2">
+            {formatCurrency(metrics.averageBookingValue)}
+          </p>
+          <p className="text-sm text-gray-600 mt-1">Por reserva</p>
+        </Card>
+        
+        <Card className="p-6 text-center">
+          <Users className="w-8 h-8 text-green-600 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-gray-900">Tasa de Retención</h3>
+          <p className="text-2xl font-bold text-green-600 mt-2">
+            {metrics.customerRetention.toFixed(1)}%
+          </p>
+          <p className="text-sm text-gray-600 mt-1">Clientes recurrentes</p>
+        </Card>
+        
+        <Card className="p-6 text-center">
+          <Activity className="w-8 h-8 text-purple-600 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-gray-900">Ocupación</h3>
+          <p className="text-2xl font-bold text-purple-600 mt-2">
+            {metrics.occupancyRate.toFixed(1)}%
+          </p>
+          <p className="text-sm text-gray-600 mt-1">Capacidad utilizada</p>
+        </Card>
       </div>
     </div>
   );

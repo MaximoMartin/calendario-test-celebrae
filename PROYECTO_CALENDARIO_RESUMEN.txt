@@ -1,0 +1,407 @@
+========================================
+SISTEMA DE GESTIÓN DE RESERVAS - DOCUMENTACIÓN TÉCNICA
+========================================
+
+DESCRIPCIÓN GENERAL
+==================
+Aplicación completa de gestión de reservas y turnos desarrollada con React 19, TypeScript y Tailwind CSS. 
+Diseñada para negocios que ofrecen servicios con citas programadas como restaurantes, alquiler de vehículos, 
+actividades turísticas, spas, etc.
+
+TECNOLOGÍAS PRINCIPALES
+=======================
+- React 19 + TypeScript - Framework principal con tipado fuerte
+- Tailwind CSS - Framework de estilos utilitarios
+- React Big Calendar - Componente de calendario interactivo
+- React Hook Form + Zod - Gestión y validación de formularios
+- date-fns - Manipulación y formateo de fechas
+- Lucide React - Iconografía moderna
+- Vite - Build tool y servidor de desarrollo
+
+FUNCIONALIDADES PRINCIPALES
+============================
+
+1. CALENDARIO VISUAL INTERACTIVO
+   - Vista por mes, semana y día
+   - Eventos con código de colores según estado de reserva
+   - Selección de slots para crear nuevas reservas
+   - Filtrado por servicio/kit específico
+   - Navegación intuitiva entre fechas
+
+2. GESTIÓN INTEGRAL DE RESERVAS
+   - Creación manual de reservas por parte del negocio
+   - Estados: PENDING, CONFIRMED, CANCELLED, COMPLETED, NO_SHOW, RESCHEDULED, PARTIAL_REFUND
+   - Validaciones automáticas de horarios y capacidad
+   - Información completa del cliente (nombre, email, teléfono)
+   - Sistema de notas adicionales
+
+3. CONFIGURACIÓN DE NEGOCIO
+   - Horarios de atención por día de la semana
+   - Múltiples períodos de atención por día (ej: mañana y tarde)
+   - Gestión de servicios/kits con precios y capacidades
+   - Configuración de slots de tiempo disponibles
+   - Límites de reservas por slot
+
+4. DASHBOARD Y ESTADÍSTICAS
+   - Resumen de reservas por estado
+   - Lista filtrable y ordenable de reservas
+   - Acciones rápidas (confirmar, cancelar, completar)
+   - Búsqueda global avanzada
+
+5. GESTIÓN AVANZADA
+   - Manejo de excepciones (días cerrados, eventos especiales)
+   - Gestión de disponibilidad por períodos
+   - Filtros múltiples para búsquedas complejas
+
+ESTRUCTURA DE DATOS Y ENTIDADES
+===============================
+
+ENTIDADES PRINCIPALES:
+
+User (Usuario)
+- id: string
+- name: string  
+- email: string
+- roles: ['SELLER', 'ADMIN', 'BUYER', 'ESSENTIAL']
+- phoneNumber: string
+
+Shop (Negocio/Tienda)
+- id: string
+- name: string
+- address: string
+- shopStatus: 'ENABLED' | 'DISABLED'
+- userId: string
+- businessHours: BusinessHours[]
+- bookingSettings: BookingSettings
+
+Kit (Servicio/Producto)
+- id: string
+- name: string
+- price: number
+- maxCapacity: number
+- duration: number (en minutos)
+- items: any[] (elementos incluidos)
+- extras: any[] (extras opcionales)
+- shopId: string
+- slots: TimeSlot[]
+
+Booking (Reserva)
+- id: string
+- kitId: string
+- kitName: string
+- shopId: string
+- customerName: string
+- customerEmail: string
+- customerPhone: string
+- date: string (formato ISO)
+- timeSlot: string (formato HH:mm)
+- numberOfPeople: number
+- status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW' | 'RESCHEDULED' | 'PARTIAL_REFUND'
+- isManual: boolean (true si fue creada por el dueño)
+- createdAt: string
+- notes?: string
+- rescheduledFrom?: string
+- refundAmount?: number
+- cancellationReason?: string
+
+BusinessHours (Horarios de Negocio)
+- dayOfWeek: number (0-6, Domingo-Sábado)
+- isActive: boolean
+- periods: BusinessHoursPeriod[] (múltiples períodos por día)
+
+TimeSlot (Slot de Tiempo)
+- id: string
+- kitId: string
+- startTime: string (formato HH:mm)
+- endTime: string (formato HH:mm)
+- maxBookings: number
+- isActive: boolean
+
+GESTIÓN ACTUAL DE RESERVAS
+==========================
+
+ALMACENAMIENTO:
+- Los datos actualmente se almacenan en memoria usando React State
+- Hook personalizado useBookings.ts gestiona todas las operaciones CRUD
+- Datos iniciales se cargan desde mockData/index.ts
+
+FLUJO DE CREACIÓN DE RESERVAS:
+1. Usuario selecciona servicio/kit
+2. Sistema valida disponibilidad según horarios de negocio
+3. Se verifican conflictos con reservas existentes
+4. Se aplican validaciones de capacidad máxima
+5. Se crea la reserva con estado PENDING por defecto
+6. Se actualiza el calendario en tiempo real
+
+VALIDACIONES IMPLEMENTADAS:
+- No reservas en fechas pasadas
+- Respeto de horarios de atención del negocio
+- Verificación de capacidad máxima por slot
+- Validación de horas mínimas de anticipación
+- Límite de días máximos de anticipación
+- Verificación de disponibilidad de slots
+
+DATOS PARA FUNCIONAMIENTO
+=========================
+
+DATOS DE PRUEBA INCLUIDOS:
+
+1. USUARIO MOCK:
+   - Maxi Martin Lanfranchi (maximo.martinl@hotmail.com)
+   - Roles: SELLER, BUYER, ADMIN, ESSENTIAL
+   - Teléfono: 3515050672
+
+2. NEGOCIOS DE PRUEBA (3):
+   a) "La vuelta del Maxi" (Turín, Italia)
+      - Enfoque: Ofertas/Descuentos, Relajación y bienestar
+      - Servicios: Alquiler autos París, Spa Day Premium, Cata de Vinos VIP
+      
+   b) "Café Delicias" (Centro ciudad)
+      - Enfoque: Al mediodía, A la noche
+      - Servicios: Brunch Especial, Cena Romántica, Clase Barista
+      
+   c) "El mono épico editado" (Córdoba, Argentina)
+      - Enfoque: Al mediodía
+      - Servicios: Almuerzo Épico, Experiencia Mono
+
+3. SERVICIOS CONFIGURADOS:
+   - Cada servicio tiene precio, capacidad máxima, duración
+   - Slots de tiempo predefinidos con límites de reservas
+   - Horarios específicos según el tipo de negocio
+
+4. RESERVAS DE EJEMPLO:
+   - Reservas en diferentes estados para pruebas
+   - Diferentes clientes y servicios
+   - Fechas variadas para testing del calendario
+
+DIRECTORIO DEL PROYECTO
+=======================
+
+calendar-test/
+├── public/
+│   └── vite.svg
+├── src/
+│   ├── components/              # Componentes React
+│   │   ├── ui/                 # Componentes base reutilizables
+│   │   │   ├── Button.tsx      # Botón estilizado
+│   │   │   ├── Input.tsx       # Campo de entrada
+│   │   │   ├── Select.tsx      # Selector dropdown
+│   │   │   └── Card.tsx        # Tarjeta contenedora
+│   │   ├── AvailabilityManager.tsx    # Gestión de disponibilidad avanzada
+│   │   ├── BookingCalendar.tsx        # Calendario principal interactivo
+│   │   ├── BookingDetailModal.tsx     # Modal de detalles de reserva
+│   │   ├── BookingForm.tsx            # Formulario de creación/edición
+│   │   ├── BookingList.tsx            # Lista filtrable de reservas
+│   │   ├── BookingStats.tsx           # Dashboard de estadísticas
+│   │   ├── BusinessHoursForm.tsx      # Configuración de horarios
+│   │   ├── ExceptionManager.tsx       # Gestión de excepciones
+│   │   └── GlobalSearch.tsx           # Búsqueda global avanzada
+│   ├── hooks/                  # Custom hooks
+│   │   ├── useBookings.ts      # Hook principal de gestión de reservas
+│   │   └── useGlobalSearch.ts  # Hook para búsqueda global
+│   ├── utils/                  # Utilidades
+│   │   └── dateHelpers.ts      # Helpers para fechas y validaciones
+│   ├── types/                  # Definiciones TypeScript
+│   │   └── index.ts            # Tipos principales del sistema
+│   ├── mockData/               # Datos de ejemplo
+│   │   └── index.ts            # Mock data completo
+│   ├── App.tsx                 # Componente principal de la aplicación
+│   ├── main.tsx                # Punto de entrada de React
+│   ├── index.css               # Estilos globales con Tailwind
+│   └── vite-env.d.ts          # Tipos para Vite
+├── package.json                # Dependencias y scripts
+├── vite.config.ts             # Configuración de Vite
+├── tailwind.config.js         # Configuración de Tailwind CSS
+├── tsconfig.json              # Configuración TypeScript
+├── eslint.config.js           # Configuración ESLint
+└── README.md                  # Documentación del proyecto
+
+SCRIPTS DISPONIBLES
+===================
+- yarn dev      # Inicia servidor de desarrollo
+- yarn build    # Construye para producción
+- yarn lint     # Ejecuta linter
+- yarn preview  # Vista previa de build
+
+CARACTERÍSTICAS TÉCNICAS
+========================
+
+RESPONSIVIDAD:
+- Diseño completamente responsive
+- Navegación móvil con menú hamburguesa
+- Adaptación de interfaz según tamaño de pantalla
+
+ARQUITECTURA:
+- Arquitectura basada en componentes reutilizables
+- Separación clara de responsabilidades
+- Hooks personalizados para lógica de negocio
+- Tipado fuerte con TypeScript
+
+GESTIÓN DE ESTADO:
+- Estado local con React hooks (useState, useCallback, useMemo)
+- Hook personalizado useBookings centraliza la gestión
+- Estado inmutable con operaciones funcionales
+
+VALIDACIONES:
+- Validación de formularios con Zod schemas
+- Validaciones de negocio en dateHelpers.ts
+- Feedback visual de errores en tiempo real
+
+INTERFAZ DE USUARIO:
+- Sistema de diseño consistente con componentes UI
+- Colores semánticos para estados de reservas
+- Indicadores de carga y estados vacíos
+- Navegación intuitiva por pestañas
+
+NOTAS PARA DESARROLLO
+====================
+- El proyecto está configurado con ESLint para mantener calidad de código
+- Usa Vite para desarrollo rápido y builds optimizados
+- Toda la lógica de fechas está centralizada en dateHelpers.ts
+- Los componentes UI son reutilizables y temáticamente consistentes
+- Los tipos TypeScript están bien definidos para evitar errores
+
+CONTEXTO ACTUAL
+===============
+- Proyecto en rama "second-version"
+- Estado limpio sin cambios pendientes
+- Todos los datos son mock data para desarrollo
+- Preparado para integración con backend real
+- Interface completamente funcional para testing y demo
+
+Este proyecto representa una base sólida para un sistema de gestión de reservas
+completo, con todas las funcionalidades esenciales implementadas y una 
+arquitectura escalable para futuras mejoras. 
+
+
+===============
+
+PROMPT ORIGINAL
+
+Sistema de Gestión de Reservas con bundles/items/extras y lógica real de disponibilidad (con desarrollo por etapas)
+
+Estoy desarrollando una aplicación de gestión de reservas para negocios como restaurantes, spas, experiencias turísticas, etc. El proyecto se llama calendar-test, está desarrollado con React 19 + TypeScript + Tailwind CSS y ya cuenta con una arquitectura funcional avanzada para:
+
+Gestión de horarios de atención
+
+Slots por kit/servicio
+
+Formulario de creación y validación de reservas
+
+Calendario visual (React Big Calendar)
+
+Dashboard con estados y acciones
+
+Detalle y edición de reservas
+
+Búsqueda global y filtros
+
+Toda la lógica funciona con datos mock en memoria, organizada con useBookings.ts, BookingCalendar.tsx, BookingForm.tsx, etc.
+
+🧩 ESTRUCTURA ACTUAL DE RESERVAS
+Mi app maneja una jerarquía clara:
+
+scss
+Copiar
+Editar
+User
+  └─ Shop (Negocio)
+       └─ Bundles
+            ├─ Items (actividad principal con precio, capacidad, horario)
+            └─ Extras (opcionales, sin horario)
+Cada bundle representa una experiencia global (ej: "Tour Gastronómico en Barcelona") pero los horarios dependen de los items que contiene (ej: cada parada del tour). Los extras no tienen horarios.
+
+⚠️ PROBLEMA CONCEPTUAL ACTUAL
+El sistema actual asigna horarios a las reservas como si pertenecieran al bundle, lo cual es un error de diseño. En realidad, cada item dentro del bundle tiene su propio horario específico, y la reserva debería reflejar eso. Ejemplo real:
+
+El bundle “Día de Campo” incluye desayuno (9-10), cabalgata (10:30-11:30), y asado (13-14:30). Cada una de estas actividades (items) tiene una duración, capacidad y recursos asociados (guías, cocineros, salas, etc.).
+
+🎯 LO QUE NECESITAMOS DE TU RESPUESTA
+Queremos adaptar el sistema para que:
+
+1. 🧱 MODELO DE DATOS ÓPTIMO
+Diseñes un esquema de datos ideal y escalable que permita:
+
+Asignar horarios exclusivamente a los items
+
+Mantener la relación bundle → items → extras
+
+Manejar recursos compartidos (ej: una sala o un fotógrafo no puede usarse dos veces al mismo horario)
+
+Calcular disponibilidad en base a stock, ocupación y solapamientos
+
+Incluí los campos que consideres necesarios (como recursos, bloqueos, dependencias, duración real, etc).
+
+2. ⚙️ LÓGICA DE RESERVAS ROBUSTA
+Describí cómo debería funcionar un motor de reservas que permita:
+
+Verificar si un item está disponible en un horario específico
+
+Bloquear slots si los recursos están ocupados (ej: una sala usada por otro item)
+
+Validar límites por persona, capacidad y horario
+
+Aplicar reglas como anticipación mínima, días de cierre, etc.
+
+3. 📅 CALENDARIO INTELIGENTE Y ADAPTABLE
+Ayudanos a redefinir el funcionamiento del BookingCalendar para:
+
+Mostrar los items en el calendario, no el bundle
+
+Permitir clic para ver el detalle completo de la reserva
+
+Filtrar por shop, kit o estado
+
+Visualizar conflictos de disponibilidad
+
+Crear reservas manuales desde el calendario (con validaciones en tiempo real)
+
+4. 🔍 FUNCIONES NICE TO HAVE (YA IMPLEMENTADAS PERO A MEJORAR)
+Queremos que el nuevo sistema sea compatible con funciones de valor agregado ya presentes:
+
+Buscador global por cliente, servicio, estado
+
+Filtros por fecha, negocio, kit o estado
+
+Detalle y edición de reservas desde el calendario
+
+Creación manual de reservas por el dueño del negocio
+
+Acciones rápidas sobre cada reserva (confirmar, cancelar, reagendar, anotar)
+
+📌 CONTEXTO TÉCNICO DEL PROYECTO
+Estado actual: funcional, con arquitectura modular, usando estado local (sin backend aún).
+
+Herramientas clave: React Big Calendar, Zod, date-fns, React Hook Form, Vite.
+
+Componentes: BookingForm, BusinessHoursForm, BookingCalendar, BookingList, BookingStats, AvailabilityManager.
+
+Tipado fuerte con types/index.ts.
+
+✅ OBJETIVO FINAL
+Una solución completa, realista y escalable para:
+
+Gestionar reservas basadas en items dentro de bundles
+
+Respetar la jerarquía y lógica de uso real de recursos
+
+Evitar conflictos, duplicaciones y reservas incorrectas
+
+Brindar al usuario final una UI fluida, confiable y profesional
+
+🔁 MODO DE ENTREGA
+Podés desarrollar esta solución en partes (checkpoints), no es necesario resolver todo en una sola respuesta.
+
+Por ejemplo:
+
+Empezar con el rediseño del modelo de datos
+
+Luego proponer la lógica de disponibilidad
+
+Después adaptar el calendario
+
+Finalmente incorporar validaciones y funciones adicionales
+
+Esperá mi confirmación o feedback después de cada parte antes de continuar.
+Esto nos permitirá trabajar de forma precisa, colaborativa y alineada con el estado real del proyecto.
+
