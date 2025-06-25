@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import type { Booking, Kit, CalendarEvent } from '../types';
+import type { Booking, Bundle } from '../types';
 import { mockBookings } from '../mockData';
 
 export const useBookings = () => {
@@ -35,8 +35,8 @@ export const useBookings = () => {
     return bookings.filter(booking => booking.shopId === shopId);
   }, [bookings]);
 
-  const getBookingsByKit = useCallback((kitId: string) => {
-    return bookings.filter(booking => booking.kitId === kitId);
+  const getBookingsByBundle = useCallback((bundleId: string) => {
+    return bookings.filter(booking => booking.bundleId === bundleId);
   }, [bookings]);
 
   const getBookingsByDateRange = useCallback((startDate: string, endDate: string) => {
@@ -44,25 +44,6 @@ export const useBookings = () => {
       booking.date >= startDate && booking.date <= endDate
     );
   }, [bookings]);
-
-  const convertBookingsToCalendarEvents = useCallback((
-    bookingsToConvert: Booking[], 
-    kits: Kit[]
-  ): CalendarEvent[] => {
-    return bookingsToConvert.map(booking => {
-      const kit = kits.find(k => k.id === booking.kitId);
-      const startDateTime = new Date(`${booking.date}T${booking.timeSlot}:00`);
-      const endDateTime = new Date(startDateTime.getTime() + (kit?.duration || 60) * 60000);
-
-      return {
-        id: booking.id,
-        title: `${booking.kitName} - ${booking.customerName}`,
-        start: startDateTime,
-        end: endDateTime,
-        resource: booking,
-      };
-    });
-  }, []);
 
   const getBookingStats = useCallback((shopId?: string) => {
     const relevantBookings = shopId 
@@ -87,9 +68,8 @@ export const useBookings = () => {
     updateBooking,
     deleteBooking,
     getBookingsByShop,
-    getBookingsByKit,
+    getBookingsByBundle,
     getBookingsByDateRange,
-    convertBookingsToCalendarEvents,
     getBookingStats,
   }), [
     bookings,
@@ -98,9 +78,8 @@ export const useBookings = () => {
     updateBooking,
     deleteBooking,
     getBookingsByShop,
-    getBookingsByKit,
+    getBookingsByBundle,
     getBookingsByDateRange,
-    convertBookingsToCalendarEvents,
     getBookingStats,
   ]);
 
