@@ -1,418 +1,594 @@
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import type { BusinessHoursFormData, BusinessHours, BusinessHoursPeriod } from '../types';
+// ========================================
+// CONFIGURACIÓN DE HORARIOS DE NEGOCIO - NUEVO MODELO
+// ========================================
+
+import React, { useState, useMemo, useCallback } from 'react';
+import type { BusinessHours, BusinessHoursPeriod } from '../types/newModel';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { generateTimeOptions } from '../utils/dateHelpers';
-
-const businessHoursPeriodSchema = z.object({
-  startTime: z.string(),
-  endTime: z.string(),
-}).refine((data) => {
-  return data.startTime < data.endTime;
-}, {
-  message: "La hora de inicio debe ser anterior a la hora de fin",
-  path: ["endTime"],
-});
-
-const businessHoursDaySchema = z.object({
-  isActive: z.boolean(),
-  periods: z.array(businessHoursPeriodSchema).min(0),
-});
-
-const businessHoursSchema = z.object({
-  monday: businessHoursDaySchema,
-  tuesday: businessHoursDaySchema,
-  wednesday: businessHoursDaySchema,
-  thursday: businessHoursDaySchema,
-  friday: businessHoursDaySchema,
-  saturday: businessHoursDaySchema,
-  sunday: businessHoursDaySchema,
-});
+import { Input } from './ui/Input';
+import { Select } from './ui/Select';
+import { 
+  Clock, Plus, Trash2, Copy, Save, RotateCcw, 
+  Sun, Moon, Coffee, Utensils, AlertTriangle,
+  Check, X, Calendar, Settings
+} from 'lucide-react';
 
 interface BusinessHoursFormProps {
-  initialData?: BusinessHours[];
-  onSubmit: (data: BusinessHours[]) => void;
-  onCancel: () => void;
-  isLoading?: boolean;
+  initialHours?: BusinessHours[];
+  onSave?: (hours: BusinessHours[]) => void;
+  onCancel?: () => void;
+  isEditing?: boolean;
+  shopName?: string;
 }
 
+interface DayTemplate {
+  name: string;
+  periods: BusinessHoursPeriod[];
+}
+
+const DAYS_OF_WEEK = [
+  { value: 0, label: 'Domingo', short: 'Dom' },
+  { value: 1, label: 'Lunes', short: 'Lun' },
+  { value: 2, label: 'Martes', short: 'Mar' },
+  { value: 3, label: 'Miércoles', short: 'Mié' },
+  { value: 4, label: 'Jueves', short: 'Jue' },
+  { value: 5, label: 'Viernes', short: 'Vie' },
+  { value: 6, label: 'Sábado', short: 'Sáb' }
+];
+
+const COMMON_TEMPLATES: DayTemplate[] = [
+  {
+    name: 'Horario Comercial (9-17)',
+    periods: [{ id: '1', startTime: '09:00', endTime: '17:00', name: 'Horario Comercial' }]
+  },
+  {
+    name: 'Mañana y Tarde',
+    periods: [
+      { id: '1', startTime: '09:00', endTime: '13:00', name: 'Mañana' },
+      { id: '2', startTime: '15:00', endTime: '19:00', name: 'Tarde' }
+    ]
+  },
+  {
+    name: 'Restaurante',
+    periods: [
+      { id: '1', startTime: '12:00', endTime: '15:00', name: 'Almuerzo' },
+      { id: '2', startTime: '19:00', endTime: '23:00', name: 'Cena' }
+    ]
+  },
+  {
+    name: 'Spa/Wellness',
+    periods: [
+      { id: '1', startTime: '08:00', endTime: '12:00', name: 'Mañana' },
+      { id: '2', startTime: '14:00', endTime: '20:00', name: 'Tarde' }
+    ]
+  },
+  {
+    name: '24 Horas',
+    periods: [{ id: '1', startTime: '00:00', endTime: '23:59', name: '24h' }]
+  }
+];
+
 export const BusinessHoursForm: React.FC<BusinessHoursFormProps> = ({
-  initialData = [],
-  onSubmit,
+  initialHours = [],
+  onSave,
   onCancel,
-  isLoading = false,
+  isEditing = false,
+  shopName = 'Negocio'
 }) => {
-  const timeOptions = generateTimeOptions(6, 23, 30);
-  
-  // Estado local para manejar los períodos de cada día
-  const [dayPeriods, setDayPeriods] = useState<Record<string, BusinessHoursPeriod[]>>(() => {
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
-    const initial: Record<string, BusinessHoursPeriod[]> = {};
-    
-    days.forEach((dayName, index) => {
-      const dayData = initialData.find(bh => bh.dayOfWeek === index);
-      initial[dayName] = dayData?.periods?.length ? dayData.periods : [{ startTime: '09:00', endTime: '18:00' }];
-    });
-    
-    return initial;
+  // ========================================
+  // ESTADO LOCAL
+  // ========================================
+
+  const [businessHours, setBusinessHours] = useState<BusinessHours[]>(() => {
+    // Inicializar con horarios por defecto si no hay datos
+    if (initialHours.length === 0) {
+      return DAYS_OF_WEEK.map(day => ({
+        dayOfWeek: day.value,
+        isActive: day.value >= 1 && day.value <= 5, // Lunes a Viernes activos por defecto
+        periods: day.value >= 1 && day.value <= 5 ? [
+          { id: `${day.value}-1`, startTime: '09:00', endTime: '17:00', name: 'Horario Comercial' }
+        ] : []
+      }));
+    }
+    return initialHours;
   });
 
-  // Convertir BusinessHours[] a BusinessHoursFormData
-  const getFormData = (businessHours: BusinessHours[]): BusinessHoursFormData => {
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
-    
-    const formData: BusinessHoursFormData = {} as BusinessHoursFormData;
-    
-    days.forEach((dayName, index) => {
-      const dayData = businessHours.find(bh => bh.dayOfWeek === index);
-      formData[dayName] = {
-        isActive: dayData?.isActive || false,
-        periods: dayData?.periods || [{ startTime: '09:00', endTime: '18:00' }],
-      };
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // ========================================
+  // VALIDACIONES
+  // ========================================
+
+  const validatePeriods = useCallback((periods: BusinessHoursPeriod[]): string[] => {
+    const errors: string[] = [];
+
+    for (let i = 0; i < periods.length; i++) {
+      const period = periods[i];
+      
+      // Validar formato de horas
+      if (!period.startTime || !period.endTime) {
+        errors.push(`Período ${i + 1}: Debe especificar hora de inicio y fin`);
+        continue;
+      }
+
+      // Validar que inicio < fin
+      if (period.startTime >= period.endTime) {
+        errors.push(`Período ${i + 1}: La hora de inicio debe ser menor que la hora de fin`);
+      }
+
+      // Validar solapamientos
+      for (let j = i + 1; j < periods.length; j++) {
+        const otherPeriod = periods[j];
+        if (
+          (period.startTime < otherPeriod.endTime && period.endTime > otherPeriod.startTime) ||
+          (otherPeriod.startTime < period.endTime && otherPeriod.endTime > period.startTime)
+        ) {
+          errors.push(`Período ${i + 1} y ${j + 1}: Los horarios se solapan`);
+        }
+      }
+    }
+
+    return errors;
+  }, []);
+
+  const allErrors = useMemo(() => {
+    const newErrors: Record<string, string[]> = {};
+
+    businessHours.forEach(day => {
+      if (day.isActive && day.periods.length > 0) {
+        const dayErrors = validatePeriods(day.periods);
+        if (dayErrors.length > 0) {
+          newErrors[day.dayOfWeek.toString()] = dayErrors;
+        }
+      }
     });
-    
-    return formData;
-  };
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useForm<BusinessHoursFormData>({
-    resolver: zodResolver(businessHoursSchema),
-    defaultValues: getFormData(initialData),
-  });
+    return newErrors;
+  }, [businessHours, validatePeriods]);
 
-  const watchedData = watch();
+  // ========================================
+  // HANDLERS
+  // ========================================
 
-  const onFormSubmit = (data: BusinessHoursFormData) => {
-    const businessHours: BusinessHours[] = [];
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
-    
-    days.forEach((dayName, index) => {
-      const dayData = data[dayName];
-      businessHours.push({
-        dayOfWeek: index,
-        isActive: dayData.isActive,
-        periods: dayPeriods[dayName] || [],
-      });
+  const updateDay = useCallback((dayOfWeek: number, updates: Partial<BusinessHours>) => {
+    setBusinessHours(prev => prev.map(day => 
+      day.dayOfWeek === dayOfWeek ? { ...day, ...updates } : day
+    ));
+    setHasChanges(true);
+  }, []);
+
+  const toggleDayActive = useCallback((dayOfWeek: number) => {
+    updateDay(dayOfWeek, { 
+      isActive: !businessHours.find(d => d.dayOfWeek === dayOfWeek)?.isActive 
     });
+  }, [businessHours, updateDay]);
 
-    onSubmit(businessHours);
-  };
+  const addPeriod = useCallback((dayOfWeek: number) => {
+    const day = businessHours.find(d => d.dayOfWeek === dayOfWeek);
+    if (!day) return;
 
-  const setAllDays = (isActive: boolean) => {
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
-    days.forEach(day => {
-      setValue(`${day}.isActive`, isActive);
+    const newPeriod: BusinessHoursPeriod = {
+      id: `${dayOfWeek}-${Date.now()}`,
+      startTime: '09:00',
+      endTime: '17:00',
+      name: `Período ${day.periods.length + 1}`
+    };
+
+    updateDay(dayOfWeek, { 
+      periods: [...day.periods, newPeriod] 
     });
-  };
+  }, [businessHours, updateDay]);
 
-  const setWeekdays = () => {
-    const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as const;
-    const weekend = ['sunday', 'saturday'] as const;
-    
-    weekdays.forEach(day => {
-      setValue(`${day}.isActive`, true);
-      setDayPeriods(prev => ({
-        ...prev,
-        [day]: [{ startTime: '09:00', endTime: '13:00' }, { startTime: '14:00', endTime: '18:00' }]
-      }));
+  const removePeriod = useCallback((dayOfWeek: number, periodId: string) => {
+    const day = businessHours.find(d => d.dayOfWeek === dayOfWeek);
+    if (!day) return;
+
+    updateDay(dayOfWeek, { 
+      periods: day.periods.filter(p => p.id !== periodId) 
     });
-    
-    weekend.forEach(day => {
-      setValue(`${day}.isActive`, false);
-    });
-  };
+  }, [businessHours, updateDay]);
 
-  const setWeekend = () => {
-    const weekend = ['sunday', 'saturday'] as const;
-    
-    weekend.forEach(day => {
-      setValue(`${day}.isActive`, true);
-      setDayPeriods(prev => ({
-        ...prev,
-        [day]: [{ startTime: '10:00', endTime: '16:00' }]
-      }));
-    });
-  };
+  const updatePeriod = useCallback((
+    dayOfWeek: number, 
+    periodId: string, 
+    updates: Partial<BusinessHoursPeriod>
+  ) => {
+    const day = businessHours.find(d => d.dayOfWeek === dayOfWeek);
+    if (!day) return;
 
-  const addPeriod = (dayKey: string) => {
-    setDayPeriods(prev => ({
-      ...prev,
-      [dayKey]: [...(prev[dayKey] || []), { startTime: '09:00', endTime: '18:00' }]
-    }));
-  };
-
-  const removePeriod = (dayKey: string, periodIndex: number) => {
-    setDayPeriods(prev => ({
-      ...prev,
-      [dayKey]: prev[dayKey].filter((_, index) => index !== periodIndex)
-    }));
-  };
-
-  const updatePeriod = (dayKey: string, periodIndex: number, field: 'startTime' | 'endTime', value: string) => {
-    setDayPeriods(prev => ({
-      ...prev,
-      [dayKey]: prev[dayKey].map((period, index) => 
-        index === periodIndex ? { ...period, [field]: value } : period
+    updateDay(dayOfWeek, {
+      periods: day.periods.map(p => 
+        p.id === periodId ? { ...p, ...updates } : p
       )
-    }));
-  };
+    });
+  }, [businessHours, updateDay]);
 
-  const copyPeriods = (fromDay: string, toDay: string) => {
-    setDayPeriods(prev => ({
-      ...prev,
-      [toDay]: [...prev[fromDay]]
-    }));
-  };
+  const applyTemplate = useCallback((template: DayTemplate, dayOfWeek?: number) => {
+    if (dayOfWeek !== undefined) {
+      // Aplicar a un día específico
+      updateDay(dayOfWeek, {
+        isActive: true,
+        periods: template.periods.map(p => ({ 
+          ...p, 
+          id: `${dayOfWeek}-${Date.now()}-${p.id}` 
+        }))
+      });
+    } else {
+      // Aplicar a todos los días activos
+      setBusinessHours(prev => prev.map(day => ({
+        ...day,
+        periods: day.isActive ? template.periods.map(p => ({ 
+          ...p, 
+          id: `${day.dayOfWeek}-${Date.now()}-${p.id}` 
+        })) : day.periods
+      })));
+    }
+    setHasChanges(true);
+    setShowTemplates(false);
+  }, [updateDay]);
 
-  const days = [
-    { key: 'monday' as const, name: 'Lunes', dayOfWeek: 1 },
-    { key: 'tuesday' as const, name: 'Martes', dayOfWeek: 2 },
-    { key: 'wednesday' as const, name: 'Miércoles', dayOfWeek: 3 },
-    { key: 'thursday' as const, name: 'Jueves', dayOfWeek: 4 },
-    { key: 'friday' as const, name: 'Viernes', dayOfWeek: 5 },
-    { key: 'saturday' as const, name: 'Sábado', dayOfWeek: 6 },
-    { key: 'sunday' as const, name: 'Domingo', dayOfWeek: 0 },
-  ];
+  const copyFromDay = useCallback((fromDay: number, toDay: number) => {
+    const sourceDay = businessHours.find(d => d.dayOfWeek === fromDay);
+    if (!sourceDay) return;
+
+    updateDay(toDay, {
+      isActive: sourceDay.isActive,
+      periods: sourceDay.periods.map(p => ({
+        ...p,
+        id: `${toDay}-${Date.now()}-${p.id}`
+      }))
+    });
+  }, [businessHours, updateDay]);
+
+  const handleSave = useCallback(() => {
+    if (Object.keys(allErrors).length === 0) {
+      onSave?.(businessHours);
+    }
+  }, [businessHours, allErrors, onSave]);
+
+  const handleReset = useCallback(() => {
+    setBusinessHours(initialHours);
+    setHasChanges(false);
+  }, [initialHours]);
+
+  // ========================================
+  // ESTADÍSTICAS Y RESUMEN
+  // ========================================
+
+  const hoursStats = useMemo(() => {
+    const activeDays = businessHours.filter(d => d.isActive).length;
+    const totalHours = businessHours.reduce((sum, day) => {
+      if (!day.isActive) return sum;
+      
+      return sum + day.periods.reduce((daySum, period) => {
+        const start = new Date(`2000-01-01T${period.startTime}:00`);
+        const end = new Date(`2000-01-01T${period.endTime}:00`);
+        return daySum + (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+      }, 0);
+    }, 0);
+
+    const averageHoursPerDay = activeDays > 0 ? totalHours / activeDays : 0;
+
+    return {
+      activeDays,
+      totalWeeklyHours: totalHours,
+      averageHoursPerDay: averageHoursPerDay.toFixed(1)
+    };
+  }, [businessHours]);
+
+  // ========================================
+  // RENDERIZADO
+  // ========================================
 
   return (
-    <div className="fixed inset-0 bg-opacity-20 backdrop-blur-lg flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-5xl max-h-[90vh] overflow-hidden">
-        {/* Header del Modal */}
-        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Configuración de Horarios de Atención</h2>
-              <p className="text-sm text-gray-600">Define múltiples períodos de atención para cada día</p>
+    <div className="space-y-6">
+      {/* Header con estadísticas */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center space-x-2">
+              <Clock className="w-6 h-6 text-blue-600" />
+              <span>Horarios de Atención - {shopName}</span>
+            </h2>
+            <p className="text-gray-600 mt-1">
+              Configura los horarios de atención para cada día de la semana
+            </p>
+          </div>
+          
+          <div className="text-right">
+            <div className="flex items-center space-x-4 text-sm text-gray-600">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{hoursStats.activeDays}</div>
+                <div>Días activos</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{hoursStats.totalWeeklyHours.toFixed(1)}</div>
+                <div>Horas/semana</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">{hoursStats.averageHoursPerDay}</div>
+                <div>Promedio/día</div>
+              </div>
             </div>
           </div>
-          <Button
-            variant="outline"
-            onClick={onCancel}
-            className="flex items-center space-x-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            <span>Cerrar</span>
-          </Button>
         </div>
 
-        {/* Contenido del Modal con scroll */}
-        <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
-          <div className="p-6 space-y-6">
-            {/* Acciones rápidas */}
-            <div className="flex flex-wrap gap-3">
+        {/* Controles globales */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTemplates(!showTemplates)}
+              className="flex items-center space-x-2"
+            >
+              <Settings className="w-4 h-4" />
+              <span>Plantillas</span>
+            </Button>
+            
+            {hasChanges && (
               <Button
-                type="button"
                 variant="outline"
                 size="sm"
-                onClick={setWeekdays}
+                onClick={handleReset}
+                className="flex items-center space-x-2 text-orange-600"
               >
-                Días laborales (L-V)
+                <RotateCcw className="w-4 h-4" />
+                <span>Resetear</span>
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={setWeekend}
-              >
-                Fines de semana
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setAllDays(true)}
-              >
-                Activar todos
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setAllDays(false)}
-              >
-                Desactivar todos
-              </Button>
-            </div>
+            )}
+          </div>
 
-            {/* Formulario */}
-            <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
-              {days.map(({ key, name }) => {
-                const dayData = watchedData[key];
-                const dayErrors = errors[key];
-                const periods = dayPeriods[key] || [];
-                
-                return (
-                  <div 
-                    key={key}
-                    className={`p-6 border rounded-lg ${dayData?.isActive ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <label className="flex items-center space-x-3">
-                        <input
-                          type="checkbox"
-                          {...register(`${key}.isActive`)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <span className="text-lg font-medium text-gray-900">
-                          {name}
-                        </span>
-                      </label>
-                      
-                      <div className="flex items-center space-x-2">
+          {Object.keys(allErrors).length > 0 && (
+            <div className="flex items-center space-x-2 text-red-600">
+              <AlertTriangle className="w-4 h-4" />
+              <span className="text-sm">Hay errores en la configuración</span>
+            </div>
+          )}
+        </div>
+
+        {/* Panel de plantillas */}
+        {showTemplates && (
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">Plantillas Predefinidas</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              {COMMON_TEMPLATES.map((template, index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedTemplate(template.name);
+                    // Aplicar a todos los días activos
+                    applyTemplate(template);
+                  }}
+                  className="text-left justify-start"
+                >
+                  <div>
+                    <div className="font-medium">{template.name}</div>
+                    <div className="text-xs text-gray-500">
+                      {template.periods.map(p => `${p.startTime}-${p.endTime}`).join(', ')}
+                    </div>
+                  </div>
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* Configuración por día */}
+      <div className="space-y-4">
+        {DAYS_OF_WEEK.map((day) => {
+          const dayData = businessHours.find(d => d.dayOfWeek === day.value);
+          const dayErrors = allErrors[day.value.toString()] || [];
+          
+          return (
+            <Card key={day.value} className="overflow-hidden">
+              <div className="p-6">
+                {/* Header del día */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={dayData?.isActive || false}
+                        onChange={() => toggleDayActive(day.value)}
+                        className="w-4 h-4 text-blue-600 rounded border-gray-300"
+                      />
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">{day.label}</h3>
                         {dayData?.isActive && (
-                          <span className="text-sm text-green-600 font-medium bg-green-100 px-2 py-1 rounded">
-                            {periods.length} período{periods.length !== 1 ? 's' : ''}
-                          </span>
-                        )}
-                        
-                        {/* Dropdown para copiar horarios */}
-                        {dayData?.isActive && (
-                          <div className="relative">
-                            <select
-                              onChange={(e) => {
-                                if (e.target.value) {
-                                  copyPeriods(e.target.value, key);
-                                  e.target.value = '';
-                                }
-                              }}
-                              className="text-xs px-2 py-1 border rounded bg-white text-gray-600"
-                            >
-                              <option value="">Copiar desde...</option>
-                              {days.filter(d => d.key !== key && watchedData[d.key]?.isActive).map(d => (
-                                <option key={d.key} value={d.key}>{d.name}</option>
-                              ))}
-                            </select>
-                          </div>
+                          <p className="text-sm text-gray-600">
+                            {dayData.periods.length} período(s) configurado(s)
+                          </p>
                         )}
                       </div>
                     </div>
-
+                    
                     {dayData?.isActive && (
-                      <div className="space-y-3">
-                        {periods.map((period, periodIndex) => (
-                          <div key={periodIndex} className="flex items-center space-x-3 p-3 bg-white rounded border">
-                            <div className="flex items-center space-x-2 text-sm font-medium text-gray-700">
-                              <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs">
-                                {periodIndex + 1}
-                              </span>
-                              <span>Período</span>
-                            </div>
-                            
-                            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
-                              <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">
-                                  Hora de apertura
-                                </label>
-                                <select
-                                  value={period.startTime}
-                                  onChange={(e) => updatePeriod(key, periodIndex, 'startTime', e.target.value)}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                >
-                                  {timeOptions.map(time => (
-                                    <option key={time} value={time}>
-                                      {time}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-
-                              <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">
-                                  Hora de cierre
-                                </label>
-                                <select
-                                  value={period.endTime}
-                                  onChange={(e) => updatePeriod(key, periodIndex, 'endTime', e.target.value)}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                >
-                                  {timeOptions.map(time => (
-                                    <option key={time} value={time}>
-                                      {time}
-                                    </option>
-                                  ))}
-                                </select>
-                                {period.startTime >= period.endTime && (
-                                  <p className="mt-1 text-xs text-red-600">
-                                    La hora de fin debe ser posterior a la de inicio
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-
-                            {periods.length > 1 && (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => removePeriod(key, periodIndex)}
-                                className="flex-shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => addPeriod(key)}
-                          className="w-full flex items-center justify-center space-x-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                          </svg>
-                          <span>Agregar período</span>
-                        </Button>
-
-                        {dayErrors && (
-                          <p className="text-sm text-red-600 bg-red-50 p-2 rounded">
-                            {dayErrors.message || 'Revisa los horarios de este día'}
-                          </p>
+                      <div className="flex items-center space-x-1">
+                        {day.value === 0 || day.value === 6 ? (
+                          <Sun className="w-4 h-4 text-orange-500" />
+                        ) : (
+                          <Calendar className="w-4 h-4 text-blue-500" />
                         )}
                       </div>
                     )}
                   </div>
-                );
-              })}
-            </form>
-          </div>
-        </div>
+                  
+                  {dayData?.isActive && (
+                    <div className="flex items-center space-x-2">
+                      {/* Copiar desde otro día */}
+                      <Select
+                        value=""
+                        onChange={(e) => e.target.value && copyFromDay(parseInt(e.target.value), day.value)}
+                        options={[
+                          { value: '', label: 'Copiar desde...' },
+                          ...DAYS_OF_WEEK
+                            .filter(d => d.value !== day.value)
+                            .map(d => ({ 
+                              value: d.value.toString(), 
+                              label: d.label 
+                            }))
+                        ]}
+                        className="text-xs"
+                      />
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addPeriod(day.value)}
+                        className="flex items-center space-x-1"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Período</span>
+                      </Button>
+                    </div>
+                  )}
+                </div>
 
-        {/* Footer del Modal */}
-        <div className="flex justify-end space-x-4 p-6 border-t bg-gray-50 sticky bottom-0">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            disabled={isLoading}
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSubmit(onFormSubmit)}
-            loading={isLoading}
-          >
-            Guardar Horarios
-          </Button>
+                {/* Períodos del día */}
+                {dayData?.isActive && (
+                  <div className="space-y-3">
+                    {dayData.periods.map((period, periodIndex) => (
+                      <div 
+                        key={period.id} 
+                        className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg"
+                      >
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Nombre
+                            </label>
+                            <Input
+                              type="text"
+                              value={period.name}
+                              onChange={(e) => updatePeriod(day.value, period.id, { name: e.target.value })}
+                              placeholder="Ej: Mañana"
+                              className="text-sm"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Hora Inicio
+                            </label>
+                            <Input
+                              type="time"
+                              value={period.startTime}
+                              onChange={(e) => updatePeriod(day.value, period.id, { startTime: e.target.value })}
+                              className="text-sm"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Hora Fin
+                            </label>
+                            <Input
+                              type="time"
+                              value={period.endTime}
+                              onChange={(e) => updatePeriod(day.value, period.id, { endTime: e.target.value })}
+                              className="text-sm"
+                            />
+                          </div>
+                          
+                          <div className="flex items-end">
+                            <div className="text-xs text-gray-600">
+                              Duración: {
+                                (() => {
+                                  const start = new Date(`2000-01-01T${period.startTime}:00`);
+                                  const end = new Date(`2000-01-01T${period.endTime}:00`);
+                                  const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+                                  return `${hours.toFixed(1)}h`;
+                                })()
+                              }
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {dayData.periods.length > 1 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removePeriod(day.value, period.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    
+                    {/* Errores del día */}
+                    {dayErrors.length > 0 && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <AlertTriangle className="w-4 h-4 text-red-600" />
+                          <span className="text-sm font-medium text-red-800">Errores de validación:</span>
+                        </div>
+                        <ul className="text-sm text-red-700 space-y-1 ml-6">
+                          {dayErrors.map((error, index) => (
+                            <li key={index} className="list-disc">{error}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Estado inactivo */}
+                {!dayData?.isActive && (
+                  <div className="text-center py-8 text-gray-500">
+                    <Moon className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                    <p>Día inactivo - Sin atención</p>
+                  </div>
+                )}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Acciones */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            {hasChanges ? (
+              <div className="flex items-center space-x-2 text-orange-600">
+                <AlertTriangle className="w-4 h-4" />
+                <span>Tienes cambios sin guardar</span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2 text-green-600">
+                <Check className="w-4 h-4" />
+                <span>Configuración guardada</span>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            {isEditing && (
+              <Button variant="outline" onClick={onCancel}>
+                <X className="w-4 h-4 mr-2" />
+                Cancelar
+              </Button>
+            )}
+            
+            <Button
+              onClick={handleSave}
+              disabled={Object.keys(allErrors).length > 0}
+              className="flex items-center space-x-2"
+            >
+              <Save className="w-4 h-4" />
+              <span>Guardar Horarios</span>
+            </Button>
+          </div>
         </div>
       </Card>
     </div>

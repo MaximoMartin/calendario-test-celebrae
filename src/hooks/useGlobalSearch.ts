@@ -1,203 +1,269 @@
-import { useState, useMemo } from 'react';
-import type { SearchFilters, GlobalSearchResult, CustomerInfo } from '../types';
-import { mockBookings, mockKits } from '../mockData';
+// ========================================
+// HOOK DE BÚSQUEDA GLOBAL - NUEVO MODELO
+// ========================================
 
-export const useGlobalSearch = () => {
-  const [filters, setFilters] = useState<SearchFilters>({});
+import { useState, useMemo, useCallback } from 'react';
+import type { 
+  Booking, Bundle, GlobalSearchResult, CustomerData, BookingStatus 
+} from '../types/newModel';
+
+interface UseGlobalSearchProps {
+  bookings: Booking[];
+  bundles: Bundle[];
+}
+
+interface SearchFilters {
+  type?: 'all' | 'booking' | 'customer' | 'bundle';
+  status?: BookingStatus | 'all';
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export const useGlobalSearch = (props?: UseGlobalSearchProps) => {
+  // ========================================
+  // ESTADO
+  // ========================================
+
   const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState<SearchFilters>({
+    type: 'all',
+    status: 'all'
+  });
+  const [isSearching, setIsSearching] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
-  // Generar información de clientes desde las reservas
-  const customerInfo = useMemo((): CustomerInfo[] => {
-    const customerMap = new Map<string, CustomerInfo>();
+  // ========================================
+  // DATOS MOCK SI NO SE PROPORCIONAN
+  // ========================================
 
-    mockBookings.forEach(booking => {
-      const key = booking.customerEmail;
-      if (!customerMap.has(key)) {
-        customerMap.set(key, {
-          id: `customer_${booking.customerEmail}`,
-          name: booking.customerName,
-          email: booking.customerEmail,
-          phone: booking.customerPhone,
-          totalBookings: 0,
-          lastBookingDate: booking.date,
-        });
-      }
+  const bookings = props?.bookings || [];
+  const bundles = props?.bundles || [];
 
-      const customer = customerMap.get(key)!;
-      customer.totalBookings += 1;
-      if (booking.date > (customer.lastBookingDate || '')) {
-        customer.lastBookingDate = booking.date;
-      }
-    });
+  // ========================================
+  // MOTOR DE BÚSQUEDA
+  // ========================================
 
-    return Array.from(customerMap.values());
-  }, []);
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
 
-  // Función de búsqueda principal
-  const searchResults = useMemo((): GlobalSearchResult[] => {
-    const results: GlobalSearchResult[] = [];
     const query = searchQuery.toLowerCase().trim();
-
-    if (!query && Object.keys(filters).length === 0) {
-      return [];
-    }
+    const results: GlobalSearchResult[] = [];
 
     // Buscar en reservas
-    mockBookings.forEach(booking => {
+    bookings.forEach(booking => {
       let relevance = 0;
-      let matches = false;
 
-      // Búsqueda por texto
-      if (query) {
-        const searchableText = [
-          booking.customerName,
-          booking.customerEmail,
-          booking.customerPhone,
-          booking.kitName,
-          booking.notes || '',
-          booking.id
-        ].join(' ').toLowerCase();
+      // Buscar en campos principales
+      if (booking.customerName.toLowerCase().includes(query)) relevance += 10;
+      if (booking.customerEmail.toLowerCase().includes(query)) relevance += 8;
+      if (booking.customerPhone.includes(query)) relevance += 8;
+      if (booking.bundleName.toLowerCase().includes(query)) relevance += 6;
+      if (booking.id.toLowerCase().includes(query)) relevance += 5;
+      if (booking.notes?.toLowerCase().includes(query)) relevance += 3;
 
-        if (searchableText.includes(query)) {
-          matches = true;
-          relevance += 100;
-          
-          // Mayor relevancia si coincide exactamente con el nombre o email
-          if (booking.customerName.toLowerCase().includes(query)) relevance += 50;
-          if (booking.customerEmail.toLowerCase().includes(query)) relevance += 50;
-        }
-      }
+      // Buscar en items individuales
+      booking.itemBookings.forEach(itemBooking => {
+        if (itemBooking.itemName.toLowerCase().includes(query)) relevance += 4;
+        if (itemBooking.notes?.toLowerCase().includes(query)) relevance += 2;
+      });
 
-      // Aplicar filtros
-      if (filters.status && filters.status.length > 0) {
-        if (!filters.status.includes(booking.status)) {
-          return;
-        }
-        if (!query) matches = true;
-      }
-
-      if (filters.kitIds && filters.kitIds.length > 0) {
-        if (!filters.kitIds.includes(booking.kitId)) {
-          return;
-        }
-        if (!query) matches = true;
-      }
-
-      if (filters.dateFrom) {
-        if (booking.date < filters.dateFrom) {
-          return;
-        }
-        if (!query) matches = true;
-      }
-
-      if (filters.dateTo) {
-        if (booking.date > filters.dateTo) {
-          return;
-        }
-        if (!query) matches = true;
-      }
-
-      if (filters.isManual !== undefined) {
-        if (booking.isManual !== filters.isManual) {
-          return;
-        }
-        if (!query) matches = true;
-      }
-
-      if (filters.customerEmail) {
-        if (!booking.customerEmail.toLowerCase().includes(filters.customerEmail.toLowerCase())) {
-          return;
-        }
-        if (!query) matches = true;
-      }
-
-      if (filters.customerPhone) {
-        if (!booking.customerPhone.includes(filters.customerPhone)) {
-          return;
-        }
-        if (!query) matches = true;
-      }
-
-      if (matches) {
+      if (relevance > 0) {
         results.push({
           type: 'booking',
           id: booking.id,
-          title: `${booking.customerName} - ${booking.kitName}`,
-          subtitle: `${booking.date} ${booking.timeSlot} | ${booking.status}`,
+          title: `${booking.customerName} - ${booking.bundleName}`,
+          subtitle: `${booking.date} - ${booking.status}`,
           data: booking,
           relevance
         });
       }
     });
 
-    // Buscar en kits
-    if (query) {
-      mockKits.forEach(kit => {
-        const searchableText = [
-          kit.name,
-          kit.id
-        ].join(' ').toLowerCase();
+    // Buscar en bundles
+    bundles.forEach(bundle => {
+      let relevance = 0;
 
-        if (searchableText.includes(query)) {
-          let relevance = 75;
-          if (kit.name.toLowerCase().includes(query)) relevance += 25;
+      if (bundle.name.toLowerCase().includes(query)) relevance += 10;
+      if (bundle.description.toLowerCase().includes(query)) relevance += 6;
+      if (bundle.category.toLowerCase().includes(query)) relevance += 4;
 
-          results.push({
-            type: 'kit',
-            id: kit.id,
-            title: kit.name,
-            subtitle: `€${kit.price} | Capacidad: ${kit.maxCapacity} personas`,
-            data: kit,
-            relevance
-          });
-        }
+      // Buscar en items del bundle
+      bundle.items.forEach(item => {
+        if (item.name.toLowerCase().includes(query)) relevance += 5;
+        if (item.description.toLowerCase().includes(query)) relevance += 3;
       });
 
-      // Buscar en clientes
-      customerInfo.forEach(customer => {
-        const searchableText = [
-          customer.name,
-          customer.email,
-          customer.phone
-        ].join(' ').toLowerCase();
+      if (relevance > 0) {
+        results.push({
+          type: 'bundle',
+          id: bundle.id,
+          title: bundle.name,
+          subtitle: `${bundle.category} - $${bundle.basePrice}`,
+          data: bundle,
+          relevance
+        });
+      }
+    });
 
-        if (searchableText.includes(query)) {
-          let relevance = 80;
-          if (customer.name.toLowerCase().includes(query)) relevance += 30;
-          if (customer.email.toLowerCase().includes(query)) relevance += 20;
+    // Buscar clientes únicos
+    const uniqueCustomers = Array.from(
+      new Map(
+        bookings.map(b => [
+          b.customerEmail, 
+          {
+            name: b.customerName,
+            email: b.customerEmail,
+            phone: b.customerPhone,
+            bookingsCount: bookings.filter(booking => booking.customerEmail === b.customerEmail).length,
+            totalSpent: bookings
+              .filter(booking => booking.customerEmail === b.customerEmail)
+              .reduce((sum, booking) => sum + booking.pricing.totalAmount, 0),
+            lastBooking: bookings
+              .filter(booking => booking.customerEmail === b.customerEmail)
+              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+          }
+        ])
+      ).values()
+    );
 
-          results.push({
-            type: 'customer',
-            id: customer.id,
-            title: customer.name,
-            subtitle: `${customer.email} | ${customer.totalBookings} reservas`,
-            data: customer,
-            relevance
-          });
-        }
-      });
-    }
+    uniqueCustomers.forEach(customer => {
+      let relevance = 0;
+
+      if (customer.name.toLowerCase().includes(query)) relevance += 10;
+      if (customer.email.toLowerCase().includes(query)) relevance += 8;
+      if (customer.phone.includes(query)) relevance += 8;
+
+      if (relevance > 0) {
+        results.push({
+          type: 'customer',
+          id: customer.email,
+          title: customer.name,
+          subtitle: `${customer.email} - ${customer.bookingsCount} reservas`,
+          data: customer,
+          relevance
+        });
+      }
+    });
 
     // Ordenar por relevancia
     return results.sort((a, b) => b.relevance - a.relevance);
-  }, [searchQuery, filters, customerInfo]);
+  }, [searchQuery, bookings, bundles]);
 
-  const updateFilters = (newFilters: Partial<SearchFilters>) => {
+  // ========================================
+  // FILTRAR RESULTADOS
+  // ========================================
+
+  const filteredResults = useMemo(() => {
+    let filtered = searchResults;
+
+    // Filtrar por tipo
+    if (filters.type && filters.type !== 'all') {
+      filtered = filtered.filter(result => result.type === filters.type);
+    }
+
+    // Filtrar por estado (solo para bookings)
+    if (filters.status && filters.status !== 'all') {
+      filtered = filtered.filter(result => 
+        result.type !== 'booking' || (result.data as Booking).status === filters.status
+      );
+    }
+
+    // Filtrar por fecha
+    if (filters.dateFrom) {
+      filtered = filtered.filter(result => 
+        result.type !== 'booking' || (result.data as Booking).date >= filters.dateFrom!
+      );
+    }
+
+    if (filters.dateTo) {
+      filtered = filtered.filter(result => 
+        result.type !== 'booking' || (result.data as Booking).date <= filters.dateTo!
+      );
+    }
+
+    return filtered;
+  }, [searchResults, filters]);
+
+  // ========================================
+  // ESTADÍSTICAS
+  // ========================================
+
+  const searchStats = useMemo(() => {
+    return filteredResults.reduce(
+      (acc, result) => {
+        acc.totalResults++;
+        switch (result.type) {
+          case 'booking':
+            acc.bookingsCount++;
+            break;
+          case 'bundle':
+            acc.bundlesCount++;
+            break;
+          case 'customer':
+            acc.customersCount++;
+            break;
+        }
+        return acc;
+      },
+      { totalResults: 0, bookingsCount: 0, customersCount: 0, bundlesCount: 0 }
+    );
+  }, [filteredResults]);
+
+  // ========================================
+  // HANDLERS
+  // ========================================
+
+  const performSearch = useCallback((query: string) => {
+    setIsSearching(true);
+    setSearchQuery(query);
+    
+    // Simular delay de búsqueda
+    setTimeout(() => {
+      setIsSearching(false);
+    }, 300);
+
+    // Agregar a búsquedas recientes
+    if (query.trim() && !recentSearches.includes(query.trim())) {
+      setRecentSearches(prev => [query.trim(), ...prev.slice(0, 4)]);
+    }
+  }, [recentSearches]);
+
+  const updateFilters = useCallback((newFilters: Partial<SearchFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
-  };
+  }, []);
 
-  const clearFilters = () => {
-    setFilters({});
+  const clearSearch = useCallback(() => {
     setSearchQuery('');
-  };
+    setFilters({ type: 'all', status: 'all' });
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setFilters({ type: 'all', status: 'all' });
+  }, []);
+
+  // ========================================
+  // RETURN
+  // ========================================
 
   return {
+    // Estado
     searchQuery,
-    setSearchQuery,
     filters,
+    isSearching,
+    recentSearches,
+    
+    // Resultados
+    searchResults: filteredResults,
+    searchStats,
+    
+    // Acciones
+    setSearchQuery: performSearch,
     updateFilters,
+    clearSearch,
     clearFilters,
-    searchResults,
-    customerInfo
+    
+    // Utilidades
+    hasResults: filteredResults.length > 0,
+    hasQuery: searchQuery.trim().length > 0
   };
 }; 

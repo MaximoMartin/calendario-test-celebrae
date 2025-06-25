@@ -1,5 +1,5 @@
 import { format, parse, isValid, isAfter, isBefore, addDays, startOfDay } from 'date-fns';
-import type { BusinessHours, BookingSettings, TimeSlot, Booking } from '../types';
+import type { BusinessHours, BookingSettings, Booking } from '../types/newModel';
 
 export const formatTime = (time: string): string => {
   const [hours, minutes] = time.split(':');
@@ -105,6 +105,13 @@ export const isBookingAllowed = (
   return { isAllowed: true };
 };
 
+// ========================================
+// FUNCIONES LEGACY - COMENTADAS TEMPORALMENTE
+// ========================================
+// Las siguientes funciones utilizan el modelo anterior de kits/timeSlots
+// Se mantienen comentadas para referencia futura o migración
+
+/*
 export const getAvailableTimeSlots = (
   date: string,
   kitId: string,
@@ -142,6 +149,7 @@ export const getBookingConflicts = (
       booking.id !== excludeBookingId
   ).length;
 };
+*/
 
 export const getDayOfWeekName = (dayOfWeek: number): string => {
   const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
