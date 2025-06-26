@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -39,8 +39,9 @@ export const BookingForm: React.FC<BookingFormProps> = ({
   initialData,
   isLoading = false,
 }) => {
-  const [selectedKitId, setSelectedKitId] = useState(initialData?.kitId || '');
-  const [selectedDate, setSelectedDate] = useState(initialData?.date || '');
+  // Estado local removido - usando watch() directamente para mayor consistencia
+  // const [selectedKitId, setSelectedKitId] = useState(initialData?.kitId || '');
+  // const [selectedDate, setSelectedDate] = useState(initialData?.date || '');
 
   const {
     register,
@@ -98,14 +99,12 @@ export const BookingForm: React.FC<BookingFormProps> = ({
 
   // Manejar cambio de kit
   const handleKitChange = (kitId: string) => {
-    setSelectedKitId(kitId);
     setValue('kitId', kitId);
     setValue('timeSlot', ''); // Reset time slot when kit changes
   };
 
   // Manejar cambio de fecha
   const handleDateChange = (date: string) => {
-    setSelectedDate(date);
     setValue('date', date);
     setValue('timeSlot', ''); // Reset time slot when date changes
   };

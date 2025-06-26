@@ -179,4 +179,527 @@ export interface CustomerInfo {
   totalBookings: number;
   lastBookingDate?: string;
   notes?: string;
+}
+
+// 📌 ENTIDADES BASE DEL SISTEMA DE RESERVAS
+// Checkpoint 1: Definición de entidades principales con relaciones jerárquicas
+// User → Shop → Bundle → { Items[], Extras[] }
+
+/**
+ * Item - Elementos principales de un bundle que pueden ser reservados
+ * Los items tienen horarios de disponibilidad independientes entre sí
+ */
+export interface Item {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  isForAdult: boolean;
+  size?: number; // capacidad o cantidad de personas
+  bundleId: string;
+  
+  // 🎯 CHECKPOINT 4: LÓGICA DE RESERVAS GRUPALES
+  isPerGroup: boolean; // true = se cobra por grupo completo, false = se cobra por persona
+  
+  // Configuración específica para reservas (opcional por ahora)
+  bookingConfig?: {
+    maxCapacity: number;
+    duration: number; // en minutos
+    requiresConfirmation: boolean;
+    advanceBookingDays: number;
+    // 🎯 CHECKPOINT 4: Configuración específica para grupos
+    groupCapacity?: number; // capacidad específica cuando isPerGroup: true
+    isExclusive?: boolean; // true = solo 1 grupo puede reservar este horario
+  };
+  
+  // Horarios específicos del item (independientes de otros items)
+  timeSlots?: TimeSlot[];
+  
+  // Metadatos
+  isActive: boolean;
+  order: number; // para ordenar en la UI
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Extra - Complementos opcionales de un bundle
+ * Los extras NO tienen horarios, se seleccionan junto con items
+ */
+export interface Extra {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  isForAdult: boolean;
+  bundleId: string;
+  
+  // 🎯 CHECKPOINT 4: LÓGICA DE RESERVAS GRUPALES
+  isPerGroup: boolean; // true = se cobra por grupo completo, false = se cobra por persona
+  
+  // 🎯 CHECKPOINT 4: RELACIONES CONDICIONALES
+  requiredItemId?: string; // ID del item que debe estar reservado para poder agregar este extra
+  
+  // Configuración del extra
+  quantity?: number; // cantidad por defecto seleccionada
+  maxQuantity?: number; // cantidad máxima permitida
+  isRequired?: boolean; // si es obligatorio seleccionarlo
+  
+  // Metadatos
+  isActive: boolean;
+  order: number; // para ordenar en la UI
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Bundle - Conjunto de items y extras que se ofrece en un shop
+ * Reemplaza conceptualmente a "Kit" pero mantiene compatibilidad
+ */
+export interface Bundle {
+  id: string;
+  name: string;
+  description: string;
+  shortDescription?: string;
+  shopId: string;
+  
+  // Contenido del bundle
+  items: Item[];
+  extras: Extra[];
+  
+  // Configuración general del bundle
+  basePrice: number; // precio base sin items/extras
+  maxCapacity: number; // capacidad máxima total
+  duration: number; // duración estimada en minutos
+  
+  // Configuración de reservas
+  bookingSettings: {
+    allowInstantBooking: boolean;
+    requiresApproval: boolean;
+    cancellationPolicy: string;
+    refundPolicy: string;
+  };
+  
+  // Presentación
+  imageUrls: string[];
+  tags: string[]; // categorías, filtros
+  
+  // Metadatos
+  isActive: boolean;
+  isFeatured: boolean;
+  order: number; // para ordenar en el shop
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Extensión de User para sistema completo
+ * Mantiene compatibilidad con User existente
+ */
+export interface ExtendedUser extends User {
+  // Información adicional del usuario seller
+  businessInfo?: {
+    businessName: string;
+    businessType: string;
+    taxId?: string;
+    website?: string;
+    description?: string;
+  };
+  
+  // Configuración de cuenta
+  accountSettings: {
+    timezone: string;
+    language: string;
+    currency: string;
+    emailNotifications: boolean;
+    smsNotifications: boolean;
+  };
+  
+  // Metadatos adicionales
+  createdAt: string;
+  updatedAt: string;
+  lastLoginAt?: string;
+}
+
+/**
+ * Extensión de Shop para sistema completo
+ * Mantiene compatibilidad con Shop existente
+ */
+export interface ExtendedShop extends Shop {
+  // Información adicional del shop
+  description?: string;
+  imageUrls: string[];
+  category: string;
+  subCategory?: string;
+  
+  // Configuración de servicios
+  serviceSettings: {
+    allowOnlineBooking: boolean;
+    requiresPhoneConfirmation: boolean;
+    autoAcceptBookings: boolean;
+    maxAdvanceBookingDays: number;
+    minAdvanceBookingHours: number;
+  };
+  
+  // Ubicación y contacto
+  location?: {
+    latitude: number;
+    longitude: number;
+    city: string;
+    state: string;
+    country: string;
+    postalCode: string;
+  };
+  
+  contactInfo: {
+    phone: string;
+    email: string;
+    website?: string;
+    socialMedia?: {
+      facebook?: string;
+      instagram?: string;
+      twitter?: string;
+    };
+  };
+  
+  // Metadatos adicionales
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 📋 RELACIONES DEL SISTEMA
+// Las relaciones se mantienen mediante IDs:
+// 
+// User.id ←→ Shop.userId (1:N - Un usuario puede tener múltiples shops)
+// Shop.id ←→ Bundle.shopId (1:N - Un shop puede tener múltiples bundles)  
+// Bundle.id ←→ Item.bundleId (1:N - Un bundle puede tener múltiples items)
+// Bundle.id ←→ Extra.bundleId (1:N - Un bundle puede tener múltiples extras)
+//
+// COMPATIBILIDAD:
+// - Kit se mantiene para retrocompatibilidad con el calendario existente
+// - Bundle es la nueva entidad principal para el sistema de reservas
+// - Se puede mapear Kit ↔ Bundle según se necesite en los componentes
+
+// 🔄 PRÓXIMO PASO LÓGICO:
+// Checkpoint 2: Crear mocks realistas de estas entidades con datos de ejemplo
+// y establecer la migración/compatibilidad con el sistema Kit existente 
+
+// 🎯 CHECKPOINT 2: SISTEMA DE RESERVAS PARA ITEMS INDIVIDUALES
+// Nuevas interfaces para el manejo de reservas específicas de items
+
+/**
+ * ReservaItem - Reserva específica para un item individual dentro de un bundle
+ * Esta es la entidad central del nuevo sistema de reservas
+ */
+export interface ReservaItem {
+  id: string;
+  itemId: string;
+  bundleId: string;
+  shopId: string;
+  userId: string; // quien realiza la acción (seller o buyer)
+  
+  // Información del cliente (si la reserva es para un cliente)
+  customerInfo?: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+  
+  // Detalles de la reserva
+  date: string; // YYYY-MM-DD
+  timeSlot: {
+    startTime: string; // HH:mm
+    endTime: string; // HH:mm
+  };
+  numberOfPeople: number;
+  
+  // 🎯 CHECKPOINT 4: LÓGICA DE RESERVAS GRUPALES
+  isGroupReservation: boolean; // true si esta reserva es para un grupo completo
+  groupSize?: number; // tamaño del grupo (solo relevante si isGroupReservation: true)
+  
+  // Estado y tracking
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW' | 'EXPIRED';
+  isTemporary: boolean; // true si es una reserva temporal (ej: 15 min para completar pago)
+  temporaryExpiresAt?: string; // fecha/hora de expiración para reservas temporales
+  
+  // Metadata
+  createdAt: string;
+  updatedAt: string;
+  createdBy: 'SELLER' | 'BUYER' | 'SYSTEM';
+  notes?: string;
+  
+  // Precios en el momento de la reserva
+  itemPrice: number;
+  totalPrice: number; // puede incluir extras en el futuro
+}
+
+/**
+ * Disponibilidad de un item en un horario específico
+ */
+export interface ItemAvailability {
+  itemId: string;
+  date: string;
+  timeSlot: {
+    startTime: string;
+    endTime: string;
+  };
+  isAvailable: boolean;
+  availableSpots: number; // espacios disponibles
+  totalSpots: number; // capacidad total
+  conflictingReservations: string[]; // IDs de reservas que causan conflicto
+  blockingReason?: 'FULLY_BOOKED' | 'BUSINESS_HOURS' | 'ADVANCE_BOOKING' | 'EXCEPTION' | 'ITEM_INACTIVE';
+}
+
+/**
+ * Solicitud de creación de reserva
+ */
+export interface CreateReservaItemRequest {
+  itemId: string;
+  date: string;
+  timeSlot: {
+    startTime: string;
+    endTime: string;
+  };
+  numberOfPeople: number;
+  customerInfo?: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+  notes?: string;
+  isTemporary?: boolean; // para crear reservas temporales
+}
+
+/**
+ * Resultado de validación de disponibilidad
+ */
+export interface ItemAvailabilityValidation {
+  isValid: boolean;
+  availability: ItemAvailability;
+  errors: string[];
+  warnings: string[];
+}
+
+/**
+ * Configuración de slots de tiempo para items
+ * Extiende la funcionalidad de TimeSlot para items específicos
+ */
+export interface ItemTimeSlot {
+  id: string;
+  itemId: string;
+  dayOfWeek: number; // 0-6 (domingo-sábado)
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+  maxBookingsPerSlot: number; // cuántas reservas simultáneas se permiten
+  isActive: boolean;
+  
+  // Configuración específica del slot
+  minPeoplePerBooking?: number;
+  maxPeoplePerBooking?: number;
+  bufferMinutes?: number; // tiempo de buffer entre reservas
+  
+  // Metadata
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 🎯 CHECKPOINT 3: SISTEMA DE RESERVAS DE BUNDLE COMPLETO
+// Nuevas interfaces para reservas múltiples con Items + Extras
+
+/**
+ * ExtraSelected - Representa un extra seleccionado en una reserva
+ */
+export interface ExtraSelected {
+  extraId: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  
+  // 🎯 CHECKPOINT 4: LÓGICA DE RESERVAS GRUPALES
+  isGroupSelection: boolean; // true si este extra se seleccionó para el grupo completo
+}
+
+/**
+ * ReservaBundle - Reserva agrupada que contiene múltiples items y extras
+ * Esta es la entidad principal para reservas completas de bundle
+ */
+export interface ReservaBundle {
+  id: string;
+  bundleId: string;
+  shopId: string;
+  userId: string;
+  
+  // Información del cliente
+  customerInfo: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+  
+  // Items reservados (reutiliza ReservaItem existente)
+  reservasItems: ReservaItem[];
+  
+  // Extras seleccionados
+  extras: ExtraSelected[];
+  
+  // Información de la reserva agrupada
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'PARTIAL_CANCELLED';
+  isTemporary: boolean;
+  temporaryExpiresAt?: string;
+  
+  // Precios y totales
+  itemsTotal: number;
+  extrasTotal: number;
+  totalPrice: number;
+  
+  // Metadata
+  createdAt: string;
+  updatedAt: string;
+  createdBy: 'SELLER' | 'BUYER' | 'SYSTEM';
+  notes?: string;
+}
+
+/**
+ * CreateReservaBundleRequest - Solicitud para crear una reserva de bundle completo
+ */
+export interface CreateReservaBundleRequest {
+  bundleId: string;
+  customerInfo: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+  
+  // Items a reservar (cada uno con su horario específico)
+  itemReservations: {
+    itemId: string;
+    date: string;
+    timeSlot: {
+      startTime: string;
+      endTime: string;
+    };
+    numberOfPeople: number;
+  }[];
+  
+  // Extras seleccionados
+  selectedExtras: {
+    extraId: string;
+    quantity: number;
+  }[];
+  
+  notes?: string;
+  isTemporary?: boolean;
+}
+
+/**
+ * BundleAvailabilityValidation - Validación completa de disponibilidad para bundle
+ */
+export interface BundleAvailabilityValidation {
+  isValid: boolean;
+  itemValidations: ItemAvailabilityValidation[];
+  extraValidations: ExtraValidation[];
+  // 🎯 CHECKPOINT 4: VALIDACIONES DE GRUPO
+  groupValidations: GroupValidation[];
+  errors: string[];
+  warnings: string[];
+  totalPrice: number;
+}
+
+/**
+ * ExtraValidation - Validación específica para extras
+ */
+export interface ExtraValidation {
+  extraId: string;
+  isValid: boolean;
+  requestedQuantity: number;
+  maxQuantity: number;
+  isAvailable: boolean;
+  errors: string[];
+  warnings: string[];
+  unitPrice: number;
+  totalPrice: number;
+  
+  // 🎯 CHECKPOINT 4: VALIDACIÓN DE RELACIONES CONDICIONALES
+  requiredItemMissing?: boolean; // true si falta un item requerido
+  requiredItemId?: string; // ID del item requerido
+}
+
+// 🎯 CHECKPOINT 4: NUEVA INTERFAZ PARA VALIDACIÓN DE GRUPOS
+export interface GroupValidation {
+  itemId: string;
+  isValid: boolean;
+  isGroupExclusive: boolean; // true si este item es exclusivo por grupo
+  conflictingGroupReservations: string[]; // IDs de reservas de grupo que causan conflicto
+  errors: string[];
+  warnings: string[];
+}
+
+// 🎯 CHECKPOINT 5: SISTEMA DE BLOQUEO INTELIGENTE DE HORARIOS
+// Reglas de disponibilidad flexibles por Shop, Bundle o Item
+
+export interface AvailabilityRule {
+  id: string;
+  name: string; // nombre descriptivo de la regla
+  description?: string; // descripción opcional
+  
+  // Tipo y alcance de la regla
+  type: 'CLOSED' | 'OPEN'; // CLOSED bloquea, OPEN fuerza disponibilidad
+  level: 'SHOP' | 'BUNDLE' | 'ITEM'; // nivel de aplicación
+  targetId: string; // ID del shop, bundle o item afectado
+  
+  // Configuración temporal
+  weekdays?: number[]; // días de la semana (0=domingo, 6=sábado) - ej: [0,6] = dom/sáb
+  specificDates?: string[]; // fechas específicas en formato YYYY-MM-DD
+  dateRange?: {
+    startDate: string; // YYYY-MM-DD
+    endDate: string; // YYYY-MM-DD
+  };
+  
+  // Configuración de horarios
+  startTime?: string; // HH:mm - si no se especifica, aplica todo el día
+  endTime?: string; // HH:mm - si no se especifica, aplica todo el día
+  
+  // Metadatos y configuración
+  priority: number; // prioridad (mayor número = mayor prioridad)
+  reason: string; // razón del bloqueo/apertura
+  isActive: boolean;
+  
+  // Configuración avanzada
+  recurring?: {
+    pattern: 'WEEKLY' | 'MONTHLY' | 'YEARLY'; // patrón de recurrencia
+    interval: number; // cada cuánto se repite (ej: cada 2 semanas)
+    until?: string; // fecha límite de recurrencia YYYY-MM-DD
+  };
+  
+  // Metadatos
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string; // userId del creador
+}
+
+export interface AvailabilityRuleValidation {
+  ruleId: string;
+  ruleName: string;
+  ruleType: 'CLOSED' | 'OPEN';
+  level: 'SHOP' | 'BUNDLE' | 'ITEM';
+  targetId: string;
+  reason: string;
+  priority: number;
+  blocksReservation: boolean; // true si esta regla bloquea la reserva
+  appliesTo: {
+    date: string;
+    timeSlot?: { startTime: string; endTime: string };
+  };
+}
+
+export interface ExtendedItemAvailability extends ItemAvailability {
+  // 🎯 CHECKPOINT 5: Información adicional sobre reglas de bloqueo
+  applicableRules: AvailabilityRuleValidation[];
+  isBlockedByRules: boolean;
+  blockingRules: AvailabilityRuleValidation[]; // reglas que bloquean esta reserva
+}
+
+export interface ExtendedBundleAvailabilityValidation extends BundleAvailabilityValidation {
+  // 🎯 CHECKPOINT 5: Validaciones de reglas a nivel bundle
+  ruleValidations: AvailabilityRuleValidation[];
 } 

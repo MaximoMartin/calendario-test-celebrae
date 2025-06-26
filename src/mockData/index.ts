@@ -1,4 +1,4 @@
-import type { User, Shop, Kit, Booking, BusinessHours, BusinessHoursPeriod, TimeSlot, BookingSettings, ShopException, AvailabilityBlock } from '../types';
+import type { User, Shop, Kit, Booking, BusinessHours, TimeSlot, BookingSettings, ShopException, AvailabilityBlock } from '../types';
 
 export const mockUser: User = {
   id: "87IZYWdezwJQsILiU57z",
@@ -478,3 +478,41 @@ export const mockAvailabilityBlocks: AvailabilityBlock[] = [
     isActive: true
   }
 ];
+
+// 📌 ENTIDADES DEL NUEVO SISTEMA - CHECKPOINT 1
+// Importar y reexportar las nuevas entidades para mantener compatibilidad
+export {
+  extendedUser,
+  extendedShops,
+  bundles,
+  items,
+  extras
+} from './entitiesData';
+
+// 📋 COMPATIBILIDAD ENTRE SISTEMAS
+// Mapeo entre Kit (sistema actual) y Bundle (nuevo sistema) para facilitar migración
+import { bundles } from './entitiesData';
+
+/**
+ * Función helper para convertir Bundle a Kit (compatibilidad temporal)
+ * Permite usar bundles en componentes que esperan Kits
+ */
+export const bundleToKit = (bundle: typeof bundles[0]): Kit => {
+  return {
+    id: bundle.id,
+    name: bundle.name,
+    price: bundle.basePrice + (bundle.items[0]?.price || 0), // precio base + primer item
+    maxCapacity: bundle.maxCapacity,
+    duration: bundle.duration,
+    items: bundle.items,
+    extras: bundle.extras,
+    shopId: bundle.shopId,
+    slots: [] // se mapearán según se necesiten
+  };
+};
+
+/**
+ * Conversión de todos los bundles a kits para compatibilidad
+ * Usar esta función para migrar gradualmente los componentes
+ */
+export const bundlesAsKits: Kit[] = bundles.map(bundleToKit);

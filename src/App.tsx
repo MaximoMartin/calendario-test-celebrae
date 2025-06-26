@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Settings, Calendar as CalendarIcon, Search, AlertTriangle, Calendar, Building2, Menu, X } from 'lucide-react';
+import { Plus, Settings, Calendar as CalendarIcon, Search, AlertTriangle, Calendar, Building2, Menu, X, Package, Shield } from 'lucide-react';
 import type { BookingFormData, CalendarEvent, BusinessHours, Shop, ViewType, Booking } from './types';
 import { useBookings } from './hooks/useBookings';
 import { mockKits, mockTimeSlots, mockShops } from './mockData';
@@ -14,9 +14,11 @@ import { AvailabilityManager } from './components/AvailabilityManager';
 import { BookingDetailModal } from './components/BookingDetailModal';
 import { Button } from './components/ui/Button';
 import { Card } from './components/ui/Card';
+import { ItemSelector, BundleSelector } from './features/reservations';
+import { AvailabilityRulesManager } from './components/AvailabilityRulesManager';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'calendar' | 'bookings' | 'settings'>('calendar');
+  const [activeTab, setActiveTab] = useState<'calendar' | 'bookings' | 'settings' | 'item-reservations' | 'bundle-reservations' | 'availability-rules'>('calendar');
   const [selectedShopId, setSelectedShopId] = useState<string>(mockShops[0].id);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [showBusinessHoursForm, setShowBusinessHoursForm] = useState(false);
@@ -123,6 +125,9 @@ function App() {
   const tabs = [
     { id: 'calendar' as const, label: 'Calendario', icon: CalendarIcon },
     { id: 'bookings' as const, label: 'Reservas', icon: Plus },
+    { id: 'item-reservations' as const, label: 'Items', icon: Calendar },
+    { id: 'bundle-reservations' as const, label: 'Bundles', icon: Package },
+    { id: 'availability-rules' as const, label: 'Reglas', icon: Shield },
     { id: 'settings' as const, label: 'Configuración', icon: Settings },
   ];
 
@@ -341,6 +346,38 @@ function App() {
                 setSelectedBooking(booking);
                 setShowBookingDetail(true);
               }}
+            />
+          </div>
+        )}
+
+        {activeTab === 'item-reservations' && (
+          <div className="space-y-4 lg:space-y-8">
+            <ItemSelector 
+              onReservationCreated={(reservationId) => {
+                console.log(`🎉 Nueva reserva creada: ${reservationId}`);
+                // Aquí podrías mostrar una notificación o actualizar el estado
+              }}
+            />
+          </div>
+        )}
+
+        {activeTab === 'bundle-reservations' && (
+          <div className="space-y-4 lg:space-y-8">
+            <BundleSelector 
+              shopId={selectedShopId}
+              onReservationCreated={(reservationId) => {
+                console.log(`🎉 Nueva reserva de bundle creada: ${reservationId}`);
+                // Aquí podrías mostrar una notificación o actualizar el estado
+              }}
+            />
+          </div>
+        )}
+
+        {activeTab === 'availability-rules' && (
+          <div className="space-y-4 lg:space-y-8">
+            <AvailabilityRulesManager 
+              shopId={selectedShopId}
+              onClose={() => setActiveTab('calendar')}
             />
           </div>
         )}

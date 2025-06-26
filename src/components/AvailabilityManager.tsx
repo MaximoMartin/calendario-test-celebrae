@@ -431,7 +431,7 @@ export const AvailabilityManager: React.FC<AvailabilityManagerProps> = ({
                     <Button 
                       type="submit" 
                       className="flex-1"
-                      disabled={formData.startDate && formData.endDate && !isDateRangeValid(formData.startDate, formData.endDate)}
+                      disabled={!!(formData.startDate && formData.endDate && !isDateRangeValid(formData.startDate, formData.endDate))}
                     >
                       {editingId ? 'Actualizar' : 'Crear'} Bloque
                     </Button>

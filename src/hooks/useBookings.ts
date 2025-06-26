@@ -4,7 +4,7 @@ import { mockBookings } from '../mockData';
 
 export const useBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>(mockBookings);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
 
   const addBooking = useCallback((newBooking: Omit<Booking, 'id' | 'createdAt'>) => {
     const booking: Booking = {
