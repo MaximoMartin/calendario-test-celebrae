@@ -14,11 +14,15 @@ export * from './bundleValidation';
 // 🎯 CHECKPOINT 5: SISTEMA DE REGLAS DE DISPONIBILIDAD
 export * from './availabilityRulesValidation';
 
+// 🎯 CHECKPOINT 6: MODIFICACIÓN Y CANCELACIÓN DE RESERVAS
+export * from './reservationModification';
+
 // Componentes
 export { ItemReservationManager } from './components/ItemReservationManager';
 export { ItemSelector } from './components/ItemSelector';
 export { BundleReservationManager } from './components/BundleReservationManager';
 export { BundleSelector } from './components/BundleSelector';
+export { ReservationManagementModal } from './components/ReservationManagementModal';
 
 // Re-exportar tipos importantes del sistema principal
 export type {

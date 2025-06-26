@@ -417,10 +417,26 @@ export interface ReservaItem {
   isGroupReservation: boolean; // true si esta reserva es para un grupo completo
   groupSize?: number; // tamaño del grupo (solo relevante si isGroupReservation: true)
   
-  // Estado y tracking
-  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW' | 'EXPIRED';
+  // 🎯 CHECKPOINT 6: ESTADOS EXTENDIDOS Y MODIFICACIONES
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW' | 'EXPIRED' | 'MODIFIED';
   isTemporary: boolean; // true si es una reserva temporal (ej: 15 min para completar pago)
   temporaryExpiresAt?: string; // fecha/hora de expiración para reservas temporales
+  
+  // 🎯 CHECKPOINT 6: HISTORIAL Y AUDITORÍA
+  history?: ReservationHistoryEntry[];
+  
+  // 🎯 CHECKPOINT 6: CONTROL DE MODIFICACIONES
+  canBeModified?: boolean; // calculado basado en reglas
+  canBeCancelled?: boolean; // calculado basado en reglas
+  modificationsAllowed?: ReservationModificationRule[];
+  cancellationPenalty?: {
+    willBeCharged: boolean;
+    reason: string;
+    amount?: number;
+  };
+  
+  // Información de reserva original (si fue modificada)
+  originalReservationId?: string; // ID de la reserva original antes de modificar
   
   // Metadata
   createdAt: string;
@@ -702,4 +718,115 @@ export interface ExtendedItemAvailability extends ItemAvailability {
 export interface ExtendedBundleAvailabilityValidation extends BundleAvailabilityValidation {
   // 🎯 CHECKPOINT 5: Validaciones de reglas a nivel bundle
   ruleValidations: AvailabilityRuleValidation[];
-} 
+}
+
+// 🎯 CHECKPOINT 6: HISTORIAL Y MODIFICACIONES
+
+export interface ReservationHistoryEntry {
+  id: string;
+  action: 'CREATED' | 'CONFIRMED' | 'CANCELLED' | 'MODIFIED' | 'COMPLETED' | 'NO_SHOW' | 'EXPIRED' | 'DELETED';
+  timestamp: string; // ISO timestamp
+  userId: string; // quien realizó la acción
+  userType: 'SELLER' | 'BUYER' | 'SYSTEM';
+  details: {
+    reason?: string; // razón del cambio
+    changes?: ReservationChange[]; // cambios específicos realizados
+    previousValues?: Record<string, any>; // valores anteriores
+    newValues?: Record<string, any>; // valores nuevos
+  };
+  notes?: string; // notas adicionales
+}
+
+export interface ReservationChange {
+  field: 'date' | 'timeSlot' | 'numberOfPeople' | 'customerInfo' | 'extras' | 'status' | 'notes';
+  previousValue: any;
+  newValue: any;
+  description: string; // descripción legible del cambio
+}
+
+export interface ReservationModificationRule {
+  type: 'TIME_CHANGE' | 'PEOPLE_CHANGE' | 'EXTRAS_CHANGE' | 'CUSTOMER_INFO_CHANGE' | 'NOTES_CHANGE';
+  allowed: boolean;
+  reason?: string; // razón si no está permitido
+  restrictions?: {
+    minHoursBeforeEvent?: number; // mínimo de horas antes del evento para permitir cambio
+    maxDaysInAdvance?: number; // máximo de días de anticipación
+    requiresApproval?: boolean; // si requiere aprobación manual
+  };
+}
+
+export interface CancellationPolicy {
+  id: string;
+  name: string;
+  description: string;
+  rules: {
+    hoursBeforeEvent: number; // horas antes del evento
+    penaltyPercentage: number; // porcentaje de penalidad (0-100)
+    allowCancellation: boolean; // si se permite cancelar
+    reason: string; // razón de la regla
+  }[];
+  defaultRule: {
+    penaltyPercentage: number;
+    allowCancellation: boolean;
+    reason: string;
+  };
+}
+
+export interface ModifyReservationRequest {
+  reservationId: string;
+  changes: {
+    date?: string;
+    timeSlot?: {
+      startTime: string;
+      endTime: string;
+    };
+    numberOfPeople?: number;
+    customerInfo?: {
+      name?: string;
+      email?: string;
+      phone?: string;
+    };
+    notes?: string;
+  };
+  reason: string; // razón del cambio
+  userId: string; // quien solicita el cambio
+}
+
+export interface CancelReservationRequest {
+  reservationId: string;
+  reason: string;
+  userId: string; // quien solicita la cancelación
+  acceptPenalty: boolean; // si acepta la penalidad (si aplica)
+}
+
+export interface ReservationModificationValidation {
+  isValid: boolean;
+  canModify: boolean;
+  canCancel: boolean;
+  errors: string[];
+  warnings: string[];
+  penalties: {
+    cancellation?: {
+      willBeCharged: boolean;
+      amount?: number;
+      percentage?: number;
+      reason: string;
+    };
+    modification?: {
+      willBeCharged: boolean;
+      amount?: number;
+      reason: string;
+    };
+  };
+  newAvailability?: ItemAvailability; // si se cambia horario/fecha
+}
+
+export interface ReservationAction {
+  type: 'MODIFY' | 'CANCEL' | 'CONFIRM' | 'COMPLETE' | 'DUPLICATE';
+  label: string;
+  icon: string;
+  enabled: boolean;
+  reason?: string; // razón si no está habilitado
+  requiresConfirmation: boolean;
+  warningMessage?: string; // mensaje de advertencia antes de ejecutar
+}

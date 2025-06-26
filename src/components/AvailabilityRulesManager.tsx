@@ -1,39 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Building, Package, Shield, Plus, Edit, Trash2, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
+import { useShopState } from '../hooks/useShopState';
 import type { AvailabilityRule } from '../types';
 import { mockAvailabilityRules } from '../mockData/availabilityRules';
 import { extendedShops, bundles, items } from '../mockData/entitiesData';
 
+// 🎯 CHECKPOINT 9.6: FILTRAR REGLAS POR SHOP SELECCIONADO
+
 interface AvailabilityRulesManagerProps {
-  shopId?: string;
   onClose?: () => void;
 }
 
-export const AvailabilityRulesManager: React.FC<AvailabilityRulesManagerProps> = ({
-  shopId
-}) => {
+export const AvailabilityRulesManager: React.FC<AvailabilityRulesManagerProps> = () => {
+  const { selectedShop, selectedShopId } = useShopState();
   const [rules] = useState<AvailabilityRule[]>(mockAvailabilityRules);
 
   // Filtrar reglas por shop seleccionado
   const filteredRules = rules.filter(rule => {
-    if (!shopId) return true;
-    
-    if (rule.level === 'SHOP' && rule.targetId !== shopId) return false;
+    if (rule.level === 'SHOP' && rule.targetId !== selectedShopId) return false;
     if (rule.level === 'BUNDLE') {
       const bundle = bundles.find(b => b.id === rule.targetId);
-      if (!bundle || bundle.shopId !== shopId) return false;
+      if (!bundle || bundle.shopId !== selectedShopId) return false;
     }
     if (rule.level === 'ITEM') {
       const item = items.find(i => i.id === rule.targetId);
       if (!item) return false;
       const bundle = bundles.find(b => b.id === item.bundleId);
-      if (!bundle || bundle.shopId !== shopId) return false;
+      if (!bundle || bundle.shopId !== selectedShopId) return false;
     }
     
     return true;
   });
+
+  // 🎯 CHECKPOINT 9.7: REACTIVIDAD AL CAMBIO DE SHOP
+  useEffect(() => {
+    console.log('🛡️ Reglas de disponibilidad actualizadas para shop:', selectedShop.name);
+    console.log('📊 Reglas filtradas:', filteredRules.length);
+  }, [selectedShopId, selectedShop.name, filteredRules.length]);
 
   const getTypeIcon = (type: string) => {
     return type === 'CLOSED' ? 
@@ -77,8 +82,8 @@ export const AvailabilityRulesManager: React.FC<AvailabilityRulesManagerProps> =
         <div className="flex items-center space-x-3">
           <Calendar className="w-6 h-6 text-blue-500" />
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Reglas de Disponibilidad</h2>
-            <p className="text-sm text-gray-600">Gestiona bloqueos y horarios especiales</p>
+            <h2 className="text-xl font-semibold text-gray-900">Reglas de Disponibilidad - {selectedShop.name}</h2>
+            <p className="text-sm text-gray-600">Gestiona bloqueos y horarios especiales del shop activo</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">

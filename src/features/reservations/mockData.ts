@@ -17,7 +17,7 @@ export const mockReservasItems: ReservaItem[] = [
       email: "carlos.mendoza@email.com",
       phone: "+34 612-345-678"
     },
-    date: "2025-01-28", // mañana
+    date: "2025-06-27", // mañana del día actual
     timeSlot: {
       startTime: "09:00",
       endTime: "12:00"
@@ -25,8 +25,41 @@ export const mockReservasItems: ReservaItem[] = [
     numberOfPeople: 3,
     status: "CONFIRMED",
     isTemporary: false,
-    createdAt: "2025-01-26T10:30:00.000Z",
-    updatedAt: "2025-01-26T10:45:00.000Z",
+    
+    // 🎯 CHECKPOINT 6: HISTORIAL Y CONTROL DE MODIFICACIONES
+    history: [
+      {
+        id: "history_001_01",
+        action: "CREATED",
+        timestamp: "2025-06-25T10:30:00.000Z",
+        userId: "87IZYWdezwJQsILiU57z",
+        userType: "SELLER",
+        details: {
+          reason: "Reserva creada por el vendedor para cliente frecuente"
+        }
+      },
+      {
+        id: "history_001_02", 
+        action: "CONFIRMED",
+        timestamp: "2025-06-25T10:45:00.000Z",
+        userId: "87IZYWdezwJQsILiU57z",
+        userType: "SELLER",
+        details: {
+          reason: "Reserva confirmada - documentos verificados"
+        }
+      }
+    ],
+    canBeModified: true,
+    canBeCancelled: true,
+    modificationsAllowed: [
+      { type: "TIME_CHANGE", allowed: true },
+      { type: "PEOPLE_CHANGE", allowed: true },
+      { type: "CUSTOMER_INFO_CHANGE", allowed: true },
+      { type: "NOTES_CHANGE", allowed: true }
+    ],
+    
+    createdAt: "2025-06-25T10:30:00.000Z",
+    updatedAt: "2025-06-25T10:45:00.000Z",
     createdBy: "SELLER",
     notes: "Cliente frecuente - confirmar vehículo en perfectas condiciones",
     itemPrice: 85,
@@ -47,23 +80,81 @@ export const mockReservasItems: ReservaItem[] = [
       email: "ana.garcia@outlook.com",
       phone: "+34 687-123-456"
     },
-    date: "2025-01-29", // pasado mañana
+    date: "2025-06-28", // modificado para estar en junio
     timeSlot: {
-      startTime: "14:00",
-      endTime: "17:00"
+      startTime: "16:00", // modificado (antes era 14:00)
+      endTime: "19:00"   // modificado (antes era 17:00)
     },
-    numberOfPeople: 2,
-    status: "PENDING",
+    numberOfPeople: 3, // modificado (antes era 2)
+    status: "MODIFIED",
     isTemporary: false,
+    
+    // 🎯 CHECKPOINT 6: HISTORIAL COMPLETO CON MÚLTIPLES MODIFICACIONES
+    history: [
+      {
+        id: "history_002_01",
+        action: "CREATED",
+        timestamp: "2025-06-25T14:15:00.000Z",
+        userId: "ana.garcia@outlook.com",
+        userType: "BUYER",
+        details: {
+          reason: "Reserva inicial creada por el cliente"
+        }
+      },
+      {
+        id: "history_002_02",
+        action: "MODIFIED",
+        timestamp: "2025-06-25T18:30:00.000Z",
+        userId: "87IZYWdezwJQsILiU57z",
+        userType: "SELLER",
+        details: {
+          reason: "Cliente solicitó cambio de fecha por conflicto de agenda",
+          changes: [
+            {
+              field: "date",
+              previousValue: "2025-01-29",
+              newValue: "2025-01-30",
+              description: "Fecha movida un día más adelante"
+            },
+            {
+              field: "timeSlot",
+              previousValue: { startTime: "14:00", endTime: "17:00" },
+              newValue: { startTime: "16:00", endTime: "19:00" },
+              description: "Horario movido 2 horas más tarde"
+            },
+            {
+              field: "numberOfPeople",
+              previousValue: 2,
+              newValue: 3,
+              description: "Se agregó una persona adicional"
+            }
+          ],
+          previousValues: {
+            date: "2025-01-29",
+            timeSlot: { startTime: "14:00", endTime: "17:00" },
+            numberOfPeople: 2
+          }
+        }
+      }
+    ],
+    canBeModified: true,
+    canBeCancelled: true,
+    modificationsAllowed: [
+      { type: "TIME_CHANGE", allowed: true },
+      { type: "PEOPLE_CHANGE", allowed: true },
+      { type: "CUSTOMER_INFO_CHANGE", allowed: true },
+      { type: "NOTES_CHANGE", allowed: true }
+    ],
+    
     createdAt: "2025-01-26T14:15:00.000Z",
-    updatedAt: "2025-01-26T14:15:00.000Z",
+    updatedAt: "2025-01-26T18:30:00.000Z",
     createdBy: "BUYER",
-    notes: "Primera vez alquilando - enviar instrucciones detalladas",
+    notes: "Primera vez alquilando - enviar instrucciones detalladas. ACTUALIZADO: Persona adicional confirmada.",
     itemPrice: 85,
     totalPrice: 85,
     // 🎯 CHECKPOINT 4: LÓGICA DE RESERVAS GRUPALES
     isGroupReservation: true, // reserva de grupo para el auto completo
-    groupSize: 2 // tamaño del grupo
+    groupSize: 3 // tamaño del grupo actualizado
   },
 
   // Reserva temporal que está por expirar
@@ -180,6 +271,54 @@ export const mockReservasItems: ReservaItem[] = [
     numberOfPeople: 1,
     status: "CANCELLED",
     isTemporary: false,
+    
+    // 🎯 CHECKPOINT 6: HISTORIAL DE CANCELACIÓN CON PENALIDAD
+    history: [
+      {
+        id: "history_006_01",
+        action: "CREATED",
+        timestamp: "2025-01-20T12:30:00.000Z",
+        userId: "laura.fernandez@correo.es",
+        userType: "BUYER",
+        details: {
+          reason: "Reserva creada online por el cliente"
+        }
+      },
+      {
+        id: "history_006_02",
+        action: "CONFIRMED",
+        timestamp: "2025-01-20T13:15:00.000Z",
+        userId: "87IZYWdezwJQsILiU57z",
+        userType: "SELLER",
+        details: {
+          reason: "Reserva confirmada automáticamente tras validación"
+        }
+      },
+      {
+        id: "history_006_03",
+        action: "CANCELLED",
+        timestamp: "2025-01-25T14:20:00.000Z",
+        userId: "laura.fernandez@correo.es",
+        userType: "BUYER",
+        details: {
+          reason: "Cliente canceló por enfermedad - cancelación dentro del período permitido",
+          previousValues: {
+            status: "CONFIRMED"
+          },
+          newValues: {
+            status: "CANCELLED"
+          }
+        }
+      }
+    ],
+    canBeModified: false,
+    canBeCancelled: false,
+    modificationsAllowed: [],
+    cancellationPenalty: {
+      willBeCharged: false,
+      reason: "Cancelación realizada con más de 24h de anticipación - sin penalidad"
+    },
+    
     createdAt: "2025-01-20T12:30:00.000Z",
     updatedAt: "2025-01-25T14:20:00.000Z",
     createdBy: "BUYER",
@@ -706,4 +845,501 @@ export const getReservasBundleByBundleId = (bundleId: string): ReservaBundle[] =
 // Helper para obtener reservas bundle por shop ID
 export const getReservasBundleByShopId = (shopId: string): ReservaBundle[] => {
   return mockReservasBundle.filter(reserva => reserva.shopId === shopId);
+};
+
+// 🎯 CHECKPOINT 7: DATOS MOCK ADICIONALES PARA USUARIO SELLER
+// Agregamos más reservas para simular un dashboard realista con múltiples shops del seller
+
+// Usuario SELLER simulado para Checkpoint 7
+export const SELLER_USER_ID = "t1UmxVxdBGUaG7iu9VDJlYrhOFA3";
+
+// Reservas adicionales para el dashboard del SELLER
+export const mockSellerReservasItems: ReservaItem[] = [
+  // 🏪 Reservas para "La vuelta del Maxi" (shop principal)
+  {
+    id: "seller_reserva_001",
+    itemId: "item_auto_vw_jetta",
+    bundleId: "bundle_auto_paris",
+    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
+    userId: SELLER_USER_ID,
+    customerInfo: {
+      name: "Marco Antonelli",
+      email: "marco.antonelli@gmail.com",
+      phone: "+39 335-987-6543"
+    },
+    date: "2025-01-30",
+    timeSlot: {
+      startTime: "09:00",
+      endTime: "12:00"
+    },
+    numberOfPeople: 4,
+    status: "CONFIRMED",
+    isTemporary: false,
+    history: [
+      {
+        id: "seller_history_001_01",
+        action: "CREATED",
+        timestamp: "2025-01-25T14:20:00.000Z",
+        userId: "marco.antonelli@gmail.com",
+        userType: "BUYER",
+        details: {
+          reason: "Reserva online para vacaciones familiares"
+        }
+      },
+      {
+        id: "seller_history_001_02",
+        action: "CONFIRMED",
+        timestamp: "2025-01-25T15:30:00.000Z",
+        userId: SELLER_USER_ID,
+        userType: "SELLER",
+        details: {
+          reason: "Reserva confirmada tras verificación de documentos"
+        }
+      }
+    ],
+    canBeModified: true,
+    canBeCancelled: true,
+    modificationsAllowed: [
+      { type: "TIME_CHANGE", allowed: true },
+      { type: "PEOPLE_CHANGE", allowed: true },
+      { type: "CUSTOMER_INFO_CHANGE", allowed: true }
+    ],
+    createdAt: "2025-01-25T14:20:00.000Z",
+    updatedAt: "2025-01-25T15:30:00.000Z",
+    createdBy: "BUYER",
+    notes: "Familia italiana - primera vez en París",
+    itemPrice: 85,
+    totalPrice: 85,
+    isGroupReservation: true,
+    groupSize: 4
+  },
+
+  {
+    id: "seller_reserva_002",
+    itemId: "item_spa_masaje_completo",
+    bundleId: "bundle_spa_day",
+    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
+    userId: SELLER_USER_ID,
+    customerInfo: {
+      name: "Isabella Chen",
+      email: "isabella.chen@business.com",
+      phone: "+39 320-555-1234"
+    },
+    date: "2025-01-31",
+    timeSlot: {
+      startTime: "14:00",
+      endTime: "15:30"
+    },
+    numberOfPeople: 1,
+    status: "PENDING",
+    isTemporary: false,
+    history: [
+      {
+        id: "seller_history_002_01",
+        action: "CREATED",
+        timestamp: "2025-01-26T09:15:00.000Z",
+        userId: SELLER_USER_ID,
+        userType: "SELLER",
+        details: {
+          reason: "Reserva creada para clienta VIP corporate"
+        }
+      }
+    ],
+    canBeModified: true,
+    canBeCancelled: true,
+    modificationsAllowed: [
+      { type: "TIME_CHANGE", allowed: true },
+      { type: "CUSTOMER_INFO_CHANGE", allowed: true },
+      { type: "NOTES_CHANGE", allowed: true }
+    ],
+    createdAt: "2025-01-26T09:15:00.000Z",
+    updatedAt: "2025-01-26T09:15:00.000Z",
+    createdBy: "SELLER",
+    notes: "Cliente VIP - tratamiento premium con productos orgánicos",
+    itemPrice: 85,
+    totalPrice: 85,
+    isGroupReservation: false,
+    groupSize: 1
+  },
+
+  {
+    id: "seller_reserva_003",
+    itemId: "item_auto_bmw_x3",
+    bundleId: "bundle_auto_paris",
+    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
+    userId: SELLER_USER_ID,
+    customerInfo: {
+      name: "Jean-Pierre Dubois",
+      email: "jp.dubois@france.fr",
+      phone: "+33 6 12 34 56 78"
+    },
+    date: "2025-02-01",
+    timeSlot: {
+      startTime: "10:00",
+      endTime: "13:00"
+    },
+    numberOfPeople: 2,
+    status: "COMPLETED",
+    isTemporary: false,
+    history: [
+      {
+        id: "seller_history_003_01",
+        action: "CREATED",
+        timestamp: "2025-01-20T11:00:00.000Z",
+        userId: "jp.dubois@france.fr",
+        userType: "BUYER",
+        details: {
+          reason: "Reserva para evento de negocios"
+        }
+      },
+      {
+        id: "seller_history_003_02",
+        action: "CONFIRMED",
+        timestamp: "2025-01-20T12:30:00.000Z",
+        userId: SELLER_USER_ID,
+        userType: "SELLER",
+        details: {
+          reason: "Reserva confirmada - cliente frecuente"
+        }
+      },
+      {
+        id: "seller_history_003_03",
+        action: "COMPLETED",
+        timestamp: "2025-02-01T13:15:00.000Z",
+        userId: SELLER_USER_ID,
+        userType: "SELLER",
+        details: {
+          reason: "Servicio completado exitosamente - vehículo devuelto en perfectas condiciones"
+        }
+      }
+    ],
+    canBeModified: false,
+    canBeCancelled: false,
+    modificationsAllowed: [],
+    createdAt: "2025-01-20T11:00:00.000Z",
+    updatedAt: "2025-02-01T13:15:00.000Z",
+    createdBy: "BUYER",
+    notes: "Cliente corporate frecuente - servicio impecable",
+    itemPrice: 140,
+    totalPrice: 140,
+    isGroupReservation: true,
+    groupSize: 2
+  },
+
+  // 🍽️ Reservas para "Café Delicias"
+  {
+    id: "seller_reserva_004",
+    itemId: "item_brunch_continental",
+    bundleId: "bundle_brunch_especial",
+    shopId: "cb4813f2-3bb9-48d3-ae7d-a72eb1e1f4bf",
+    userId: SELLER_USER_ID,
+    customerInfo: {
+      name: "María José Rodríguez",
+      email: "mj.rodriguez@universidad.edu.ar",
+      phone: "+54 351-888-7777"
+    },
+    date: "2025-01-29",
+    timeSlot: {
+      startTime: "10:30",
+      endTime: "12:30"
+    },
+    numberOfPeople: 3,
+    status: "CONFIRMED",
+    isTemporary: false,
+    history: [
+      {
+        id: "seller_history_004_01",
+        action: "CREATED",
+        timestamp: "2025-01-27T16:45:00.000Z",
+        userId: "mj.rodriguez@universidad.edu.ar",
+        userType: "BUYER",
+        details: {
+          reason: "Reserva para celebración graduación"
+        }
+      },
+      {
+        id: "seller_history_004_02",
+        action: "CONFIRMED",
+        timestamp: "2025-01-27T17:00:00.000Z",
+        userId: SELLER_USER_ID,
+        userType: "SELLER",
+        details: {
+          reason: "Reserva confirmada automáticamente"
+        }
+      }
+    ],
+    canBeModified: true,
+    canBeCancelled: true,
+    modificationsAllowed: [
+      { type: "TIME_CHANGE", allowed: true },
+      { type: "PEOPLE_CHANGE", allowed: true },
+      { type: "CUSTOMER_INFO_CHANGE", allowed: true }
+    ],
+    createdAt: "2025-01-27T16:45:00.000Z",
+    updatedAt: "2025-01-27T17:00:00.000Z",
+    createdBy: "BUYER",
+    notes: "Celebración graduación - mesa cerca de la ventana",
+    itemPrice: 32,
+    totalPrice: 96, // 32 * 3 personas
+    isGroupReservation: false,
+    groupSize: 3
+  },
+
+  {
+    id: "seller_reserva_005",
+    itemId: "item_escape_room_mystery",
+    bundleId: "bundle_brunch_especial",
+    shopId: "cb4813f2-3bb9-48d3-ae7d-a72eb1e1f4bf",
+    userId: SELLER_USER_ID,
+    customerInfo: {
+      name: "Grupo Team Building TechStart",
+      email: "eventos@techstart.com.ar",
+      phone: "+54 351-555-9999"
+    },
+    date: "2025-02-02",
+    timeSlot: {
+      startTime: "16:00",
+      endTime: "17:00"
+    },
+    numberOfPeople: 6,
+    status: "PENDING",
+    isTemporary: false,
+    history: [
+      {
+        id: "seller_history_005_01",
+        action: "CREATED",
+        timestamp: "2025-01-26T13:20:00.000Z",
+        userId: SELLER_USER_ID,
+        userType: "SELLER",
+        details: {
+          reason: "Reserva creada para evento corporativo team building"
+        }
+      }
+    ],
+    canBeModified: true,
+    canBeCancelled: true,
+    modificationsAllowed: [
+      { type: "TIME_CHANGE", allowed: true },
+      { type: "CUSTOMER_INFO_CHANGE", allowed: true },
+      { type: "NOTES_CHANGE", allowed: true }
+    ],
+    createdAt: "2025-01-26T13:20:00.000Z",
+    updatedAt: "2025-01-26T13:20:00.000Z",
+    createdBy: "SELLER",
+    notes: "Evento corporativo - preparar setup especial para team building",
+    itemPrice: 120,
+    totalPrice: 120,
+    isGroupReservation: true,
+    groupSize: 6
+  },
+
+  // 🐵 Reservas para "El mono épico editado"
+  {
+    id: "seller_reserva_006",
+    itemId: "item_almuerzo_epico", // asumiendo que existe este item
+    bundleId: "bundle_almuerzo_mono", // asumiendo que existe este bundle
+    shopId: "75cdf85a-67f9-40c4-9fc1-ee1019138bec",
+    userId: SELLER_USER_ID,
+    customerInfo: {
+      name: "Familia Gómez",
+      email: "familia.gomez@gmail.com",
+      phone: "+54 351-777-4444"
+    },
+    date: "2025-01-30",
+    timeSlot: {
+      startTime: "12:30",
+      endTime: "14:30"
+    },
+    numberOfPeople: 4,
+    status: "CANCELLED",
+    isTemporary: false,
+    history: [
+      {
+        id: "seller_history_006_01",
+        action: "CREATED",
+        timestamp: "2025-01-24T10:00:00.000Z",
+        userId: "familia.gomez@gmail.com",
+        userType: "BUYER",
+        details: {
+          reason: "Reserva familiar para cumpleaños"
+        }
+      },
+      {
+        id: "seller_history_006_02",
+        action: "CONFIRMED",
+        timestamp: "2025-01-24T10:30:00.000Z",
+        userId: SELLER_USER_ID,
+        userType: "SELLER",
+        details: {
+          reason: "Reserva confirmada"
+        }
+      },
+      {
+        id: "seller_history_006_03",
+        action: "CANCELLED",
+        timestamp: "2025-01-26T08:00:00.000Z",
+        userId: "familia.gomez@gmail.com",
+        userType: "BUYER",
+        details: {
+          reason: "Cliente canceló por emergencia familiar - sin penalidad"
+        }
+      }
+    ],
+    canBeModified: false,
+    canBeCancelled: false,
+    modificationsAllowed: [],
+    cancellationPenalty: {
+      willBeCharged: false,
+      reason: "Cancelación dentro del período permitido - sin penalidad"
+    },
+    createdAt: "2025-01-24T10:00:00.000Z",
+    updatedAt: "2025-01-26T08:00:00.000Z",
+    createdBy: "BUYER",
+    notes: "Cancelado por emergencia familiar - reembolso completo procesado",
+    itemPrice: 45,
+    totalPrice: 180, // 45 * 4 personas
+    isGroupReservation: false,
+    groupSize: 4
+  },
+
+  // Reserva modificada con historial complejo
+  {
+    id: "seller_reserva_007",
+    itemId: "item_spa_facial_premium",
+    bundleId: "bundle_spa_day",
+    shopId: "ab55132c-dcc8-40d6-9ac4-5f573285f55f",
+    userId: SELLER_USER_ID,
+    customerInfo: {
+      name: "Valentina Rossi",
+      email: "valentina.rossi@fashion.it",
+      phone: "+39 333-444-5555"
+    },
+    date: "2025-02-03", // modificado
+    timeSlot: {
+      startTime: "11:00", // modificado
+      endTime: "12:00"   // modificado
+    },
+    numberOfPeople: 1,
+    status: "MODIFIED",
+    isTemporary: false,
+    history: [
+      {
+        id: "seller_history_007_01",
+        action: "CREATED",
+        timestamp: "2025-01-22T14:30:00.000Z",
+        userId: "valentina.rossi@fashion.it",
+        userType: "BUYER",
+        details: {
+          reason: "Reserva para tratamiento facial antes de evento"
+        }
+      },
+      {
+        id: "seller_history_007_02",
+        action: "CONFIRMED",
+        timestamp: "2025-01-22T15:00:00.000Z",
+        userId: SELLER_USER_ID,
+        userType: "SELLER",
+        details: {
+          reason: "Reserva confirmada automáticamente"
+        }
+      },
+      {
+        id: "seller_history_007_03",
+        action: "MODIFIED",
+        timestamp: "2025-01-25T10:30:00.000Z",
+        userId: SELLER_USER_ID,
+        userType: "SELLER",
+        details: {
+          reason: "Cliente solicitó cambio de fecha y horario por cambio en evento",
+          changes: [
+            {
+              field: "date",
+              previousValue: "2025-02-01",
+              newValue: "2025-02-03",
+              description: "Fecha cambiada de 2025-02-01 a 2025-02-03"
+            },
+            {
+              field: "timeSlot",
+              previousValue: { startTime: "09:00", endTime: "10:00" },
+              newValue: { startTime: "11:00", endTime: "12:00" },
+              description: "Horario cambiado de 09:00-10:00 a 11:00-12:00"
+            }
+          ]
+        }
+      }
+    ],
+    canBeModified: true,
+    canBeCancelled: true,
+    modificationsAllowed: [
+      { type: "TIME_CHANGE", allowed: true },
+      { type: "CUSTOMER_INFO_CHANGE", allowed: true },
+      { type: "NOTES_CHANGE", allowed: true }
+    ],
+    createdAt: "2025-01-22T14:30:00.000Z",
+    updatedAt: "2025-01-25T10:30:00.000Z",
+    createdBy: "BUYER",
+    notes: "Tratamiento especial para evento de moda - modificado según nuevos horarios del evento",
+    itemPrice: 65,
+    totalPrice: 65,
+    isGroupReservation: false,
+    groupSize: 1
+  }
+];
+
+// Combinar todas las reservas para el sistema completo
+export const allMockReservasItems = [...mockReservasItems, ...mockSellerReservasItems];
+
+// 🎯 CHECKPOINT 7: FUNCIONES PARA DASHBOARD SELLER
+
+// Función para obtener todas las reservas de un usuario SELLER (basado en shopId)
+export const getReservasBySellerUserId = (sellerUserId: string): ReservaItem[] => {
+  // Para el dashboard del SELLER, necesitamos filtrar por las reservas en sus shops
+  // No por el userId (que es del comprador), sino por el shopId que le pertenece
+  return allMockReservasItems.filter(reserva => {
+    // Aquí simulamos que el SELLER es dueño de ciertos shops
+    // En producción esto vendría de una query a la base de datos
+    if (sellerUserId === SELLER_USER_ID) {
+      return ['ab55132c-dcc8-40d6-9ac4-5f573285f55f', '75cdf85a-67f9-40c4-9fc1-ee1019138bec'].includes(reserva.shopId);
+    }
+    return reserva.userId === sellerUserId;
+  });
+};
+
+// Helper para obtener reservas por shop y seller
+export const getReservasByShopAndSeller = (shopId: string, sellerUserId: string): ReservaItem[] => {
+  return allMockReservasItems.filter(reserva => 
+    reserva.shopId === shopId && reserva.userId === sellerUserId
+  );
+};
+
+// Función para obtener estadísticas del SELLER
+export const getSellerStats = (sellerUserId: string) => {
+  const reservations = getReservasBySellerUserId(sellerUserId);
+  
+  return {
+    totalReservations: reservations.length,
+    confirmedReservations: reservations.filter(r => r.status === 'CONFIRMED').length,
+    pendingReservations: reservations.filter(r => r.status === 'PENDING').length,
+    cancelledReservations: reservations.filter(r => r.status === 'CANCELLED').length,
+    totalRevenue: reservations
+      .filter(r => ['CONFIRMED', 'COMPLETED'].includes(r.status))
+      .reduce((sum, r) => sum + r.totalPrice, 0),
+    averageReservationValue: reservations.length > 0 
+      ? reservations.reduce((sum, r) => sum + r.totalPrice, 0) / reservations.length 
+      : 0
+  };
+};
+
+// Función para obtener reservas del SELLER filtradas por fecha
+export const getSellerReservationsByDateRange = (
+  sellerUserId: string,
+  fromDate: string,
+  toDate: string
+): ReservaItem[] => {
+  const allReservations = getReservasBySellerUserId(sellerUserId);
+  
+  return allReservations.filter(reservation => {
+    const reservationDate = reservation.date;
+    return reservationDate >= fromDate && reservationDate <= toDate;
+  });
 }; 
