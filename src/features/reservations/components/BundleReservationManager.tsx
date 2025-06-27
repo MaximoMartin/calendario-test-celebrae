@@ -6,7 +6,7 @@ import { Card } from '../../../components/ui/Card';
 import { Input } from '../../../components/ui/Input';
 import { 
   validateBundleReservation, 
-  createBundleReservation 
+  useCreateBundleReservation 
 } from '../bundleValidation';
 import { formatDate } from '../../../utils/dateHelpers';
 
@@ -112,6 +112,8 @@ export const BundleReservationManager: React.FC<BundleReservationManagerProps> =
   };
 
   // Crear reserva
+  const createBundleReservation = useCreateBundleReservation();
+
   const handleCreateReservation = async () => {
     if (!currentValidation?.isValid) return;
 
@@ -137,16 +139,12 @@ export const BundleReservationManager: React.FC<BundleReservationManagerProps> =
       
       if (result.success && result.reservationId) {
         setSuccessMessage(`¡Reserva de bundle creada exitosamente! ID: ${result.reservationId}`);
-        
-        // Callback
         onReservationCreated?.(result.reservationId);
-        
-        // Auto-close after success
         setTimeout(() => {
           onClose?.();
         }, 3000);
       } else {
-        setErrorMessage(result.errors.join(', '));
+        setErrorMessage(result.errors && result.errors.length > 0 ? result.errors.join(', ') : 'No se pudo crear la reserva. Verifica los datos e inténtalo de nuevo.');
       }
     } catch (error) {
       console.error('Error creando reserva de bundle:', error);

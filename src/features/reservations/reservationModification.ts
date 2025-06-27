@@ -10,7 +10,7 @@ import type {
   ItemAvailability
 } from '../../types';
 import { getItemAvailability } from './availabilityValidation';
-import { mockReservasItems } from './mockData';
+import { useReservations } from './mockData';
 
 export const CANCELLATION_POLICIES: CancellationPolicy[] = [
   {
@@ -371,213 +371,170 @@ export const canCancelReservation = (reservation: ReservaItem): {
 
 // 🎯 OPERACIONES DE MODIFICACIÓN Y CANCELACIÓN
 
-export const modifyReservation = (
-  request: ModifyReservationRequest,
-  currentUserId: string = "87IZYWdezwJQsILiU57z"
-): { success: boolean; updatedReservation?: ReservaItem; errors: string[] } => {
-  console.log('🔄 Modificando reserva:', request.reservationId);
-
-  const reservation = mockReservasItems.find((r: ReservaItem) => r.id === request.reservationId);
-  if (!reservation) {
-    return {
-      success: false,
-      errors: ['Reserva no encontrada']
-    };
-  }
-
-  const validation = validateReservationModification(reservation, request, currentUserId);
-  
-  if (!validation.isValid) {
-    return {
-      success: false,
-      errors: validation.errors
-    };
-  }
-
-  // Crear historial de cambios
-  const changes: ReservationChange[] = [];
-  const previousValues: Record<string, any> = {};
-  const newValues: Record<string, any> = {};
-
-  // Procesar cambios
-  if (request.changes.date && request.changes.date !== reservation.date) {
-    changes.push({
-      field: 'date',
-      previousValue: reservation.date,
-      newValue: request.changes.date,
-      description: `Fecha cambiada de ${reservation.date} a ${request.changes.date}`
-    });
-    previousValues.date = reservation.date;
-    newValues.date = request.changes.date;
-  }
-
-  if (request.changes.timeSlot) {
-    const oldTimeSlot = `${reservation.timeSlot.startTime} - ${reservation.timeSlot.endTime}`;
-    const newTimeSlot = `${request.changes.timeSlot.startTime} - ${request.changes.timeSlot.endTime}`;
-    
-    if (oldTimeSlot !== newTimeSlot) {
+export const useModifyReservation = () => {
+  const { reservasItems, setReservasItems } = useReservations();
+  return (request: ModifyReservationRequest, currentUserId: string = "87IZYWdezwJQsILiU57z") => {
+    const reservation = reservasItems.find((r: ReservaItem) => r.id === request.reservationId);
+    if (!reservation) {
+      return {
+        success: false,
+        errors: ['Reserva no encontrada']
+      };
+    }
+    const validation = validateReservationModification(reservation, request, currentUserId);
+    if (!validation.isValid) {
+      return {
+        success: false,
+        errors: validation.errors
+      };
+    }
+    // Crear historial de cambios
+    const changes: ReservationChange[] = [];
+    const previousValues: Record<string, any> = {};
+    const newValues: Record<string, any> = {};
+    // Procesar cambios (igual que antes)
+    if (request.changes.date && request.changes.date !== reservation.date) {
       changes.push({
-        field: 'timeSlot',
-        previousValue: reservation.timeSlot,
-        newValue: request.changes.timeSlot,
-        description: `Horario cambiado de ${oldTimeSlot} a ${newTimeSlot}`
+        field: 'date',
+        previousValue: reservation.date,
+        newValue: request.changes.date,
+        description: `Fecha cambiada de ${reservation.date} a ${request.changes.date}`
       });
-      previousValues.timeSlot = reservation.timeSlot;
-      newValues.timeSlot = request.changes.timeSlot;
+      previousValues.date = reservation.date;
+      newValues.date = request.changes.date;
     }
-  }
-
-  if (request.changes.numberOfPeople && request.changes.numberOfPeople !== reservation.numberOfPeople) {
-    changes.push({
-      field: 'numberOfPeople',
-      previousValue: reservation.numberOfPeople,
-      newValue: request.changes.numberOfPeople,
-      description: `Número de personas cambiado de ${reservation.numberOfPeople} a ${request.changes.numberOfPeople}`
-    });
-    previousValues.numberOfPeople = reservation.numberOfPeople;
-    newValues.numberOfPeople = request.changes.numberOfPeople;
-  }
-
-  if (request.changes.customerInfo) {
-    // Procesar cambios en información del cliente
-    Object.keys(request.changes.customerInfo).forEach(key => {
-      const oldValue = reservation.customerInfo?.[key as keyof typeof reservation.customerInfo];
-      const newValue = request.changes.customerInfo?.[key as keyof typeof request.changes.customerInfo];
-      
-      if (oldValue !== newValue) {
+    if (request.changes.timeSlot) {
+      const oldTimeSlot = `${reservation.timeSlot.startTime} - ${reservation.timeSlot.endTime}`;
+      const newTimeSlot = `${request.changes.timeSlot.startTime} - ${request.changes.timeSlot.endTime}`;
+      if (oldTimeSlot !== newTimeSlot) {
         changes.push({
-          field: 'customerInfo',
-          previousValue: { [key]: oldValue },
-          newValue: { [key]: newValue },
-          description: `${key} cambiado de "${oldValue}" a "${newValue}"`
+          field: 'timeSlot',
+          previousValue: reservation.timeSlot,
+          newValue: request.changes.timeSlot,
+          description: `Horario cambiado de ${oldTimeSlot} a ${newTimeSlot}`
         });
+        previousValues.timeSlot = reservation.timeSlot;
+        newValues.timeSlot = request.changes.timeSlot;
       }
-    });
-  }
-
-  if (request.changes.notes && request.changes.notes !== reservation.notes) {
-    changes.push({
-      field: 'notes',
-      previousValue: reservation.notes,
-      newValue: request.changes.notes,
-      description: 'Notas actualizadas'
-    });
-    previousValues.notes = reservation.notes;
-    newValues.notes = request.changes.notes;
-  }
-
-  // Crear entrada en el historial
-  const historyEntry: ReservationHistoryEntry = {
-    id: `history_${Date.now()}`,
-    action: 'MODIFIED',
-    timestamp: new Date().toISOString(),
-    userId: currentUserId,
-    userType: 'SELLER', // Por ahora hardcodeado
-    details: {
-      reason: request.reason,
-      changes,
-      previousValues,
-      newValues
     }
-  };
-
-  // Crear reserva actualizada
-  const updatedReservation: ReservaItem = {
-    ...reservation,
-    date: request.changes.date || reservation.date,
-    timeSlot: request.changes.timeSlot || reservation.timeSlot,
-    numberOfPeople: request.changes.numberOfPeople || reservation.numberOfPeople,
-    customerInfo: request.changes.customerInfo && reservation.customerInfo ? 
-      { 
-        name: request.changes.customerInfo.name || reservation.customerInfo.name,
-        email: request.changes.customerInfo.email || reservation.customerInfo.email,
-        phone: request.changes.customerInfo.phone || reservation.customerInfo.phone
-      } : 
-      reservation.customerInfo,
-    notes: request.changes.notes !== undefined ? request.changes.notes : reservation.notes,
-    status: 'MODIFIED',
-    updatedAt: new Date().toISOString(),
-    history: [...(reservation.history || []), historyEntry]
-  };
-
-  // Actualizar en el array (simulación)
-  const index = mockReservasItems.findIndex((r: ReservaItem) => r.id === request.reservationId);
-  if (index !== -1) {
-    mockReservasItems[index] = updatedReservation;
-  }
-
-  console.log('✅ Reserva modificada exitosamente');
-  console.log('📝 Cambios realizados:', changes.map(c => c.description));
-
-  return {
-    success: true,
-    updatedReservation,
-    errors: []
+    if (request.changes.numberOfPeople && request.changes.numberOfPeople !== reservation.numberOfPeople) {
+      changes.push({
+        field: 'numberOfPeople',
+        previousValue: reservation.numberOfPeople,
+        newValue: request.changes.numberOfPeople,
+        description: `Número de personas cambiado de ${reservation.numberOfPeople} a ${request.changes.numberOfPeople}`
+      });
+      previousValues.numberOfPeople = reservation.numberOfPeople;
+      newValues.numberOfPeople = request.changes.numberOfPeople;
+    }
+    if (request.changes.customerInfo) {
+      Object.keys(request.changes.customerInfo).forEach(key => {
+        const oldValue = reservation.customerInfo?.[key as keyof typeof reservation.customerInfo];
+        const newValue = request.changes.customerInfo?.[key as keyof typeof request.changes.customerInfo];
+        if (oldValue !== newValue) {
+          changes.push({
+            field: 'customerInfo',
+            previousValue: { [key]: oldValue },
+            newValue: { [key]: newValue },
+            description: `${key} cambiado de "${oldValue}" a "${newValue}"`
+          });
+        }
+      });
+    }
+    if (request.changes.notes && request.changes.notes !== reservation.notes) {
+      changes.push({
+        field: 'notes',
+        previousValue: reservation.notes,
+        newValue: request.changes.notes,
+        description: 'Notas actualizadas'
+      });
+      previousValues.notes = reservation.notes;
+      newValues.notes = request.changes.notes;
+    }
+    const historyEntry: ReservationHistoryEntry = {
+      id: `history_${Date.now()}`,
+      action: 'MODIFIED',
+      timestamp: new Date().toISOString(),
+      userId: currentUserId,
+      userType: 'SELLER',
+      details: {
+        reason: request.reason,
+        changes,
+        previousValues,
+        newValues
+      }
+    };
+    const updatedReservation: ReservaItem = {
+      ...reservation,
+      date: request.changes.date || reservation.date,
+      timeSlot: request.changes.timeSlot || reservation.timeSlot,
+      numberOfPeople: request.changes.numberOfPeople || reservation.numberOfPeople,
+      customerInfo: request.changes.customerInfo && reservation.customerInfo ? 
+        { 
+          name: request.changes.customerInfo.name || reservation.customerInfo.name,
+          email: request.changes.customerInfo.email || reservation.customerInfo.email,
+          phone: request.changes.customerInfo.phone || reservation.customerInfo.phone
+        } : 
+        reservation.customerInfo,
+      notes: request.changes.notes !== undefined ? request.changes.notes : reservation.notes,
+      status: 'MODIFIED',
+      updatedAt: new Date().toISOString(),
+      history: [...(reservation.history || []), historyEntry]
+    };
+    setReservasItems(prev => prev.map(r => r.id === updatedReservation.id ? updatedReservation : r));
+    return {
+      success: true,
+      updatedReservation,
+      errors: []
+    };
   };
 };
 
-export const cancelReservation = (
-  request: CancelReservationRequest,
-  currentUserId: string = "87IZYWdezwJQsILiU57z"
-): { success: boolean; cancelledReservation?: ReservaItem; errors: string[] } => {
-  console.log('❌ Cancelando reserva:', request.reservationId);
-
-  const reservation = mockReservasItems.find((r: ReservaItem) => r.id === request.reservationId);
-  if (!reservation) {
-    return {
-      success: false,
-      errors: ['Reserva no encontrada']
-    };
-  }
-
-  const validation = validateReservationCancellation(reservation, request);
-  
-  if (!validation.isValid) {
-    return {
-      success: false,
-      errors: validation.errors
-    };
-  }
-
-  // Crear entrada en el historial
-  const historyEntry: ReservationHistoryEntry = {
-    id: `history_${Date.now()}`,
-    action: 'CANCELLED',
-    timestamp: new Date().toISOString(),
-    userId: currentUserId,
-    userType: 'SELLER',
-    details: {
-      reason: request.reason,
-      changes: [{
-        field: 'status',
-        previousValue: reservation.status,
-        newValue: 'CANCELLED',
-        description: `Reserva cancelada: ${request.reason}`
-      }]
+export const useCancelReservation = () => {
+  const { reservasItems, setReservasItems } = useReservations();
+  return (request: CancelReservationRequest, currentUserId: string = "87IZYWdezwJQsILiU57z") => {
+    const reservation = reservasItems.find((r: ReservaItem) => r.id === request.reservationId);
+    if (!reservation) {
+      return {
+        success: false,
+        errors: ['Reserva no encontrada']
+      };
     }
-  };
-
-  // Crear reserva cancelada
-  const cancelledReservation: ReservaItem = {
-    ...reservation,
-    status: 'CANCELLED',
-    updatedAt: new Date().toISOString(),
-    history: [...(reservation.history || []), historyEntry]
-  };
-
-  // Actualizar en el array (simulación)
-  const index = mockReservasItems.findIndex((r: ReservaItem) => r.id === request.reservationId);
-  if (index !== -1) {
-    mockReservasItems[index] = cancelledReservation;
-  }
-
-  console.log('✅ Reserva cancelada exitosamente');
-  console.log('💰 Penalidad aplicada:', validation.penalties.cancellation);
-
-  return {
-    success: true,
-    cancelledReservation,
-    errors: []
+    const validation = validateReservationCancellation(reservation, request);
+    if (!validation.isValid) {
+      return {
+        success: false,
+        errors: validation.errors
+      };
+    }
+    const historyEntry: ReservationHistoryEntry = {
+      id: `history_${Date.now()}`,
+      action: 'CANCELLED',
+      timestamp: new Date().toISOString(),
+      userId: currentUserId,
+      userType: 'SELLER',
+      details: {
+        reason: request.reason,
+        changes: [{
+          field: 'status',
+          previousValue: reservation.status,
+          newValue: 'CANCELLED',
+          description: `Reserva cancelada: ${request.reason}`
+        }]
+      }
+    };
+    const cancelledReservation: ReservaItem = {
+      ...reservation,
+      status: 'CANCELLED',
+      updatedAt: new Date().toISOString(),
+      history: [...(reservation.history || []), historyEntry]
+    };
+    setReservasItems(prev => prev.map(r => r.id === cancelledReservation.id ? cancelledReservation : r));
+    return {
+      success: true,
+      cancelledReservation,
+      errors: []
+    };
   };
 };
 

@@ -5,8 +5,6 @@ import { Card } from './ui/Card';
 import { Input } from './ui/Input';
 import { useEntitiesState, type CreateItemData } from '../hooks/useEntitiesState';
 
-// 🎯 CHECKPOINT 10: COMPONENTE PARA CREAR ITEMS
-
 interface ItemCreatorProps {
   bundleId: string;
   bundleName: string;

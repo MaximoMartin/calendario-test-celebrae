@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
+import React, { createContext, useContext, useState, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { mockShops } from '../mockData';
-import { mockReservasItems } from '../features/reservations/mockData';
+import { useReservations } from '../features/reservations/mockData';
 import { useEntitiesState } from './useEntitiesState';
 import type { ReservaItem, Shop, Bundle, Item } from '../types';
 
@@ -52,6 +52,7 @@ const ShopStateContext = createContext<ShopStateContextType | undefined>(undefin
 
 export const ShopStateProvider = ({ children }: { children: ReactNode }) => {
   const { allShops, allBundles, allItems } = useEntitiesState();
+  const { reservasItems } = useReservations();
   const [selectedShopId, setSelectedShopId] = useState<string>(mockShops[0].id);
   
   // Shop seleccionado (combina shops estáticos y dinámicos)
@@ -62,8 +63,8 @@ export const ShopStateProvider = ({ children }: { children: ReactNode }) => {
 
   // Reservas del shop seleccionado (sistema moderno)
   const shopReservations = useMemo(() => 
-    mockReservasItems.filter((reserva: ReservaItem) => reserva.shopId === selectedShopId),
-    [selectedShopId]
+    reservasItems.filter((reserva: ReservaItem) => reserva.shopId === selectedShopId),
+    [selectedShopId, reservasItems]
   );
 
   // Bundles del shop seleccionado (incluye dinámicos)

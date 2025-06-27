@@ -4,13 +4,16 @@ import './index.css'
 import App from './App.tsx'
 import { ShopStateProvider } from './hooks/useShopState'
 import { EntitiesStateProvider } from './hooks/useEntitiesState'
+import { ReservationsProvider } from './features/reservations/mockData'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <EntitiesStateProvider>
-      <ShopStateProvider>
-        <App />
-      </ShopStateProvider>
-    </EntitiesStateProvider>
+    <ReservationsProvider>
+      <EntitiesStateProvider>
+        <ShopStateProvider>
+          <App />
+        </ShopStateProvider>
+      </EntitiesStateProvider>
+    </ReservationsProvider>
   </StrictMode>,
 )

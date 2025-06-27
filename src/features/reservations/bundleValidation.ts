@@ -5,25 +5,24 @@ import type {
   ReservaBundle,
   Bundle,
   CreateReservaItemRequest,
-  GroupValidation
+  GroupValidation,
+  ReservaItem
 } from '../../types';
-import { validateItemReservation, createItemReservation } from './availabilityValidation';
-import { mockReservasBundle, mockReservasItems } from './mockData';
+import { validateItemReservation } from './availabilityValidation';
+import { useReservations } from './mockData';
+import { useEntitiesState } from '../../hooks/useEntitiesState';
 
-
+// Función pura para validar items grupales
 const validateGroupItem = (
+  reservasItems: ReservaItem[],
   itemId: string,
   date: string,
   timeSlot: { startTime: string; endTime: string }
 ): GroupValidation => {
-  console.log(`🏢 Validando item grupal ${itemId} en ${date} ${timeSlot.startTime}-${timeSlot.endTime}`);
-  
   const errors: string[] = [];
   const warnings: string[] = [];
-  
   const conflictingGroupReservations: string[] = [];
-  
-  const existingGroupReservations = mockReservasItems.filter(reserva => 
+  const existingGroupReservations = reservasItems.filter((reserva) => 
     reserva.itemId === itemId &&
     reserva.date === date &&
     reserva.isGroupReservation &&
@@ -31,15 +30,11 @@ const validateGroupItem = (
     reserva.status !== 'EXPIRED' &&
     !(reserva.timeSlot.endTime <= timeSlot.startTime || reserva.timeSlot.startTime >= timeSlot.endTime)
   );
-
-  conflictingGroupReservations.push(...existingGroupReservations.map(r => r.id));
-  
+  conflictingGroupReservations.push(...existingGroupReservations.map((r) => r.id));
   if (conflictingGroupReservations.length > 0) {
     errors.push(`Este item ya está reservado en este horario`);
   }
-
   const isValid = errors.length === 0;
-
   return {
     itemId,
     isValid,
@@ -55,7 +50,8 @@ const validateGroupItem = (
  */
 export const validateBundleReservation = (
   request: CreateReservaBundleRequest,
-  currentUserId: string = "87IZYWdezwJQsILiU57z"
+  currentUserId: string = "87IZYWdezwJQsILiU57z",
+  reservasItems: ReservaItem[] = []
 ): BundleAvailabilityValidation => {
   console.log(`🎯 Validando reserva de bundle completo:`, request);
   
@@ -82,7 +78,7 @@ export const validateBundleReservation = (
 
   // 3. Validar items grupales (simplificado)
   const groupValidations = request.itemReservations.map(itemReq => 
-    validateGroupItem(itemReq.itemId, itemReq.date, itemReq.timeSlot)
+    validateGroupItem(reservasItems, itemReq.itemId, itemReq.date, itemReq.timeSlot)
   );
 
   // 4. Validar cada item individualmente (reutiliza lógica existente)
@@ -98,7 +94,7 @@ export const validateBundleReservation = (
     };
     
     console.log(`🔍 Validando item ${itemReq.itemId} dentro del bundle`);
-    return validateItemReservation(itemRequest, currentUserId);
+    return validateItemReservation(itemRequest, currentUserId, reservasItems);
   });
 
   // 5. Validar extras (simplificado)
@@ -191,109 +187,93 @@ const validateExtraSimplified = (
 /**
  * Crea una reserva de bundle completa (SIMPLIFICADO)
  */
-export const createBundleReservation = async (
-  request: CreateReservaBundleRequest,
-  currentUserId: string = "87IZYWdezwJQsILiU57z"
-): Promise<{ success: boolean; reservationId?: string; errors: string[] }> => {
-  console.log(`🎯 Creando reserva de bundle completo (simplificado):`, request);
-
-  // Validar la reserva primero
-  const validation = validateBundleReservation(request, currentUserId);
-  if (!validation.isValid) {
-    return {
-      success: false,
-      errors: validation.errors
-    };
-  }
-
-  try {
-    // Crear las reservas individuales de items
-    const itemReservationIds: string[] = [];
-    
-    for (const itemReq of request.itemReservations) {
-      const itemRequest: CreateReservaItemRequest = {
-        itemId: itemReq.itemId,
-        date: itemReq.date,
-        timeSlot: itemReq.timeSlot,
-        numberOfPeople: itemReq.numberOfPeople,
-        customerInfo: request.customerInfo,
-        notes: request.notes,
-        isTemporary: request.isTemporary
+export const useCreateBundleReservation = () => {
+  const { reservasBundle, setReservasBundle, reservasItems, setReservasItems } = useReservations();
+  const { allBundles, allItems } = useEntitiesState();
+  return async (request: CreateReservaBundleRequest, currentUserId: string = "87IZYWdezwJQsILiU57z") => {
+    console.log(`🎯 Creando reserva de bundle completo (simplificado):`, request);
+    // Validar la reserva primero
+    const validation = validateBundleReservation(request, currentUserId, reservasItems);
+    if (!validation.isValid) {
+      return {
+        success: false,
+        errors: validation.errors
       };
-      
-      console.log(`🔧 Creando reserva de item individual ${itemReq.itemId}`);
-      const itemResult = createItemReservation(itemRequest, currentUserId);
-      
-      if (!itemResult.success || !itemResult.reserva) {
-        return {
-          success: false,
-          errors: [`Error al crear reserva para item ${itemReq.itemId}: ${itemResult.errors.join(', ')}`]
-        };
-      }
-      
-      itemReservationIds.push(itemResult.reserva.id);
     }
-
-    // Crear el objeto ReservaBundle simplificado
-    const bundleReservationId = `reserva_bundle_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    const processedExtras = request.selectedExtras.map(extraReq => ({
-      extraId: extraReq.extraId,
-      quantity: extraReq.quantity,
-      unitPrice: 20, // Precio por defecto
-      totalPrice: 20 * extraReq.quantity,
-      isGroupSelection: false
-    }));
-
-    const bundleReservation: ReservaBundle = {
-      id: bundleReservationId,
-      bundleId: request.bundleId,
-      shopId: "default_shop_id", // Simplificado
-      userId: currentUserId,
-      customerInfo: request.customerInfo,
-      
-      // Referencias simplificadas
-      reservasItems: [], // Simplificado
-      extras: processedExtras,
-      
-      // Totales
-      itemsTotal: 0, // Simplificado
-      extrasTotal: processedExtras.reduce((sum, e) => sum + e.totalPrice, 0),
-      totalPrice: processedExtras.reduce((sum, e) => sum + e.totalPrice, 0),
-      
-      status: 'CONFIRMED',
-      isTemporary: request.isTemporary || false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      createdBy: 'SELLER',
-      notes: request.notes
-    };
-
-    // Guardar en mock data
-    mockReservasBundle.push(bundleReservation);
-    
-    console.log(`✅ Reserva de bundle creada exitosamente: ${bundleReservationId}`);
-    
-    return {
-      success: true,
-      reservationId: bundleReservationId,
-      errors: []
-    };
-
-  } catch (error) {
-    console.error('❌ Error al crear reserva de bundle:', error);
-    return {
-      success: false,
-      errors: ['Error interno al procesar la reserva. Intente nuevamente.']
-    };
-  }
+    try {
+      // Obtener el bundle real para shopId
+      const bundle = allBundles.find((b: Bundle) => b.id === request.bundleId);
+      // Crear las reservas individuales de items
+      const createdReservaItems = request.itemReservations.map((itemReq, idx) => {
+        const reservaId = `reserva_item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${idx}`;
+        const item = allItems.find((i: any) => i.id === itemReq.itemId);
+        return {
+          id: reservaId,
+          itemId: itemReq.itemId,
+          bundleId: request.bundleId,
+          shopId: bundle ? bundle.shopId : '',
+          userId: currentUserId,
+          customerInfo: request.customerInfo,
+          date: itemReq.date,
+          timeSlot: itemReq.timeSlot,
+          numberOfPeople: itemReq.numberOfPeople,
+          status: 'CONFIRMED' as const,
+          isTemporary: request.isTemporary || false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          createdBy: 'SELLER' as const,
+          notes: request.notes,
+          itemPrice: item ? item.price : 0,
+          totalPrice: item ? item.price * itemReq.numberOfPeople : 0,
+          isGroupReservation: false,
+          groupSize: itemReq.numberOfPeople
+        };
+      });
+      setReservasItems(prev => [...prev, ...createdReservaItems]);
+      // Crear el objeto ReservaBundle simplificado
+      const bundleReservationId = `reserva_bundle_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const processedExtras = request.selectedExtras.map(extraReq => ({
+        extraId: extraReq.extraId,
+        quantity: extraReq.quantity,
+        unitPrice: 20, // Precio por defecto
+        totalPrice: 20 * extraReq.quantity,
+        isGroupSelection: false
+      }));
+      const bundleReservation: ReservaBundle = {
+        id: bundleReservationId,
+        bundleId: request.bundleId,
+        shopId: bundle ? bundle.shopId : '',
+        userId: currentUserId,
+        customerInfo: request.customerInfo,
+        reservasItems: createdReservaItems,
+        extras: processedExtras,
+        itemsTotal: createdReservaItems.reduce((sum, r) => sum + r.totalPrice, 0),
+        extrasTotal: processedExtras.reduce((sum, e) => sum + e.totalPrice, 0),
+        totalPrice: createdReservaItems.reduce((sum, r) => sum + r.totalPrice, 0) + processedExtras.reduce((sum, e) => sum + e.totalPrice, 0),
+        status: 'CONFIRMED',
+        isTemporary: request.isTemporary || false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        createdBy: 'SELLER' as const,
+        notes: request.notes
+      };
+      setReservasBundle(prev => [...prev, bundleReservation]);
+      console.log(`✅ Reserva de bundle creada exitosamente: ${bundleReservationId}`);
+      return {
+        success: true,
+        reservationId: bundleReservationId,
+        errors: []
+      };
+    } catch (error) {
+      console.error('❌ Error al crear reserva de bundle:', error);
+      return {
+        success: false,
+        errors: ['Error interno al procesar la reserva. Intente nuevamente.']
+      };
+    }
+  };
 };
 
-// Función auxiliar simplificada para verificar disponibilidad de extra
-export const checkExtraAvailability = (
-  extraId: string,
-  selectedItemIds: string[]
-): { available: boolean; reason?: string } => {
-  // Simplificado - siempre disponible
+export const checkExtraAvailability = (): { available: boolean; reason?: string } => {
   return { available: true };
 }; 

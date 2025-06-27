@@ -22,8 +22,6 @@ import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useEntitiesState } from '../hooks/useEntitiesState';
 
-// 🎯 CHECKPOINT 7: PANEL DE DETALLE DE RESERVA PARA SELLER
-
 interface ReservationDetailPanelProps {
   reservation: ReservaItem;
   onClose: () => void;

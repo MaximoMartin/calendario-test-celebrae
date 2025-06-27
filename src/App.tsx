@@ -11,7 +11,7 @@ import {
   Euro,
   Settings
 } from 'lucide-react';
-import './App.css';
+import './index.css';
 import BookingCalendar from './components/BookingCalendar';
 import { ItemReservationManager } from './features/reservations/components/ItemReservationManager';
 import { BundleReservationManager } from './features/reservations/components/BundleReservationManager';
@@ -22,6 +22,7 @@ import { mockShops } from './mockData';
 import { Button } from './components/ui/Button';
 import { Card } from './components/ui/Card';
 import type { Item, Bundle } from './types';
+import { useEntitiesState } from './hooks/useEntitiesState';
 
 type ActiveTab = 'calendar' | 'items' | 'bundles' | 'entities-manager';
 
@@ -34,6 +35,8 @@ const App: React.FC = () => {
     shopStats,
     shopItems
   } = useShopState();
+
+  const { getBundleWithContent } = useEntitiesState();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('calendar');
   const [showShopSelector, setShowShopSelector] = useState(false);
@@ -260,7 +263,7 @@ const App: React.FC = () => {
                 </div>
 
                 <Button
-                  onClick={() => setSelectedBundleForReservation(bundle)}
+                  onClick={() => setSelectedBundleForReservation(getBundleWithContent(bundle.id))}
                   className="w-full"
                 >
                   <Plus className="w-4 h-4 mr-2" />

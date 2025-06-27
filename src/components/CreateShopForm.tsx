@@ -5,8 +5,6 @@ import { Card } from './ui/Card';
 import { Input } from './ui/Input';
 import { useEntitiesState, type CreateShopData } from '../hooks/useEntitiesState';
 
-// 🎯 CHECKPOINT 10: FORMULARIO PARA CREAR NUEVOS SHOPS
-
 interface CreateShopFormProps {
   onShopCreated?: (shopId: string) => void;
   onClose?: () => void;

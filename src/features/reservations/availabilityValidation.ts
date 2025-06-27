@@ -6,18 +6,20 @@ import type {
   ExtendedItemAvailability
 } from '../../types';
 import { RESERVATION_CONFIG } from './types';
-import { mockReservasItems, mockItemTimeSlots, getReservasByDateAndItem } from './mockData';
+import { mockItemTimeSlots } from './mockData';
+import { useEntitiesState } from '../../hooks/useEntitiesState';
 
 export const getItemAvailability = (
   itemId: string,
   date: string,
-  timeSlot: { startTime: string; endTime: string }
+  timeSlot: { startTime: string; endTime: string },
+  reservasItems: ReservaItem[]
 ): ItemAvailability => {
   console.log(`🔍 Verificando disponibilidad para item ${itemId} en ${date} ${timeSlot.startTime}-${timeSlot.endTime}`);
   
   const maxCapacity = 10;
   
-  const existingReservations = getReservasByDateAndItem(date, itemId);
+  const existingReservations = reservasItems.filter(r => r.itemId === itemId && r.date === date);
   
   const conflictingReservations = existingReservations.filter(reserva => {
     return timeSlotsOverlap(
@@ -47,7 +49,8 @@ export const getItemAvailability = (
 
 export const validateItemReservation = (
   request: CreateReservaItemRequest,
-  _currentUserId: string = "87IZYWdezwJQsILiU57z"
+  _currentUserId: string = "87IZYWdezwJQsILiU57z",
+  reservasItems: ReservaItem[]
 ): ItemAvailabilityValidation => {
   console.log(`🔍 Validando solicitud de reserva:`, request);
   
@@ -79,7 +82,7 @@ export const validateItemReservation = (
     errors.push('Horario inválido');
   }
 
-  const availability = getItemAvailability(request.itemId, request.date, request.timeSlot);
+  const availability = getItemAvailability(request.itemId, request.date, request.timeSlot, reservasItems);
   
   if (!availability.isAvailable) {
     switch (availability.blockingReason) {
@@ -137,7 +140,7 @@ export const getAvailableSlotsForItem = (
       endTime: slot.endTime
     };
     
-    const availability = getItemAvailability(itemId, date, timeSlot);
+    const availability = getItemAvailability(itemId, date, timeSlot, []);
     
     return {
       timeSlot,
@@ -155,7 +158,7 @@ export const getExtendedItemAvailability = (
 ): ExtendedItemAvailability => {
   console.log(`🔍 Obteniendo disponibilidad extendida para item ${itemId}`);
   
-  const baseAvailability = getItemAvailability(itemId, date, timeSlot);
+  const baseAvailability = getItemAvailability(itemId, date, timeSlot, []);
   
   const extendedAvailability: ExtendedItemAvailability = {
     ...baseAvailability,
@@ -202,58 +205,65 @@ export const getExtendedAvailableSlotsForItem = (
   return availableSlots.sort((a, b) => a.timeSlot.startTime.localeCompare(b.timeSlot.startTime));
 };
 
-export const createItemReservation = (
-  request: CreateReservaItemRequest,
-  currentUserId: string = "87IZYWdezwJQsILiU57z"
-): { success: boolean; reserva?: ReservaItem; errors: string[] } => {
-  console.log(`🚀 Intentando crear reserva:`, request);
-  
-  const validation = validateItemReservation(request, currentUserId);
-  
-  if (!validation.isValid) {
-    return {
-      success: false,
-      errors: validation.errors
+export const useCreateItemReservation = () => {
+  const { reservasItems, setReservasItems } = useReservations();
+  const { allItems, allBundles } = useEntitiesState();
+
+  return (request: CreateReservaItemRequest, currentUserId: string = "87IZYWdezwJQsILiU57z") => {
+    // Buscar el item real
+    const item = allItems.find((i: any) => i.id === request.itemId);
+    if (!item) {
+      return {
+        success: false,
+        errors: ['El item seleccionado no existe en el sistema.']
+      };
+    }
+    // Buscar el bundle real
+    const bundle = allBundles.find((b: any) => b.id === item.bundleId);
+    if (!bundle) {
+      return {
+        success: false,
+        errors: ['No se encontró el bundle asociado a este item.']
+      };
+    }
+    const validation = validateItemReservation(request, currentUserId, reservasItems);
+    if (!validation.isValid) {
+      return {
+        success: false,
+        errors: validation.errors
+      };
+    }
+    const price = item.price;
+    const nuevaReserva: ReservaItem = {
+      id: `reserva_item_${Date.now()}`,
+      itemId: item.id,
+      bundleId: bundle.id,
+      shopId: bundle.shopId,
+      userId: currentUserId,
+      customerInfo: request.customerInfo,
+      date: request.date,
+      timeSlot: request.timeSlot,
+      numberOfPeople: request.numberOfPeople,
+      status: request.isTemporary ? 'PENDING' : 'CONFIRMED',
+      isTemporary: request.isTemporary || false,
+      temporaryExpiresAt: request.isTemporary 
+        ? new Date(Date.now() + RESERVATION_CONFIG.TEMPORARY_RESERVATION_MINUTES * 60000).toISOString()
+        : undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: 'SELLER',
+      notes: request.notes,
+      itemPrice: price,
+      totalPrice: price * request.numberOfPeople,
+      isGroupReservation: false,
+      groupSize: request.numberOfPeople
     };
-  }
-
-  const defaultPrice = 50;
-  const defaultBundleId = "bundle_default";
-  const defaultShopId = "shop_default";
-
-  const nuevaReserva: ReservaItem = {
-    id: `reserva_item_${Date.now()}`,
-    itemId: request.itemId,
-    bundleId: defaultBundleId,
-    shopId: defaultShopId,
-    userId: currentUserId,
-    customerInfo: request.customerInfo,
-    date: request.date,
-    timeSlot: request.timeSlot,
-    numberOfPeople: request.numberOfPeople,
-    status: request.isTemporary ? 'PENDING' : 'CONFIRMED',
-    isTemporary: request.isTemporary || false,
-    temporaryExpiresAt: request.isTemporary 
-      ? new Date(Date.now() + RESERVATION_CONFIG.TEMPORARY_RESERVATION_MINUTES * 60000).toISOString()
-      : undefined,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    createdBy: 'SELLER',
-    notes: request.notes,
-    itemPrice: defaultPrice,
-    totalPrice: defaultPrice * request.numberOfPeople,
-    isGroupReservation: false,
-    groupSize: request.numberOfPeople
-  };
-
-  console.log(`✅ Reserva creada exitosamente:`, nuevaReserva);
-  
-  mockReservasItems.push(nuevaReserva);
-
-  return {
-    success: true,
-    reserva: nuevaReserva,
-    errors: []
+    setReservasItems((prev: any) => [...prev, nuevaReserva]);
+    return {
+      success: true,
+      reserva: nuevaReserva,
+      errors: []
+    };
   };
 };
 

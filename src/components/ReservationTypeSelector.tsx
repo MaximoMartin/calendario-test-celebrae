@@ -5,9 +5,8 @@ import { Card } from './ui/Card';
 import { BundleReservationManager } from '../features/reservations/components/BundleReservationManager';
 import { ItemReservationManager } from '../features/reservations/components/ItemReservationManager';
 import { useShopState } from '../hooks/useShopState';
+import { useEntitiesState } from '../hooks/useEntitiesState';
 import type { Bundle, Item } from '../types';
-
-// 🎯 CHECKPOINT 9.6: SELECTOR DE TIPO DE RESERVA PARA SHOP ACTIVO
 
 type ReservationType = 'bundle' | 'item';
 type SelectorStep = 'type' | 'selection';
@@ -22,6 +21,7 @@ export const ReservationTypeSelector: React.FC<ReservationTypeSelectorProps> = (
   onReservationCreated
 }) => {
   const { selectedShop, shopBundles, shopItems } = useShopState();
+  const { getBundleWithContent } = useEntitiesState();
   
   const [currentStep, setCurrentStep] = useState<SelectorStep>('type');
   const [selectedType, setSelectedType] = useState<ReservationType | null>(null);
@@ -35,7 +35,7 @@ export const ReservationTypeSelector: React.FC<ReservationTypeSelectorProps> = (
   };
 
   const handleBundleSelection = (bundle: Bundle) => {
-    setSelectedBundle(bundle);
+    setSelectedBundle(getBundleWithContent(bundle.id));
     setShowReservationModal(true);
   };
 

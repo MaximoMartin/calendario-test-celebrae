@@ -7,7 +7,7 @@ import { Input } from '../../../components/ui/Input';
 import { 
   getAvailableSlotsForItem, 
   validateItemReservation, 
-  createItemReservation
+  useCreateItemReservation
 } from '../availabilityValidation';
 import { formatDate } from '../../../utils/dateHelpers';
 
@@ -35,6 +35,8 @@ export const ItemReservationManager: React.FC<ItemReservationManagerProps> = ({
   const [isCreatingReservation, setIsCreatingReservation] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+
+  const createItemReservation = useCreateItemReservation();
 
   // Obtener slots disponibles para la fecha actual
   const availableSlots = useMemo(() => {
