@@ -83,103 +83,14 @@ export interface CalendarEvent {
   resource: Booking;
 }
 
-export type ViewType = 'month' | 'week' | 'day';
 
-export interface BookingFormData {
-  kitId: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  date: string;
-  timeSlot: string;
-  numberOfPeople: number;
-  notes?: string;
-}
-
-export interface BusinessHoursFormData {
-  monday: BusinessHourDay;
-  tuesday: BusinessHourDay;
-  wednesday: BusinessHourDay;
-  thursday: BusinessHourDay;
-  friday: BusinessHourDay;
-  saturday: BusinessHourDay;
-  sunday: BusinessHourDay;
-}
-
-export interface BusinessHourDay {
-  isActive: boolean;
-  periods: BusinessHoursPeriod[];
-}
-
-export interface TimeSlotFormData {
-  kitId: string;
-  startTime: string;
-  endTime: string;
-  maxBookings: number;
-}
 
 // Gestión de Excepciones y Disponibilidad Avanzada
-export interface ShopException {
-  id: string;
-  shopId: string;
-  date: string; // ISO date string
-  type: 'CLOSED' | 'SPECIAL_HOURS' | 'PRIVATE_EVENT' | 'MAINTENANCE';
-  title: string;
-  description?: string;
-  specialHours?: {
-    startTime: string;
-    endTime: string;
-  };
-  affectedKits?: string[]; // kit IDs affected, empty array means all kits
-  isActive: boolean;
-  createdAt: string;
-}
 
-export interface AvailabilityBlock {
-  id: string;
-  shopId: string;
-  kitId?: string; // if not specified, applies to all kits
-  startDate: string;
-  endDate: string;
-  type: 'BLOCKED' | 'SPECIAL_PRICING' | 'LIMITED_CAPACITY';
-  reason: string;
-  settings?: {
-    maxBookings?: number;
-    priceMultiplier?: number; // for special pricing
-    allowedStatuses?: Booking['status'][]; // which booking statuses are allowed
-  };
-  isActive: boolean;
-}
 
-export interface SearchFilters {
-  query?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  status?: Booking['status'][];
-  kitIds?: string[];
-  isManual?: boolean;
-  customerEmail?: string;
-  customerPhone?: string;
-}
 
-export interface GlobalSearchResult {
-  type: 'booking' | 'customer' | 'kit';
-  id: string;
-  title: string;
-  subtitle: string;
-  data: Booking | Kit | CustomerInfo;
-  relevance: number;
-}
 
-export interface CustomerInfo {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  totalBookings: number;
-  lastBookingDate?: string;
-  notes?: string;
-} 
+ 
 
 // 📌 ENTIDADES BASE DEL SISTEMA DE RESERVAS
 // Checkpoint 1: Definición de entidades principales con relaciones jerárquicas
@@ -292,80 +203,7 @@ export interface Bundle {
   updatedAt: string;
 }
 
-/**
- * Extensión de User para sistema completo
- * Mantiene compatibilidad con User existente
- */
-export interface ExtendedUser extends User {
-  // Información adicional del usuario seller
-  businessInfo?: {
-    businessName: string;
-    businessType: string;
-    taxId?: string;
-    website?: string;
-    description?: string;
-  };
-  
-  // Configuración de cuenta
-  accountSettings: {
-    timezone: string;
-    language: string;
-    currency: string;
-    emailNotifications: boolean;
-    smsNotifications: boolean;
-  };
-  
-  // Metadatos adicionales
-  createdAt: string;
-  updatedAt: string;
-  lastLoginAt?: string;
-}
 
-/**
- * Extensión de Shop para sistema completo
- * Mantiene compatibilidad con Shop existente
- */
-export interface ExtendedShop extends Shop {
-  // Información adicional del shop
-  description?: string;
-  imageUrls: string[];
-  category: string;
-  subCategory?: string;
-  
-  // Configuración de servicios
-  serviceSettings: {
-    allowOnlineBooking: boolean;
-    requiresPhoneConfirmation: boolean;
-    autoAcceptBookings: boolean;
-    maxAdvanceBookingDays: number;
-    minAdvanceBookingHours: number;
-  };
-  
-  // Ubicación y contacto
-  location?: {
-    latitude: number;
-    longitude: number;
-    city: string;
-    state: string;
-    country: string;
-    postalCode: string;
-  };
-  
-  contactInfo: {
-    phone: string;
-    email: string;
-    website?: string;
-    socialMedia?: {
-      facebook?: string;
-      instagram?: string;
-      twitter?: string;
-    };
-  };
-  
-  // Metadatos adicionales
-  createdAt: string;
-  updatedAt: string;
-}
 
 // 📋 RELACIONES DEL SISTEMA
 // Las relaciones se mantienen mediante IDs:
@@ -653,71 +491,11 @@ export interface GroupValidation {
 // 🎯 CHECKPOINT 5: SISTEMA DE BLOQUEO INTELIGENTE DE HORARIOS
 // Reglas de disponibilidad flexibles por Shop, Bundle o Item
 
-export interface AvailabilityRule {
-  id: string;
-  name: string; // nombre descriptivo de la regla
-  description?: string; // descripción opcional
-  
-  // Tipo y alcance de la regla
-  type: 'CLOSED' | 'OPEN'; // CLOSED bloquea, OPEN fuerza disponibilidad
-  level: 'SHOP' | 'BUNDLE' | 'ITEM'; // nivel de aplicación
-  targetId: string; // ID del shop, bundle o item afectado
-  
-  // Configuración temporal
-  weekdays?: number[]; // días de la semana (0=domingo, 6=sábado) - ej: [0,6] = dom/sáb
-  specificDates?: string[]; // fechas específicas en formato YYYY-MM-DD
-  dateRange?: {
-    startDate: string; // YYYY-MM-DD
-    endDate: string; // YYYY-MM-DD
-  };
-  
-  // Configuración de horarios
-  startTime?: string; // HH:mm - si no se especifica, aplica todo el día
-  endTime?: string; // HH:mm - si no se especifica, aplica todo el día
-  
-  // Metadatos y configuración
-  priority: number; // prioridad (mayor número = mayor prioridad)
-  reason: string; // razón del bloqueo/apertura
-  isActive: boolean;
-  
-  // Configuración avanzada
-  recurring?: {
-    pattern: 'WEEKLY' | 'MONTHLY' | 'YEARLY'; // patrón de recurrencia
-    interval: number; // cada cuánto se repite (ej: cada 2 semanas)
-    until?: string; // fecha límite de recurrencia YYYY-MM-DD
-  };
-  
-  // Metadatos
-  createdAt: string;
-  updatedAt: string;
-  createdBy: string; // userId del creador
-}
-
-export interface AvailabilityRuleValidation {
-  ruleId: string;
-  ruleName: string;
-  ruleType: 'CLOSED' | 'OPEN';
-  level: 'SHOP' | 'BUNDLE' | 'ITEM';
-  targetId: string;
-  reason: string;
-  priority: number;
-  blocksReservation: boolean; // true si esta regla bloquea la reserva
-  appliesTo: {
-    date: string;
-    timeSlot?: { startTime: string; endTime: string };
-  };
-}
-
 export interface ExtendedItemAvailability extends ItemAvailability {
-  // 🎯 CHECKPOINT 5: Información adicional sobre reglas de bloqueo
-  applicableRules: AvailabilityRuleValidation[];
+  // 🎯 CHECKPOINT 5: Información adicional sobre reglas de bloqueo (simplificado)
+  applicableRules: any[];
   isBlockedByRules: boolean;
-  blockingRules: AvailabilityRuleValidation[]; // reglas que bloquean esta reserva
-}
-
-export interface ExtendedBundleAvailabilityValidation extends BundleAvailabilityValidation {
-  // 🎯 CHECKPOINT 5: Validaciones de reglas a nivel bundle
-  ruleValidations: AvailabilityRuleValidation[];
+  blockingRules: any[]; // reglas que bloquean esta reserva
 }
 
 // 🎯 CHECKPOINT 6: HISTORIAL Y MODIFICACIONES

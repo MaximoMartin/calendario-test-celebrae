@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { mockShops } from '../mockData';
-import { allMockReservasItems } from '../features/reservations/mockData';
+import { mockReservasItems } from '../features/reservations/mockData';
 import { useEntitiesState } from './useEntitiesState';
 import type { CalendarEvent, ReservaItem, Booking } from '../types';
 
@@ -31,7 +31,7 @@ export const useShopState = () => {
 
   // Reservas del shop seleccionado (sistema moderno)
   const shopReservations = useMemo(() => 
-    allMockReservasItems.filter(reserva => reserva.shopId === selectedShopId),
+    mockReservasItems.filter((reserva: ReservaItem) => reserva.shopId === selectedShopId),
     [selectedShopId]
   );
 
@@ -128,10 +128,10 @@ export const useShopState = () => {
   const shopStats = useMemo(() => {
     return {
       totalReservations: shopReservations.length,
-      confirmed: shopReservations.filter(r => r.status === 'CONFIRMED').length,
-      pending: shopReservations.filter(r => r.status === 'PENDING').length,
-      cancelled: shopReservations.filter(r => r.status === 'CANCELLED').length,
-      completed: shopReservations.filter(r => r.status === 'COMPLETED').length,
+      confirmed: shopReservations.filter((r: ReservaItem) => r.status === 'CONFIRMED').length,
+      pending: shopReservations.filter((r: ReservaItem) => r.status === 'PENDING').length,
+      cancelled: shopReservations.filter((r: ReservaItem) => r.status === 'CANCELLED').length,
+      completed: shopReservations.filter((r: ReservaItem) => r.status === 'COMPLETED').length,
     };
   }, [shopReservations]);
 

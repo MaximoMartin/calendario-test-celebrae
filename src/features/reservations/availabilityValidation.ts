@@ -9,7 +9,7 @@ import { RESERVATION_CONFIG } from './types';
 import { mockReservasItems, mockItemTimeSlots, getReservasByDateAndItem } from './mockData';
 import { items } from '../../mockData/entitiesData';
 // 🎯 CHECKPOINT 5: IMPORTAR VALIDACIÓN DE REGLAS
-import { extendItemAvailabilityWithRules } from './availabilityRulesValidation';
+
 
 // 🎯 CHECKPOINT 2: LÓGICA CENTRAL DE VALIDACIÓN DE DISPONIBILIDAD
 // Sistema completo para validar si un item puede ser reservado
@@ -233,8 +233,13 @@ export const getExtendedItemAvailability = (
   // 1. Obtener disponibilidad base (lógica existente)
   const baseAvailability = getItemAvailability(itemId, date, timeSlot);
   
-  // 2. Extender con reglas de disponibilidad
-  const extendedAvailability = extendItemAvailabilityWithRules(baseAvailability, itemId);
+  // 2. Convertir a formato extendido (sin reglas por ahora)
+  const extendedAvailability: ExtendedItemAvailability = {
+    ...baseAvailability,
+    applicableRules: [],
+    isBlockedByRules: false,
+    blockingRules: []
+  };
   
   console.log(`✅ Disponibilidad extendida: disponible=${extendedAvailability.isAvailable}, bloqueado_por_reglas=${extendedAvailability.isBlockedByRules}`);
   

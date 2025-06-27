@@ -17,10 +17,10 @@ import {
   X
 } from 'lucide-react';
 import type { ReservaItem } from '../types';
-import { bundles, items } from '../mockData/entitiesData';
 import { formatReservationHistory } from '../features/reservations/reservationModification';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
+import { useEntitiesState } from '../hooks/useEntitiesState';
 
 // 🎯 CHECKPOINT 7: PANEL DE DETALLE DE RESERVA PARA SELLER
 
@@ -37,17 +37,19 @@ export const ReservationDetailPanel: React.FC<ReservationDetailPanelProps> = ({
   onEdit,
   onManage
 }) => {
+  const { allBundles, allItems } = useEntitiesState();
+  
   // Helper functions
   const getBundleName = (bundleId: string) => {
-    return bundles.find(bundle => bundle.id === bundleId)?.name || 'Bundle Desconocido';
+    return allBundles.find(bundle => bundle.id === bundleId)?.name || 'Bundle Desconocido';
   };
 
   const getItemName = (itemId: string) => {
-    return items.find(item => item.id === itemId)?.title || 'Item Desconocido';
+    return allItems.find(item => item.id === itemId)?.title || 'Item Desconocido';
   };
 
   const getItemDescription = (itemId: string) => {
-    return items.find(item => item.id === itemId)?.description || '';
+    return allItems.find(item => item.id === itemId)?.description || '';
   };
 
   const getStatusIcon = (status: string) => {

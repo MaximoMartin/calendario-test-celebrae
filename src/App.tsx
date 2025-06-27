@@ -16,8 +16,7 @@ import './App.css';
 import BookingCalendar from './components/BookingCalendar';
 import { ItemReservationManager } from './features/reservations/components/ItemReservationManager';
 import { BundleReservationManager } from './features/reservations/components/BundleReservationManager';
-import { AvailabilityRulesManager } from './components/AvailabilityRulesManager';
-import { ShopReservationsDashboard } from './components/ShopReservationsDashboard';
+
 import { EntitiesManager } from './components/EntitiesManager';
 import { useShopState } from './hooks/useShopState';
 import { mockShops } from './mockData';
@@ -27,7 +26,7 @@ import type { Item, Bundle } from './types';
 
 // 🎯 CHECKPOINT 8: REFACTORIZACIÓN COMPLETA Y ALINEACIÓN POR SHOP
 
-type ActiveTab = 'calendar' | 'items' | 'bundles' | 'availability' | 'seller-dashboard' | 'entities-manager';
+type ActiveTab = 'calendar' | 'items' | 'bundles' | 'entities-manager';
 
 const App: React.FC = () => {
   // 🎯 CHECKPOINT 8: ESTADO CENTRALIZADO DEL SHOP
@@ -66,18 +65,6 @@ const App: React.FC = () => {
       name: 'Bundles',
       icon: Package,
       description: 'Reservas de paquetes completos'
-    },
-    {
-      id: 'availability' as const,
-      name: 'Disponibilidad',
-      icon: BarChart3,
-      description: 'Gestión de reglas de disponibilidad'
-    },
-    {
-      id: 'seller-dashboard' as const,
-      name: 'SELLER Panel',
-      icon: Building2,
-      description: 'Panel de gestión para SELLERS'
     },
     {
       id: 'entities-manager' as const,
@@ -305,10 +292,6 @@ const App: React.FC = () => {
       case 'bundles':
         // 🐞 CHECKPOINT 9.5: RENDERIZAR VISTA DE BUNDLES SIN MODAL AUTOMÁTICO
         return renderBundlesTab();
-      case 'availability':
-        return <AvailabilityRulesManager />;
-      case 'seller-dashboard':
-        return <ShopReservationsDashboard />;
       case 'entities-manager':
         return <EntitiesManager />;
       default:

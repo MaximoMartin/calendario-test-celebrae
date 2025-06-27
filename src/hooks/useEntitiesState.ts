@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
-import { extendedShops, bundles as initialBundles, items as initialItems, extras as initialExtras } from '../mockData/entitiesData';
-import type { ExtendedShop, Bundle, Item, Extra } from '../types';
+import { mockShops } from '../mockData';
+import type { Shop, Bundle, Item, Extra } from '../types';
 
 // 🎯 CHECKPOINT 10: HOOK PARA GESTIÓN DINÁMICA DE ENTIDADES
 // Permite crear nuevos Shops, Bundles, Items y Extras desde la interfaz
@@ -50,16 +50,16 @@ export interface CreateExtraData {
 
 export const useEntitiesState = () => {
   // Estados para entidades dinámicas
-  const [dynamicShops, setDynamicShops] = useState<ExtendedShop[]>([]);
+  const [dynamicShops, setDynamicShops] = useState<Shop[]>([]);
   const [dynamicBundles, setDynamicBundles] = useState<Bundle[]>([]);
   const [dynamicItems, setDynamicItems] = useState<Item[]>([]);
   const [dynamicExtras, setDynamicExtras] = useState<Extra[]>([]);
 
   // Combinar entidades estáticas con dinámicas
-  const allShops = useMemo(() => [...extendedShops, ...dynamicShops], [dynamicShops]);
-  const allBundles = useMemo(() => [...initialBundles, ...dynamicBundles], [dynamicBundles]);
-  const allItems = useMemo(() => [...initialItems, ...dynamicItems], [dynamicItems]);
-  const allExtras = useMemo(() => [...initialExtras, ...dynamicExtras], [dynamicExtras]);
+  const allShops = useMemo(() => [...mockShops, ...dynamicShops], [dynamicShops]);
+  const allBundles = useMemo(() => [...dynamicBundles], [dynamicBundles]); // Solo dinámicos por ahora
+  const allItems = useMemo(() => [...dynamicItems], [dynamicItems]); // Solo dinámicos por ahora  
+  const allExtras = useMemo(() => [...dynamicExtras], [dynamicExtras]); // Solo dinámicos por ahora
 
   // Función para generar IDs únicos
   const generateId = useCallback((prefix: string) => {
@@ -68,53 +68,12 @@ export const useEntitiesState = () => {
 
   // Crear nuevo Shop
   const createShop = useCallback((data: CreateShopData, userId: string = "87IZYWdezwJQsILiU57z") => {
-    const newShop: ExtendedShop = {
-      // Datos base
+    const newShop: Shop = {
       id: generateId('shop'),
       name: data.name,
       address: data.address,
       shopStatus: 'ENABLED',
-      userId,
-      
-      // Datos extendidos
-      description: data.description || '',
-      imageUrls: [
-        "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800",
-        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800"
-      ],
-      category: data.category || 'General',
-      subCategory: data.subCategory || '',
-      
-      // Configuración por defecto
-      serviceSettings: {
-        allowOnlineBooking: true,
-        requiresPhoneConfirmation: false,
-        autoAcceptBookings: true,
-        maxAdvanceBookingDays: 30,
-        minAdvanceBookingHours: 2
-      },
-      
-      // Ubicación básica
-      location: {
-        latitude: -31.4201,
-        longitude: -64.1888,
-        city: 'Córdoba',
-        state: 'Córdoba',
-        country: 'Argentina',
-        postalCode: '5000'
-      },
-      
-      // Información de contacto
-      contactInfo: {
-        phone: data.phone,
-        email: data.email,
-        website: '',
-        socialMedia: {}
-      },
-      
-      // Metadatos
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      userId
     };
 
     setDynamicShops(prev => [...prev, newShop]);
