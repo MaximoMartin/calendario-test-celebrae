@@ -12,76 +12,10 @@ export interface Shop {
   address: string;
   shopStatus: 'ENABLED' | 'DISABLED';
   userId: string;
-  businessHours?: BusinessHours[];
-  bookingSettings?: BookingSettings;
+  // businessHours y bookingSettings eliminados por simplicidad
 }
 
-export interface Kit {
-  id: string;
-  name: string;
-  price: number;
-  maxCapacity: number;
-  duration: number; // in minutes
-  items?: any[];
-  extras?: any[];
-  shopId: string;
-  slots?: TimeSlot[];
-}
-
-export interface BusinessHoursPeriod {
-  startTime: string; // HH:mm format
-  endTime: string; // HH:mm format
-}
-
-export interface BusinessHours {
-  dayOfWeek: number; // 0-6 (Sunday-Saturday)
-  isActive: boolean;
-  periods: BusinessHoursPeriod[]; // Multiple periods per day
-}
-
-export interface TimeSlot {
-  id: string;
-  kitId: string;
-  startTime: string; // HH:mm format
-  endTime: string; // HH:mm format
-  maxBookings: number;
-  isActive: boolean;
-}
-
-export interface Booking {
-  id: string;
-  kitId: string;
-  kitName: string;
-  shopId: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  date: string; // ISO date string
-  timeSlot: string; // HH:mm format
-  numberOfPeople: number;
-  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW' | 'RESCHEDULED' | 'PARTIAL_REFUND';
-  isManual: boolean; // true if created by shop owner
-  createdAt: string;
-  notes?: string;
-  rescheduledFrom?: string; // original date if rescheduled
-  refundAmount?: number; // amount refunded for partial refunds
-  cancellationReason?: string;
-}
-
-export interface BookingSettings {
-  hoursBeforeBooking: number; // minimum hours before booking
-  maxAdvanceBookingDays: number; // maximum days in advance
-  allowSameDayBooking: boolean;
-  autoConfirmBookings: boolean;
-}
-
-export interface CalendarEvent {
-  id: string;
-  title: string;
-  start: Date;
-  end: Date;
-  resource: Booking;
-}
+// Tipos legacy eliminados - ya no se usan
 
 
 
@@ -123,8 +57,7 @@ export interface Item {
     isExclusive?: boolean; // true = solo 1 grupo puede reservar este horario
   };
   
-  // Horarios específicos del item (independientes de otros items)
-  timeSlots?: TimeSlot[];
+  // timeSlots eliminado por simplicidad del sistema
   
   // Metadatos
   isActive: boolean;

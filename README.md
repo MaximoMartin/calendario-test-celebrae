@@ -1,174 +1,153 @@
 # 📅 Celebrae Calendar System
 
-Sistema moderno de gestión de reservas para múltiples shops con bundles, items y extras.
+**Sistema moderno de gestión de reservas multi-shop** - Base limpia para nuevos desarrollos
 
 ## 🚀 Inicio Rápido
 
 ```bash
 # Instalar dependencias
-npm install
+yarn install
 
 # Ejecutar en desarrollo
-npm run dev
+yarn dev
 
 # Acceder a la aplicación
-http://localhost:5174
+http://localhost:5173
 ```
 
-## 🏗️ Arquitectura
+## 🎯 Propósito del Proyecto
 
-### Stack Tecnológico
+Este proyecto es una **base limpia y optimizada** para sistemas de reservas multi-shop. Ha sido simplificado para eliminar complejidad innecesaria y proporcionar una fundación sólida para nuevos desarrollos.
+
+### ¿Qué hace?
+- Gestión de múltiples shops/negocios
+- Sistema de reservas con bundles (paquetes) e items individuales
+- Calendario interactivo con vista de reservas
+- Creación dinámica de entidades del negocio
+
+## 🏗️ Stack Tecnológico
+
 - **React 18** + TypeScript
 - **Tailwind CSS** para estilos
-- **React Big Calendar** para el calendario
+- **React Big Calendar** para visualización de calendario
 - **Lucide Icons** para iconografía
-- **Vite** como bundler
+- **Vite** como bundler y dev server
 
-### Estructura de Entidades
-```
-👤 Usuario
-  └── 🏪 Shop (múltiples)
-      └── 📦 Bundle (paquetes de servicios)
-          ├── 🎯 Item (servicios individuales)
-          └── ➕ Extra (complementos)
-```
+## 📱 Funcionalidades Principales
 
-## 🎯 Funcionalidades Activas
-
-### 📅 **Sistema de Calendario**
-- Vista mensual, semanal y diaria
-- Eventos dinámicos por shop
-- Filtros por bundle y búsqueda
-- Estadísticas en tiempo real
-
-### 🏪 **Gestión Multi-Shop**
-- Selector dinámico de shop activo
+### 🏪 **Multi-Shop**
+- Selector dinámico entre shops
 - Datos específicos por shop
 - Estadísticas independientes
 
+### 📅 **Calendario Interactivo**
+- Vista mensual/semanal/diaria
+- Eventos de reservas en tiempo real
+- Filtros por bundle y búsqueda de clientes
+
 ### 📦 **Sistema de Reservas**
-
-#### **Reservas de Bundle**
-- Wizard interactivo para paquetes completos
-- Selección múltiple de items
-- Configuración de extras opcionales
-- Validación cruzada de disponibilidad
-
-#### **Reservas Individuales**
-- Reserva directa de items específicos
-- Validación de capacidad y horarios
-- Configuración de grupos vs individual
+- **Bundles**: Paquetes completos con múltiples servicios
+- **Items Individuales**: Servicios específicos
+- **Extras**: Complementos opcionales
+- Validación de disponibilidad y capacidad
 
 ### ⚙️ **Gestión de Entidades**
-- **Crear Shops**: Configuración completa de nuevos espacios
-- **Crear Bundles**: Paquetes de servicios personalizados
-- **Agregar Items**: Servicios individuales con horarios
-- **Configurar Extras**: Complementos opcionales
+- Creación de shops, bundles, items y extras
+- Formularios intuitivos con validación
+- Estado reactivo en toda la aplicación
 
-## 🎛️ Interfaz Principal
-
-### **Pestañas Disponibles**
-
-1. **📅 Calendario**
-   - Vista completa de reservas
-   - Filtros y búsqueda
-   - Creación rápida de reservas
-
-2. **🎯 Items**
-   - Lista de servicios individuales
-   - Reserva directa por item
-
-3. **📦 Bundles**
-   - Paquetes completos disponibles
-   - Reserva de experiencias completas
-
-4. **⚙️ Crear Entidades**
-   - Administrador de shops, bundles, items y extras
-
-## 🗂️ Estructura del Proyecto
+## 🗂️ Arquitectura del Código
 
 ```
 src/
-├── components/                 # Componentes principales
+├── components/                 # Componentes React principales
 │   ├── BookingCalendar.tsx    # Calendario principal
-│   ├── EntitiesManager.tsx    # Gestión de entidades
-│   ├── CreateShopForm.tsx     # Formulario de shops
-│   ├── CreateBundleForm.tsx   # Formulario de bundles
-│   ├── ItemCreator.tsx        # Creador de items
-│   ├── ExtraCreator.tsx       # Creador de extras
-│   └── ui/                    # Componentes UI base
-├── features/reservations/      # Sistema de reservas
-│   ├── components/            # Componentes de reservas
-│   │   ├── BundleReservationManager.tsx
-│   │   └── ItemReservationManager.tsx
+│   ├── EntitiesManager.tsx    # Administrador de entidades
+│   ├── Create*.tsx           # Formularios de creación
+│   └── ui/                   # Componentes UI base
+├── features/reservations/     # Lógica de reservas
+│   ├── components/           # Componentes específicos
 │   ├── availabilityValidation.ts
 │   ├── bundleValidation.ts
 │   └── reservationModification.ts
-├── hooks/                     # Hooks personalizados
-│   ├── useShopState.ts       # Estado del shop activo
-│   └── useEntitiesState.ts   # Gestión de entidades
-├── types/                    # Definiciones TypeScript
-└── mockData/                 # Datos de prueba
+├── hooks/                    # Hooks personalizados
+│   ├── useShopState.ts      # Estado del shop activo
+│   └── useEntitiesState.ts  # CRUD de entidades
+├── types/                   # Definiciones TypeScript
+└── mockData/               # Datos de prueba
 ```
 
-## 📊 Datos de Prueba
+## 📊 Datos de Ejemplo
 
-El sistema incluye 2 shops de ejemplo:
+El sistema incluye 2 shops con datos de prueba:
 
-### **🎯 "La vuelta del Maxi"**
-- Alquiler de Autos en París
-- Spa Day Premium
-- Cata de Vinos VIP
-
-### **☕ "Café Delicias"**
-- Brunch Especial Gourmet
-- Cena Romántica Premium
-- Clase de Café y Barista
-
-## 🎨 Características de UI
-
-- **Responsive Design**: Optimizado para móvil y desktop
-- **Dark/Light Theme**: Interfaz adaptable
-- **Iconografía Consistente**: Lucide Icons
-- **Animaciones Suaves**: Transiciones CSS
-- **Estados de Carga**: Feedback visual
+- **🎯 "La vuelta del Maxi"** - Servicios variados
+- **☕ "Café Delicias"** - Experiencias gastronómicas
 
 ## 🔧 Desarrollo
 
-### **Comandos Útiles**
+### **Comandos Disponibles**
 ```bash
-npm run dev          # Desarrollo
-npm run build        # Producción
-npm run lint         # Linting
-npm run type-check   # Verificación de tipos
+yarn dev          # Servidor de desarrollo
+yarn build        # Build de producción  
+yarn lint         # Verificar código
+yarn preview      # Vista previa del build
 ```
 
 ### **Hooks Principales**
-- `useShopState()`: Estado del shop activo y datos relacionados
-- `useEntitiesState()`: Gestión CRUD de entidades del sistema
+- `useShopState()`: Estado del shop activo y reservas
+- `useEntitiesState()`: CRUD de shops, bundles, items y extras
 
 ### **Componentes Clave**
-- `BookingCalendar`: Calendario principal con eventos
+- `BookingCalendar`: Calendario con gestión de eventos
+- `EntitiesManager`: Panel de administración
 - `ReservationTypeSelector`: Selector de tipo de reserva
-- `BundleReservationManager`: Wizard de reservas de bundle
-- `ItemReservationManager`: Gestor de reservas individuales
+- `*ReservationManager`: Gestores de reservas específicos
 
-## 📈 Estado Actual
+## 🎨 Características de Diseño
 
-✅ **Completado:**
-- Sistema multi-shop funcional
-- Reservas de bundle e items
-- Gestión completa de entidades
+- **Totalmente Responsive**: Móvil, tablet y desktop
+- **Interfaz Moderna**: Basada en Tailwind CSS
+- **Componentes Reutilizables**: Sistema de diseño consistente
+- **Estados de Carga**: Feedback visual para el usuario
+- **Animaciones Suaves**: Transiciones CSS optimizadas
+
+## 📈 Estado del Proyecto
+
+### ✅ **Funcional y Estable**
+- Sistema multi-shop operativo
+- Reservas de bundles e items individuales
 - Calendario interactivo
-- Validaciones de disponibilidad
+- Validaciones de negocio
+- Gestión completa de entidades
 
-🔄 **En Desarrollo:**
-- Persistencia de datos real
-- Notificaciones por email
-- Reportes avanzados
-- API backend
+### 🔄 **Preparado para Extensión**
+- Arquitectura modular y escalable
+- Código limpio y bien documentado
+- Sistema de tipos TypeScript completo
+- Hooks reutilizables
+- Base sólida para nuevas funcionalidades
+
+## 🚀 Próximos Pasos Sugeridos
+
+Para convertir este proyecto en un sistema de producción:
+
+1. **Backend**: Integrar con API REST/GraphQL
+2. **Base de Datos**: Reemplazar mocks con persistencia real
+3. **Autenticación**: Sistema de usuarios y permisos
+4. **Notificaciones**: Email/SMS para reservas
+5. **Pagos**: Integración con pasarelas de pago
+6. **Reportes**: Dashboard de analytics
+7. **Testing**: Pruebas unitarias e integración
+
+## 📝 Notas Técnicas
+
+- **Sin dependencias innecesarias**: Solo lo esencial para funcionar
+- **Código simplificado**: Eliminadas complejidades no utilizadas
+- **Performance optimizado**: Componentes eficientes
+- **Mantenible**: Estructura clara y consistente
 
 ---
 
-**Versión**: Checkpoint 10 - Sistema Limpio y Optimizado  
-**Última actualización**: Enero 2025
+**Proyecto optimizado para ser una base de desarrollo limpia y eficiente**  
+*Última actualización: Enero 2025*

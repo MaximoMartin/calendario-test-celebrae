@@ -314,9 +314,6 @@ const App: React.FC = () => {
                 <h1 className="text-xl font-bold text-gray-900">
                   Celebrae Calendar System
                 </h1>
-                <p className="text-sm text-gray-600">
-                  Sistema evolutivo de reservas • Checkpoint 10
-              </p>
             </div>
             </div>
 

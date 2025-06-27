@@ -150,9 +150,6 @@ const BookingCalendar: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900">
               📅 Calendario - {selectedShop.name}
             </h1>
-            <p className="text-gray-600 mt-1">
-              Gestión completa de reservas del shop activo
-            </p>
           </div>
 
               <Button

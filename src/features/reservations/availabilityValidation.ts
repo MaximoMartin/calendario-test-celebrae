@@ -7,16 +7,12 @@ import type {
 } from '../../types';
 import { RESERVATION_CONFIG } from './types';
 import { mockReservasItems, mockItemTimeSlots, getReservasByDateAndItem } from './mockData';
-import { items } from '../../mockData/entitiesData';
-// 🎯 CHECKPOINT 5: IMPORTAR VALIDACIÓN DE REGLAS
 
-
-// 🎯 CHECKPOINT 2: LÓGICA CENTRAL DE VALIDACIÓN DE DISPONIBILIDAD
-// Sistema completo para validar si un item puede ser reservado
+// 🎯 CHECKPOINT 2: LÓGICA CENTRAL DE VALIDACIÓN DE DISPONIBILIDAD (SIMPLIFICADA)
+// Sistema simplificado para validar si un item puede ser reservado
 
 /**
- * Obtiene la disponibilidad de un item en una fecha y horario específicos
- * 🎯 CHECKPOINT 5: INTEGRA VALIDACIÓN DE REGLAS DE DISPONIBILIDAD
+ * Obtiene la disponibilidad de un item en una fecha y horario específicos (SIMPLIFICADO)
  */
 export const getItemAvailability = (
   itemId: string,
@@ -25,23 +21,9 @@ export const getItemAvailability = (
 ): ItemAvailability => {
   console.log(`🔍 Verificando disponibilidad para item ${itemId} en ${date} ${timeSlot.startTime}-${timeSlot.endTime}`);
   
-  const item = items.find(i => i.id === itemId);
-  if (!item || !item.isActive) {
-    console.log(`❌ Item ${itemId} no encontrado o inactivo`);
-    return {
-      itemId,
-      date,
-      timeSlot,
-      isAvailable: false,
-      availableSpots: 0,
-      totalSpots: 0,
-      conflictingReservations: [],
-      blockingReason: 'ITEM_INACTIVE'
-    };
-  }
-
-  // Obtener configuración del item
-  const maxCapacity = item.bookingConfig?.maxCapacity || item.size || 1;
+  // Simplificado - asumir que el item existe y está activo
+  // Obtener configuración del item (valores por defecto)
+  const maxCapacity = 10; // Capacidad por defecto
   
   // Obtener reservas existentes para esta fecha y item
   const existingReservations = getReservasByDateAndItem(date, itemId);
@@ -79,26 +61,23 @@ export const getItemAvailability = (
 };
 
 /**
- * Valida si es posible crear una reserva con los datos proporcionados
+ * Valida si es posible crear una reserva con los datos proporcionados (SIMPLIFICADO)
  */
 export const validateItemReservation = (
   request: CreateReservaItemRequest,
-  _currentUserId: string = "87IZYWdezwJQsILiU57z" // hardcodeado por ahora
+  _currentUserId: string = "87IZYWdezwJQsILiU57z"
 ): ItemAvailabilityValidation => {
   console.log(`🔍 Validando solicitud de reserva:`, request);
   
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  // 1. Validar que el item existe y está activo
-  const item = items.find(i => i.id === request.itemId);
-  if (!item) {
+  // 1. Validar que el item existe (SIMPLIFICADO)
+  if (!request.itemId) {
     errors.push('El item seleccionado no existe');
-  } else if (!item.isActive) {
-    errors.push('El item seleccionado no está disponible');
   }
 
-  // 2. Validar fecha (no en el pasado, respeta advance booking)
+  // 2. Validar fecha (no en el pasado)
   const requestDate = new Date(request.date);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -107,34 +86,25 @@ export const validateItemReservation = (
     errors.push('No se pueden hacer reservas para fechas pasadas');
   }
 
-  // 3. Validar advance booking days si está configurado
-  if (item?.bookingConfig?.advanceBookingDays) {
-    const maxAdvanceDate = new Date();
-    maxAdvanceDate.setDate(maxAdvanceDate.getDate() + item.bookingConfig.advanceBookingDays);
-    
-    if (requestDate > maxAdvanceDate) {
-      errors.push(`Solo se pueden hacer reservas con máximo ${item.bookingConfig.advanceBookingDays} días de anticipación`);
-    }
-  }
-
-  // 4. Validar número de personas
+  // 3. Validar número de personas
   if (request.numberOfPeople < 1) {
     errors.push('Debe reservar para al menos 1 persona');
   }
 
-  if (item?.bookingConfig?.maxCapacity && request.numberOfPeople > item.bookingConfig.maxCapacity) {
-    errors.push(`Máximo ${item.bookingConfig.maxCapacity} personas permitidas para este item`);
+  const maxCapacity = 10; // Capacidad máxima por defecto
+  if (request.numberOfPeople > maxCapacity) {
+    errors.push(`Máximo ${maxCapacity} personas permitidas para este item`);
   }
 
-  // 5. Validar horario
+  // 4. Validar horario
   if (!isValidTimeSlot(request.timeSlot)) {
     errors.push('Horario inválido');
   }
 
-  // 6. Obtener disponibilidad real
+  // 5. Obtener disponibilidad real
   const availability = getItemAvailability(request.itemId, request.date, request.timeSlot);
   
-  // 7. Validar disponibilidad
+  // 6. Validar disponibilidad
   if (!availability.isAvailable) {
     switch (availability.blockingReason) {
       case 'FULLY_BOOKED':
@@ -156,13 +126,9 @@ export const validateItemReservation = (
     errors.push(`Solo quedan ${availability.availableSpots} espacios disponibles, pero solicitaste ${request.numberOfPeople}`);
   }
 
-  // 8. Warnings
+  // 7. Warnings
   if (availability.availableSpots > 0 && availability.availableSpots <= 2) {
     warnings.push(`Quedan pocos espacios disponibles (${availability.availableSpots})`);
-  }
-
-  if (item?.bookingConfig?.requiresConfirmation) {
-    warnings.push('Esta reserva requiere confirmación manual');
   }
 
   const isValid = errors.length === 0;
@@ -178,7 +144,7 @@ export const validateItemReservation = (
 };
 
 /**
- * Obtiene todos los slots disponibles para un item en una fecha específica
+ * Obtiene todos los slots disponibles para un item en una fecha específica (SIMPLIFICADO)
  */
 export const getAvailableSlotsForItem = (
   itemId: string,
@@ -219,9 +185,8 @@ export const getAvailableSlotsForItem = (
   return availableSlots.sort((a, b) => a.timeSlot.startTime.localeCompare(b.timeSlot.startTime));
 };
 
-// 🎯 CHECKPOINT 5: NUEVA FUNCIÓN QUE INTEGRA REGLAS CON DISPONIBILIDAD
 /**
- * Obtiene disponibilidad extendida con información de reglas de bloqueo
+ * Obtiene disponibilidad extendida con información de reglas de bloqueo (SIMPLIFICADO)
  */
 export const getExtendedItemAvailability = (
   itemId: string,
@@ -247,7 +212,7 @@ export const getExtendedItemAvailability = (
 };
 
 /**
- * Obtiene todos los slots disponibles con información de reglas
+ * Obtiene todos los slots disponibles con información de reglas (SIMPLIFICADO)
  */
 export const getExtendedAvailableSlotsForItem = (
   itemId: string,
@@ -289,7 +254,7 @@ export const getExtendedAvailableSlotsForItem = (
 };
 
 /**
- * Simula la creación de una reserva (mock implementation)
+ * Simula la creación de una reserva (mock implementation simplificada)
  */
 export const createItemReservation = (
   request: CreateReservaItemRequest,
@@ -308,41 +273,34 @@ export const createItemReservation = (
     };
   }
 
-  // Obtener información del item para el precio
-  const item = items.find(i => i.id === request.itemId);
-  if (!item) {
-    return {
-      success: false,
-      errors: ['Item no encontrado']
-    };
-  }
+  // Simular creación de reserva con valores por defecto
+  const defaultPrice = 50; // Precio por defecto
+  const defaultBundleId = "bundle_default"; // Bundle por defecto
+  const defaultShopId = "shop_default"; // Shop por defecto
 
-  // Simular creación de reserva
   const nuevaReserva: ReservaItem = {
     id: `reserva_item_${Date.now()}`,
     itemId: request.itemId,
-    bundleId: item.bundleId,
-    shopId: item.bundleId.includes('bundle_auto_paris') || item.bundleId.includes('bundle_spa_day') 
-      ? "ab55132c-dcc8-40d6-9ac4-5f573285f55f" 
-      : "cb4813f2-3bb9-48d3-ae7d-a72eb1e1f4bf",
+    bundleId: defaultBundleId,
+    shopId: defaultShopId,
     userId: currentUserId,
     customerInfo: request.customerInfo,
     date: request.date,
     timeSlot: request.timeSlot,
     numberOfPeople: request.numberOfPeople,
-    status: request.isTemporary ? 'PENDING' : (item.bookingConfig?.requiresConfirmation ? 'PENDING' : 'CONFIRMED'),
+    status: request.isTemporary ? 'PENDING' : 'CONFIRMED',
     isTemporary: request.isTemporary || false,
     temporaryExpiresAt: request.isTemporary 
       ? new Date(Date.now() + RESERVATION_CONFIG.TEMPORARY_RESERVATION_MINUTES * 60000).toISOString()
       : undefined,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    createdBy: 'SELLER', // hardcodeado por ahora
+    createdBy: 'SELLER',
     notes: request.notes,
-    itemPrice: item.price,
-    totalPrice: item.isPerGroup ? item.price : (item.price * request.numberOfPeople), // 🎯 CHECKPOINT 4
-    // 🎯 CHECKPOINT 4: Campos para lógica de grupo
-    isGroupReservation: item.isPerGroup || false,
+    itemPrice: defaultPrice,
+    totalPrice: defaultPrice * request.numberOfPeople,
+    // Campos para lógica de grupo (simplificados)
+    isGroupReservation: false,
     groupSize: request.numberOfPeople
   };
 
@@ -388,13 +346,4 @@ const isValidTimeSlot = (timeSlot: { startTime: string; endTime: string }): bool
   }
   
   return timeSlot.startTime < timeSlot.endTime;
-};
-
-/**
- * Convierte tiempo HH:mm a minutos para comparaciones
- * (Función preparada para futuras validaciones de solapamiento)
- */
-// const timeToMinutes = (time: string): number => {
-//   const [hours, minutes] = time.split(':').map(Number);
-//   return hours * 60 + minutes;
-// }; 
+}; 

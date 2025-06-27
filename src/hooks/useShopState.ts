@@ -2,20 +2,37 @@ import { useState, useMemo, useEffect } from 'react';
 import { mockShops } from '../mockData';
 import { mockReservasItems } from '../features/reservations/mockData';
 import { useEntitiesState } from './useEntitiesState';
-import type { CalendarEvent, ReservaItem, Booking } from '../types';
+import type { ReservaItem } from '../types';
 
-// 🎯 CHECKPOINT 8: HOOK PARA ESTADO CENTRALIZADO DEL SHOP ACTIVO
 
-// Tipo extendido para el resource del evento de calendario
-interface ExtendedBookingResource extends Booking {
+// Tipo simplificado para el resource del evento de calendario
+interface ExtendedBookingResource {
+  id: string;
+  kitId: string; // Bundle como "kit" legacy
+  kitName: string;
+  shopId: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  date: string;
+  timeSlot: string;
+  numberOfPeople: number;
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW' | 'RESCHEDULED' | 'PARTIAL_REFUND';
+  isManual: boolean;
+  createdAt: string;
+  notes?: string;
+  // Datos adicionales del sistema moderno
   modernReservation: ReservaItem;
   bundleId: string;
   itemId: string;
   itemName: string;
 }
 
-// Tipo extendido para eventos de calendario con resource completo
-interface ExtendedCalendarEvent extends Omit<CalendarEvent, 'resource'> {
+interface ExtendedCalendarEvent {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
   resource: ExtendedBookingResource;
 }
 
@@ -47,8 +64,8 @@ export const useShopState = () => {
     return allItems.filter(item => bundleIds.includes(item.bundleId));
   }, [shopBundles, allItems]);
 
-  // Función para mapear estados de ReservaItem a estados de Booking
-  const mapReservaStatusToBookingStatus = (status: ReservaItem['status']): Booking['status'] => {
+  // Función para mapear estados de ReservaItem a estados compatibles
+  const mapReservaStatusToBookingStatus = (status: ReservaItem['status']): ExtendedBookingResource['status'] => {
     switch (status) {
       case 'PENDING': return 'PENDING';
       case 'CONFIRMED': return 'CONFIRMED';
@@ -82,7 +99,7 @@ export const useShopState = () => {
           start: startDateTime,
           end: endDateTime,
           resource: {
-            // Adaptar ReservaItem al formato legacy Booking para compatibilidad
+            // Adaptar ReservaItem al formato legacy para compatibilidad
             id: reserva.id,
             kitId: reserva.bundleId, // Bundle como "kit" legacy
             kitName: bundleName,
@@ -108,54 +125,39 @@ export const useShopState = () => {
     };
   }, [allBundles, allItems]);
 
-  // Eventos de calendario para el shop actual
+  // Eventos de calendario del shop seleccionado
   const calendarEvents = useMemo(() => 
     convertReservationsToCalendarEvents(shopReservations),
-    [shopReservations, convertReservationsToCalendarEvents]
+    [convertReservationsToCalendarEvents, shopReservations]
   );
 
-  // 🎯 CHECKPOINT 9.7: REACTIVIDAD TOTAL AL CAMBIO DE SHOP
-  useEffect(() => {
-    console.log('🏪 Shop activo cambiado:', selectedShop.name, '(ID:', selectedShopId, ')');
-    console.log('📊 Datos del shop:', {
-      reservas: shopReservations.length,
-      bundles: shopBundles.length,
-      items: shopItems.length
-    });
-  }, [selectedShopId, selectedShop.name, shopReservations.length, shopBundles.length, shopItems.length]);
-
-  // 🎯 CHECKPOINT 9.8: ESTADÍSTICAS SINCRONIZADAS DINÁMICAMENTE
+  // Estadísticas del shop seleccionado
   const shopStats = useMemo(() => {
+    const reservations = shopReservations;
+    
     return {
-      totalReservations: shopReservations.length,
-      confirmed: shopReservations.filter((r: ReservaItem) => r.status === 'CONFIRMED').length,
-      pending: shopReservations.filter((r: ReservaItem) => r.status === 'PENDING').length,
-      cancelled: shopReservations.filter((r: ReservaItem) => r.status === 'CANCELLED').length,
-      completed: shopReservations.filter((r: ReservaItem) => r.status === 'COMPLETED').length,
+      totalReservations: reservations.length,
+      confirmedReservations: reservations.filter(r => r.status === 'CONFIRMED').length,
+      pendingReservations: reservations.filter(r => r.status === 'PENDING').length,
+      cancelledReservations: reservations.filter(r => r.status === 'CANCELLED').length,
+      completedReservations: reservations.filter(r => r.status === 'COMPLETED').length,
+      totalRevenue: reservations
+        .filter(r => ['CONFIRMED', 'COMPLETED'].includes(r.status))
+        .reduce((sum, r) => sum + r.totalPrice, 0),
+      averageReservationValue: reservations.length > 0 
+        ? reservations.reduce((sum, r) => sum + r.totalPrice, 0) / reservations.length 
+        : 0
     };
   }, [shopReservations]);
 
-  // 🎯 CHECKPOINT 9.8: LOG DE ESTADÍSTICAS CALCULADAS
-  useEffect(() => {
-    console.log('📈 Estadísticas sincronizadas:', shopStats);
-  }, [shopStats]);
-
   return {
-    // Estado del shop
     selectedShopId,
     setSelectedShopId,
     selectedShop,
-    
-    // Datos del shop moderno
     shopReservations,
     shopBundles,
     shopItems,
     calendarEvents,
-    
-    // Funciones
-    convertReservationsToCalendarEvents,
-    
-    // Estadísticas dinámicas
     shopStats
   };
 }; 

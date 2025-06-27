@@ -11,7 +11,6 @@ import type {
 } from '../../types';
 import { getItemAvailability } from './availabilityValidation';
 import { mockReservasItems } from './mockData';
-import { items } from '../../mockData/entitiesData';
 
 // 🎯 CHECKPOINT 6: POLÍTICAS DE CANCELACIÓN Y MODIFICACIÓN
 
@@ -197,8 +196,8 @@ export const validateReservationModification = (
 
   // Validar cambio de número de personas
   if (request.changes.numberOfPeople && request.changes.numberOfPeople !== reservation.numberOfPeople) {
-    const item = items.find(i => i.id === reservation.itemId);
-    const maxCapacity = item?.bookingConfig?.maxCapacity || 10;
+    // Usar capacidad máxima por defecto razonable
+    const maxCapacity = 10; // Valor por defecto
 
     if (request.changes.numberOfPeople > maxCapacity) {
       errors.push(`El número de personas excede la capacidad máxima (${maxCapacity})`);
