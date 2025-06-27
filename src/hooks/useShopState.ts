@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { mockShops } from '../mockData';
 import { allMockReservasItems } from '../features/reservations/mockData';
-import { bundles, items } from '../mockData/entitiesData';
+import { useEntitiesState } from './useEntitiesState';
 import type { CalendarEvent, ReservaItem, Booking } from '../types';
 
 // 🎯 CHECKPOINT 8: HOOK PARA ESTADO CENTRALIZADO DEL SHOP ACTIVO
@@ -20,12 +20,13 @@ interface ExtendedCalendarEvent extends Omit<CalendarEvent, 'resource'> {
 }
 
 export const useShopState = () => {
+  const { allShops, allBundles, allItems } = useEntitiesState();
   const [selectedShopId, setSelectedShopId] = useState<string>(mockShops[0].id);
   
-  // Shop seleccionado
+  // Shop seleccionado (combina shops estáticos y dinámicos)
   const selectedShop = useMemo(() => 
-    mockShops.find(shop => shop.id === selectedShopId) || mockShops[0],
-    [selectedShopId]
+    allShops.find(shop => shop.id === selectedShopId) || mockShops[0],
+    [selectedShopId, allShops]
   );
 
   // Reservas del shop seleccionado (sistema moderno)
@@ -34,17 +35,17 @@ export const useShopState = () => {
     [selectedShopId]
   );
 
-  // Bundles del shop seleccionado
+  // Bundles del shop seleccionado (incluye dinámicos)
   const shopBundles = useMemo(() => 
-    bundles.filter(bundle => bundle.shopId === selectedShopId),
-    [selectedShopId]
+    allBundles.filter(bundle => bundle.shopId === selectedShopId),
+    [selectedShopId, allBundles]
   );
 
   // Items del shop seleccionado (a través de los bundles)
   const shopItems = useMemo(() => {
     const bundleIds = shopBundles.map(bundle => bundle.id);
-    return items.filter(item => bundleIds.includes(item.bundleId));
-  }, [shopBundles]);
+    return allItems.filter(item => bundleIds.includes(item.bundleId));
+  }, [shopBundles, allItems]);
 
   // Función para mapear estados de ReservaItem a estados de Booking
   const mapReservaStatusToBookingStatus = (status: ReservaItem['status']): Booking['status'] => {
@@ -64,8 +65,8 @@ export const useShopState = () => {
   const convertReservationsToCalendarEvents = useMemo(() => {
     return (reservations: ReservaItem[]): ExtendedCalendarEvent[] => {
       return reservations.map(reserva => {
-        const bundle = bundles.find(b => b.id === reserva.bundleId);
-        const item = items.find(i => i.id === reserva.itemId);
+        const bundle = allBundles.find(b => b.id === reserva.bundleId);
+        const item = allItems.find(i => i.id === reserva.itemId);
         
         const startDateTime = new Date(`${reserva.date}T${reserva.timeSlot.startTime}:00`);
         const endDateTime = new Date(`${reserva.date}T${reserva.timeSlot.endTime}:00`);
@@ -105,7 +106,7 @@ export const useShopState = () => {
         };
       });
     };
-  }, []);
+  }, [allBundles, allItems]);
 
   // Eventos de calendario para el shop actual
   const calendarEvents = useMemo(() => 

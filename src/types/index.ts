@@ -179,7 +179,7 @@ export interface CustomerInfo {
   totalBookings: number;
   lastBookingDate?: string;
   notes?: string;
-}
+} 
 
 // 📌 ENTIDADES BASE DEL SISTEMA DE RESERVAS
 // Checkpoint 1: Definición de entidades principales con relaciones jerárquicas

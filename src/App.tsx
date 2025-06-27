@@ -9,7 +9,8 @@ import {
   ChevronDown,
   Plus,
   Zap,
-  Euro
+  Euro,
+  Settings
 } from 'lucide-react';
 import './App.css';
 import BookingCalendar from './components/BookingCalendar';
@@ -17,6 +18,7 @@ import { ItemReservationManager } from './features/reservations/components/ItemR
 import { BundleReservationManager } from './features/reservations/components/BundleReservationManager';
 import { AvailabilityRulesManager } from './components/AvailabilityRulesManager';
 import { ShopReservationsDashboard } from './components/ShopReservationsDashboard';
+import { EntitiesManager } from './components/EntitiesManager';
 import { useShopState } from './hooks/useShopState';
 import { mockShops } from './mockData';
 import { Button } from './components/ui/Button';
@@ -25,7 +27,7 @@ import type { Item, Bundle } from './types';
 
 // 🎯 CHECKPOINT 8: REFACTORIZACIÓN COMPLETA Y ALINEACIÓN POR SHOP
 
-type ActiveTab = 'calendar' | 'items' | 'bundles' | 'availability' | 'seller-dashboard';
+type ActiveTab = 'calendar' | 'items' | 'bundles' | 'availability' | 'seller-dashboard' | 'entities-manager';
 
 const App: React.FC = () => {
   // 🎯 CHECKPOINT 8: ESTADO CENTRALIZADO DEL SHOP
@@ -76,6 +78,12 @@ const App: React.FC = () => {
       name: 'SELLER Panel',
       icon: Building2,
       description: 'Panel de gestión para SELLERS'
+    },
+    {
+      id: 'entities-manager' as const,
+      name: 'Crear Entidades',
+      icon: Settings,
+      description: 'Crear shops, bundles, items y extras'
     }
   ];
 
@@ -301,6 +309,8 @@ const App: React.FC = () => {
         return <AvailabilityRulesManager />;
       case 'seller-dashboard':
         return <ShopReservationsDashboard />;
+      case 'entities-manager':
+        return <EntitiesManager />;
       default:
         return <BookingCalendar />;
     }
@@ -322,7 +332,7 @@ const App: React.FC = () => {
                   Celebrae Calendar System
                 </h1>
                 <p className="text-sm text-gray-600">
-                  Sistema evolutivo de reservas • Checkpoint 9.5
+                  Sistema evolutivo de reservas • Checkpoint 10
               </p>
             </div>
             </div>

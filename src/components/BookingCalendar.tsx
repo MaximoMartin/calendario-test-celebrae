@@ -19,18 +19,18 @@ moment.locale('es');
 const localizer = momentLocalizer(moment);
 
 // Configuración de mensajes en español
-const messages = {
-  allDay: 'Todo el día',
-  previous: 'Anterior',
-  next: 'Siguiente',
-  today: 'Hoy',
-  month: 'Mes',
-  week: 'Semana',
-  day: 'Día',
-  agenda: 'Agenda',
-  date: 'Fecha',
-  time: 'Hora',
-  event: 'Evento',
+  const messages = {
+    allDay: 'Todo el día',
+    previous: 'Anterior',
+    next: 'Siguiente',
+    today: 'Hoy',
+    month: 'Mes',
+    week: 'Semana',
+    day: 'Día',
+    agenda: 'Agenda',
+    date: 'Fecha',
+    time: 'Hora',
+    event: 'Evento',
   noEventsInRange: 'No hay reservas en este rango de fechas',
   showMore: (total: number) => `+ Ver ${total} más`
 };
@@ -154,16 +154,16 @@ const BookingCalendar: React.FC = () => {
               Gestión completa de reservas del shop activo
             </p>
           </div>
-          
-          <Button
+
+              <Button
             onClick={() => setShowCreateModal(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
+            >
             <Plus className="w-4 h-4 mr-2" />
             Nueva Reserva
-          </Button>
+            </Button>
+          </div>
         </div>
-      </div>
 
       {/* 🎯 CHECKPOINT 9.6: ESTADÍSTICAS DEL SHOP EN CALENDARIO */}
       <ShopStatsCard className="mb-6" />
@@ -181,13 +181,13 @@ const BookingCalendar: React.FC = () => {
               placeholder="Cliente, email o bundle..."
               className="w-full"
             />
-          </div>
-          
+            </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Filtrar por Bundle
             </label>
-            <Select
+              <Select
               options={bundleOptions}
               value={selectedBundleId}
               onChange={(e) => setSelectedBundleId(e.target.value)}
@@ -265,7 +265,7 @@ const BookingCalendar: React.FC = () => {
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </Button>
-                    <h2 className="text-lg font-semibold min-w-[200px] text-center">
+                    <h2 className="text-lg font-semibold text-gray-900 min-w-[200px] text-center">
                       {label}
                     </h2>
                     <Button
@@ -339,8 +339,8 @@ const BookingCalendar: React.FC = () => {
           }}
         />
       )}
-    </div>
+      </div>
   );
-};
+}; 
 
 export default BookingCalendar; 
