@@ -10,12 +10,7 @@ import type {
 import { validateItemReservation, createItemReservation } from './availabilityValidation';
 import { mockReservasBundle, mockReservasItems } from './mockData';
 
-// 🎯 CHECKPOINT 3: LÓGICA DE VALIDACIÓN PARA RESERVAS DE BUNDLE COMPLETO (SIMPLIFICADO)
-// Versión simplificada sin dependencias de datos estáticos complejos
 
-/**
- * 🎯 CHECKPOINT 4: Valida si un item grupal está disponible (SIMPLIFICADO)
- */
 const validateGroupItem = (
   itemId: string,
   date: string,
@@ -23,21 +18,17 @@ const validateGroupItem = (
 ): GroupValidation => {
   console.log(`🏢 Validando item grupal ${itemId} en ${date} ${timeSlot.startTime}-${timeSlot.endTime}`);
   
-  // Simplificado - sin acceso a datos estáticos complejos
   const errors: string[] = [];
   const warnings: string[] = [];
   
-  // Validación básica - asumir que el item existe y es válido
   const conflictingGroupReservations: string[] = [];
   
-  // Verificar reservas existentes de forma simplificada
   const existingGroupReservations = mockReservasItems.filter(reserva => 
     reserva.itemId === itemId &&
     reserva.date === date &&
     reserva.isGroupReservation &&
     reserva.status !== 'CANCELLED' &&
     reserva.status !== 'EXPIRED' &&
-    // Verificar solapamiento de horarios
     !(reserva.timeSlot.endTime <= timeSlot.startTime || reserva.timeSlot.startTime >= timeSlot.endTime)
   );
 

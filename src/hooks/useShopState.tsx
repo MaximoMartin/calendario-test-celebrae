@@ -1,9 +1,9 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { mockShops } from '../mockData';
 import { mockReservasItems } from '../features/reservations/mockData';
 import { useEntitiesState } from './useEntitiesState';
-import type { ReservaItem } from '../types';
-
+import type { ReservaItem, Shop, Bundle, Item } from '../types';
 
 // Tipo simplificado para el resource del evento de calendario
 interface ExtendedBookingResource {
@@ -36,7 +36,21 @@ interface ExtendedCalendarEvent {
   resource: ExtendedBookingResource;
 }
 
-export const useShopState = () => {
+// Tipo para el contexto
+interface ShopStateContextType {
+  selectedShopId: string;
+  setSelectedShopId: React.Dispatch<React.SetStateAction<string>>;
+  selectedShop: Shop;
+  shopReservations: ReservaItem[];
+  shopBundles: Bundle[];
+  shopItems: Item[];
+  calendarEvents: any[];
+  shopStats: any;
+}
+
+const ShopStateContext = createContext<ShopStateContextType | undefined>(undefined);
+
+export const ShopStateProvider = ({ children }: { children: ReactNode }) => {
   const { allShops, allBundles, allItems } = useEntitiesState();
   const [selectedShopId, setSelectedShopId] = useState<string>(mockShops[0].id);
   
@@ -150,7 +164,7 @@ export const useShopState = () => {
     };
   }, [shopReservations]);
 
-  return {
+  const value: ShopStateContextType = {
     selectedShopId,
     setSelectedShopId,
     selectedShop,
@@ -160,4 +174,18 @@ export const useShopState = () => {
     calendarEvents,
     shopStats
   };
+
+  return (
+    <ShopStateContext.Provider value={value}>
+      {children}
+    </ShopStateContext.Provider>
+  );
+};
+
+export const useShopState = () => {
+  const context = useContext(ShopStateContext);
+  if (!context) {
+    throw new Error('useShopState debe usarse dentro de ShopStateProvider');
+  }
+  return context;
 }; 

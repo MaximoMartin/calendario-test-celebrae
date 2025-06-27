@@ -200,8 +200,16 @@
   border-right: 1px solid #e5e7eb;
 }
 
+.rbc-day-bg:hover {
+  background-color: #0b9b53 !important;
+}
+
 .rbc-day-bg:last-child {
   border-right: none;
+}
+
+.rbc-day-bg.rbc-today {
+  background-color: #1e78ee !important;
 }
 
 .rbc-day-bg.rbc-off-range-bg {
@@ -421,13 +429,6 @@
 /* Focus states mejorados */
 .focus-ring {
   transition: all 0.2s ease;
-}
-
-.focus-ring:focus {
-  outline: none;
-  ring: 2px;
-  ring-color: #3b82f6;
-  ring-offset: 2px;
 }
 
 /* Responsive grid improvements */

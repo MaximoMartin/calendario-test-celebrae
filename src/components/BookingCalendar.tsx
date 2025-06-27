@@ -13,12 +13,9 @@ import { ReservationTypeSelector } from './ReservationTypeSelector';
 import { ShopStatsCard } from './ShopStatsCard';
 import { ChevronLeft, ChevronRight, CalendarIcon, Plus } from 'lucide-react';
 
-// 🎯 CHECKPOINT 8: CALENDARIO REFACTORIZADO CON DATOS MODERNOS
-// Configuración de locale en español
 moment.locale('es');
 const localizer = momentLocalizer(moment);
 
-// Configuración de mensajes en español
   const messages = {
     allDay: 'Todo el día',
     previous: 'Anterior',
@@ -35,7 +32,6 @@ const localizer = momentLocalizer(moment);
   showMore: (total: number) => `+ Ver ${total} más`
 };
 
-// Colores por estado de reserva
 const statusColors = {
   PENDING: { backgroundColor: '#f59e0b', borderColor: '#d97706' },
   CONFIRMED: { backgroundColor: '#10b981', borderColor: '#059669' },
@@ -47,7 +43,6 @@ const statusColors = {
 };
 
 const BookingCalendar: React.FC = () => {
-  // 🎯 CHECKPOINT 9.7: USO DEL HOOK CENTRALIZADO REACTIVO DEL SHOP
   const { 
     selectedShop, 
     selectedShopId,
@@ -55,7 +50,6 @@ const BookingCalendar: React.FC = () => {
     shopBundles
   } = useShopState();
 
-  // Estados locales
   const [currentView, setCurrentView] = useState<View>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedBundleId, setSelectedBundleId] = useState<string>('');
@@ -63,9 +57,7 @@ const BookingCalendar: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useState<typeof calendarEvents[0] | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  // 🎯 CHECKPOINT 9.7: REACTIVIDAD AL CAMBIO DE SHOP
   useEffect(() => {
-    // Resetear filtros locales cuando cambia el shop
     setSelectedBundleId('');
     setSearchTerm('');
     setSelectedEvent(null);
@@ -75,18 +67,15 @@ const BookingCalendar: React.FC = () => {
     console.log('📊 Eventos cargados:', calendarEvents.length);
   }, [selectedShopId, selectedShop.name, calendarEvents.length]);
 
-  // Eventos filtrados por bundle y búsqueda
   const filteredEvents = useMemo(() => {
     let events = calendarEvents;
 
-    // Filtrar por bundle seleccionado
     if (selectedBundleId) {
       events = events.filter(event => 
         event.resource.kitId === selectedBundleId
       );
     }
 
-    // Filtrar por término de búsqueda
     if (searchTerm) {
       events = events.filter(event =>
         event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -98,10 +87,9 @@ const BookingCalendar: React.FC = () => {
     return events;
   }, [calendarEvents, selectedBundleId, searchTerm]);
 
-  // Estilo de eventos personalizado
   const eventStyleGetter = (event: typeof calendarEvents[0]) => {
     const status = event.resource.status;
-    const colors = statusColors[status] || statusColors.PENDING;
+    const colors = statusColors[status as keyof typeof statusColors] || statusColors.PENDING;
     
     return {
       style: {
@@ -116,23 +104,19 @@ const BookingCalendar: React.FC = () => {
     };
   };
 
-  // Manejar selección de slot para crear reserva
   const handleSelectSlot = ({ start: _start }: { start: Date; end: Date }) => {
     setShowCreateModal(true);
   };
 
-  // Manejar selección de evento para ver detalles
   const handleSelectEvent = (event: typeof calendarEvents[0]) => {
     setSelectedEvent(event);
   };
 
-  // Manejar navegación del calendario
   const handleNavigate = (newDate: Date, view: View) => {
     setCurrentDate(newDate);
     setCurrentView(view);
   };
 
-  // Opciones para el select de bundles
   const bundleOptions = [
     { value: '', label: 'Todos los bundles' },
     ...shopBundles.map((bundle: Bundle) => ({ 
@@ -143,7 +127,6 @@ const BookingCalendar: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* 🎯 CHECKPOINT 9.6: HEADER CON INFORMACIÓN DEL SHOP ACTIVO */}
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
@@ -162,7 +145,6 @@ const BookingCalendar: React.FC = () => {
           </div>
         </div>
 
-      {/* 🎯 CHECKPOINT 9.6: ESTADÍSTICAS DEL SHOP EN CALENDARIO */}
       <ShopStatsCard className="mb-6" />
 
       {/* Filtros */}

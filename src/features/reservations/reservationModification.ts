@@ -12,8 +12,6 @@ import type {
 import { getItemAvailability } from './availabilityValidation';
 import { mockReservasItems } from './mockData';
 
-// 🎯 CHECKPOINT 6: POLÍTICAS DE CANCELACIÓN Y MODIFICACIÓN
-
 export const CANCELLATION_POLICIES: CancellationPolicy[] = [
   {
     id: 'standard_policy',
@@ -132,8 +130,6 @@ export const MODIFICATION_RULES: ReservationModificationRule[] = [
     }
   }
 ];
-
-// 🎯 VALIDACIÓN DE MODIFICACIONES
 
 export const validateReservationModification = (
   reservation: ReservaItem,
@@ -284,7 +280,6 @@ export const validateReservationCancellation = (
   };
 };
 
-// 🎯 FUNCIONES DE VALIDACIÓN DE REGLAS
 
 export const canModifyReservation = (reservation: ReservaItem): boolean => {
   // No se puede modificar si está cancelada, completada o expirada

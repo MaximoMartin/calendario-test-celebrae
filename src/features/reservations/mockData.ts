@@ -1,6 +1,5 @@
 import type { ReservaItem, ItemTimeSlot, ReservaBundle } from '../../types';
 
-// 🎯 CHECKPOINT 2: MOCK DATA PARA SISTEMA DE RESERVAS
 // Datos de prueba para simular reservas existentes y conflictos
 
 // Reservas existentes para simular conflictos

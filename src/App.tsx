@@ -3,7 +3,6 @@ import {
   Calendar, 
   ListTodo, 
   Package, 
-  BarChart3, 
   Building2,
   Layers3,
   ChevronDown,
@@ -24,12 +23,9 @@ import { Button } from './components/ui/Button';
 import { Card } from './components/ui/Card';
 import type { Item, Bundle } from './types';
 
-// 🎯 CHECKPOINT 8: REFACTORIZACIÓN COMPLETA Y ALINEACIÓN POR SHOP
-
 type ActiveTab = 'calendar' | 'items' | 'bundles' | 'entities-manager';
 
 const App: React.FC = () => {
-  // 🎯 CHECKPOINT 8: ESTADO CENTRALIZADO DEL SHOP
   const {
     selectedShop, 
     selectedShopId, 
@@ -42,11 +38,9 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('calendar');
   const [showShopSelector, setShowShopSelector] = useState(false);
   
-  // 🐞 CHECKPOINT 9.5: ESTADOS PARA CONTROLAR MODALES
   const [selectedItemForReservation, setSelectedItemForReservation] = useState<Item | null>(null);
   const [selectedBundleForReservation, setSelectedBundleForReservation] = useState<Bundle | null>(null);
 
-  // 🎯 CHECKPOINT 8: PESTAÑAS ACTUALIZADAS (SIN "+ RESERVAS")
   const tabs = [
     {
       id: 'calendar' as const,
@@ -74,7 +68,6 @@ const App: React.FC = () => {
     }
   ];
 
-  // 🐞 CHECKPOINT 9.5: RENDERIZAR VISTA DE ITEMS SIN MODAL AUTOMÁTICO
   const renderItemsTab = () => {
     if (shopItems.length === 0) {
       return (
@@ -165,7 +158,6 @@ const App: React.FC = () => {
     );
   };
 
-  // 🐞 CHECKPOINT 9.5: RENDERIZAR VISTA DE BUNDLES SIN MODAL AUTOMÁTICO
   const renderBundlesTab = () => {
     if (shopBundles.length === 0) {
       return (
@@ -287,10 +279,8 @@ const App: React.FC = () => {
       case 'calendar':
         return <BookingCalendar />;
       case 'items':
-        // 🐞 CHECKPOINT 9.5: RENDERIZAR VISTA DE ITEMS SIN MODAL AUTOMÁTICO
         return renderItemsTab();
       case 'bundles':
-        // 🐞 CHECKPOINT 9.5: RENDERIZAR VISTA DE BUNDLES SIN MODAL AUTOMÁTICO
         return renderBundlesTab();
       case 'entities-manager':
         return <EntitiesManager />;
@@ -301,7 +291,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 🎯 CHECKPOINT 8: HEADER CON SELECTOR DE SHOP */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
@@ -405,7 +394,6 @@ const App: React.FC = () => {
         {renderTabContent()}
       </main>
 
-      {/* 🐞 CHECKPOINT 9.5: MODAL DE RESERVA DE ITEM (CONTROLADO) */}
       {selectedItemForReservation && (
         <ItemReservationManager
           item={selectedItemForReservation}
@@ -417,7 +405,6 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* 🐞 CHECKPOINT 9.5: MODAL DE RESERVA DE BUNDLE (CONTROLADO) */}
       {selectedBundleForReservation && (
         <BundleReservationManager
           bundle={selectedBundleForReservation}
