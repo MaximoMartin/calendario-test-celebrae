@@ -5,8 +5,6 @@ import { Card } from './ui/Card';
 import { Input } from './ui/Input';
 import { useEntitiesState, type CreateBundleData } from '../hooks/useEntitiesState';
 
-// 🎯 CHECKPOINT 10: FORMULARIO PARA CREAR NUEVOS BUNDLES
-
 interface CreateBundleFormProps {
   shopId: string;
   shopName: string;

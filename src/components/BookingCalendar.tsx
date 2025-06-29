@@ -12,6 +12,8 @@ import { ReservationDetailPanel } from './ReservationDetailPanel';
 import { ReservationTypeSelector } from './ReservationTypeSelector';
 import { ShopStatsCard } from './ShopStatsCard';
 import { ChevronLeft, ChevronRight, CalendarIcon, Plus } from 'lucide-react';
+import { isShopOpenOnDate } from '../features/reservations/availabilityValidation';
+import { useEntitiesState } from '../hooks/useEntitiesState';
 
 moment.locale('es');
 const localizer = momentLocalizer(moment);
@@ -43,29 +45,43 @@ const statusColors = {
 };
 
 const BookingCalendar: React.FC = () => {
-  const { 
-    selectedShop, 
-    selectedShopId,
-    calendarEvents, 
-    shopBundles
-  } = useShopState();
+  const { selectedShop, calendarEvents, shopBundles } = useShopState();
+  const { allShops } = useEntitiesState();
 
-  const [currentView, setCurrentView] = useState<View>('month');
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [view, setView] = useState<View>('month');
+  const [date, setDate] = useState(new Date());
   const [selectedBundleId, setSelectedBundleId] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<typeof calendarEvents[0] | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showReservationSelector, setShowReservationSelector] = useState(false);
 
   useEffect(() => {
     setSelectedBundleId('');
     setSearchTerm('');
     setSelectedEvent(null);
-    setShowCreateModal(false);
+    setShowReservationSelector(false);
     
     console.log('📅 Calendario actualizado para shop:', selectedShop.name);
     console.log('📊 Eventos cargados:', calendarEvents.length);
-  }, [selectedShopId, selectedShop.name, calendarEvents.length]);
+  }, [selectedShop.id, selectedShop.name, calendarEvents.length]);
+
+  const dayPropGetter = (date: Date) => {
+    const dateString = date.toISOString().split('T')[0];
+    const isShopClosed = !isShopOpenOnDate(selectedShop.id, dateString, allShops);
+    
+    if (isShopClosed) {
+      return {
+        className: 'shop-closed-day',
+        style: {
+          backgroundColor: '#fef2f2',
+          position: 'relative' as const
+        },
+        title: `🚫 ${selectedShop.name} está cerrado este día`
+      };
+    }
+    
+    return {};
+  };
 
   const filteredEvents = useMemo(() => {
     let events = calendarEvents;
@@ -104,8 +120,21 @@ const BookingCalendar: React.FC = () => {
     };
   };
 
-  const handleSelectSlot = ({ start: _start }: { start: Date; end: Date }) => {
-    setShowCreateModal(true);
+  const handleSelectSlot = ({ start }: { start: Date; end: Date }) => {
+    const dateString = start.toISOString().split('T')[0];
+    const isOpen = isShopOpenOnDate(selectedShop.id, dateString, allShops);
+    
+    if (!isOpen) {
+      alert(`⚠️ No se pueden crear reservas en días que el negocio está cerrado.\n\nFecha seleccionada: ${start.toLocaleDateString('es-ES', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      })}`);
+      return;
+    }
+    
+    setShowReservationSelector(true);
   };
 
   const handleSelectEvent = (event: typeof calendarEvents[0]) => {
@@ -113,8 +142,8 @@ const BookingCalendar: React.FC = () => {
   };
 
   const handleNavigate = (newDate: Date, view: View) => {
-    setCurrentDate(newDate);
-    setCurrentView(view);
+    setDate(newDate);
+    setView(view);
   };
 
   const bundleOptions = [
@@ -136,7 +165,7 @@ const BookingCalendar: React.FC = () => {
           </div>
 
               <Button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => setShowReservationSelector(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white"
             >
             <Plus className="w-4 h-4 mr-2" />
@@ -190,28 +219,50 @@ const BookingCalendar: React.FC = () => {
 
       {/* Leyenda de estados */}
       <div className="bg-white rounded-lg shadow-md p-4">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Estado de Reservas</h3>
-        <div className="flex flex-wrap gap-4">
-          {Object.entries(statusColors).map(([status, colors]) => (
-            <div key={status} className="flex items-center">
-              <div
-                className="w-4 h-4 rounded border-2 mr-2"
-                style={{
-                  backgroundColor: colors.backgroundColor,
-                  borderColor: colors.borderColor
-                }}
-              />
-              <span className="text-sm text-gray-600">
-                {status === 'PENDING' && 'Pendiente'}
-                {status === 'CONFIRMED' && 'Confirmada'}
-                {status === 'CANCELLED' && 'Cancelada'}
-                {status === 'COMPLETED' && 'Completada'}
-                {status === 'NO_SHOW' && 'No se presentó'}
-                {status === 'RESCHEDULED' && 'Reprogramada'}
-                {status === 'PARTIAL_REFUND' && 'Reembolso parcial'}
-              </span>
+        <h3 className="text-sm font-medium text-gray-700 mb-3">Estado de Reservas y Disponibilidad</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div>
+            <h4 className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-2">Estados de Reserva</h4>
+            <div className="flex flex-wrap gap-3">
+              {Object.entries(statusColors).map(([status, colors]) => (
+                <div key={status} className="flex items-center">
+                  <div
+                    className="w-4 h-4 rounded border-2 mr-2"
+                    style={{
+                      backgroundColor: colors.backgroundColor,
+                      borderColor: colors.borderColor
+                    }}
+                  />
+                  <span className="text-sm text-gray-600">
+                    {status === 'PENDING' && 'Pendiente'}
+                    {status === 'CONFIRMED' && 'Confirmada'}
+                    {status === 'CANCELLED' && 'Cancelada'}
+                    {status === 'COMPLETED' && 'Completada'}
+                    {status === 'NO_SHOW' && 'No se presentó'}
+                    {status === 'RESCHEDULED' && 'Reprogramada'}
+                    {status === 'PARTIAL_REFUND' && 'Reembolso parcial'}
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+          
+          <div>
+            <h4 className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-2">Disponibilidad del Negocio</h4>
+            <div className="flex flex-wrap gap-3">
+              <div className="flex items-center">
+                <div className="w-4 h-4 rounded bg-white border-2 border-gray-300 mr-2" />
+                <span className="text-sm text-gray-600">Día abierto</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 rounded bg-red-50 border-2 border-red-200 mr-2 opacity-60" />
+                <span className="text-sm text-gray-600">Día cerrado</span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              💡 Los días en rojo indican que el negocio está cerrado y no se pueden crear reservas
+            </p>
+          </div>
         </div>
       </div>
 
@@ -224,14 +275,15 @@ const BookingCalendar: React.FC = () => {
             startAccessor="start"
             endAccessor="end"
             messages={messages}
-            view={currentView}
-            onView={setCurrentView}
-            date={currentDate}
+            view={view}
+            onView={setView}
+            date={date}
             onNavigate={handleNavigate}
             onSelectEvent={handleSelectEvent}
             onSelectSlot={handleSelectSlot}
             selectable
             eventPropGetter={eventStyleGetter}
+            dayPropGetter={dayPropGetter}
             popup
             components={{
               toolbar: ({ label, onNavigate, onView }) => (
@@ -265,21 +317,21 @@ const BookingCalendar: React.FC = () => {
                     </Button>
                     <Button
                       onClick={() => onView('month')}
-                      variant={currentView === 'month' ? 'primary' : 'outline'}
+                      variant={view === 'month' ? 'primary' : 'outline'}
                       size="sm"
                     >
                       Mes
                     </Button>
                     <Button
                       onClick={() => onView('week')}
-                      variant={currentView === 'week' ? 'primary' : 'outline'}
+                      variant={view === 'week' ? 'primary' : 'outline'}
                       size="sm"
                     >
                       Semana
                     </Button>
                     <Button
                       onClick={() => onView('day')}
-                      variant={currentView === 'day' ? 'primary' : 'outline'}
+                      variant={view === 'day' ? 'primary' : 'outline'}
                       size="sm"
                     >
                       Día
@@ -293,14 +345,14 @@ const BookingCalendar: React.FC = () => {
       </div>
 
       {/* Modal de creación de reserva con selector moderno */}
-      {showCreateModal && (
+      {showReservationSelector && (
         <ReservationTypeSelector
           onReservationCreated={(reservationId: string) => {
             console.log('Reserva creada:', reservationId);
-            setShowCreateModal(false);
+            setShowReservationSelector(false);
           }}
           onClose={() => {
-            setShowCreateModal(false);
+            setShowReservationSelector(false);
           }}
         />
       )}

@@ -18,7 +18,6 @@ import { BundleReservationManager } from './features/reservations/components/Bun
 
 import { EntitiesManager } from './components/EntitiesManager';
 import { useShopState } from './hooks/useShopState';
-import { mockShops } from './mockData';
 import { Button } from './components/ui/Button';
 import { Card } from './components/ui/Card';
 import type { Item, Bundle } from './types';
@@ -36,7 +35,7 @@ const App: React.FC = () => {
     shopItems
   } = useShopState();
 
-  const { getBundleWithContent, allItems, allExtras } = useEntitiesState();
+  const { getBundleWithContent, allItems, allShops } = useEntitiesState();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('calendar');
   const [showShopSelector, setShowShopSelector] = useState(false);
@@ -331,7 +330,7 @@ const App: React.FC = () => {
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide px-3 py-2">
                       Cambiar Shop Activo
                     </p>
-                    {mockShops.map((shop) => (
+                    {allShops.map((shop) => (
                       <button
                         key={shop.id}
                         onClick={() => {

@@ -17,7 +17,6 @@ import {
   X
 } from 'lucide-react';
 import type { ReservaItem } from '../types';
-import { formatReservationHistory } from '../features/reservations/reservationModification';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useEntitiesState } from '../hooks/useEntitiesState';
@@ -37,7 +36,6 @@ export const ReservationDetailPanel: React.FC<ReservationDetailPanelProps> = ({
 }) => {
   const { allBundles, allItems } = useEntitiesState();
   
-  // Helper functions
   const getBundleName = (bundleId: string) => {
     return allBundles.find(bundle => bundle.id === bundleId)?.name || 'Bundle Desconocido';
   };
@@ -87,252 +85,176 @@ export const ReservationDetailPanel: React.FC<ReservationDetailPanelProps> = ({
   };
 
   const formatDateTime = (dateTimeString: string) => {
-    const dateTime = new Date(dateTimeString);
-    return dateTime.toLocaleString('es-ES');
+    const date = new Date(dateTimeString);
+    return date.toLocaleString('es-ES');
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b bg-gray-50">
-          <div className="flex items-center space-x-3">
-            {getStatusIcon(reservation.status)}
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">
-                Detalle de Reserva
-              </h2>
-              <p className="text-sm text-gray-600">
-                ID: {reservation.id}
+    <div className="fixed inset-0 bg-black bg-opacity-20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <Card>
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Calendar className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Detalle de Reserva
+                </h2>
+                <p className="text-sm text-gray-600">
+                  {getBundleName(reservation.bundleId)} - {getItemName(reservation.itemId)}
+                </p>
+              </div>
+            </div>
+            <Button variant="outline" onClick={onClose}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {/* Información básica */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <Package className="w-5 h-5" />
+                  Información de la Reserva
+                </h3>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-gray-500">Estado:</span>
+                    <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${getStatusColor(reservation.status)}`}>
+                      {getStatusIcon(reservation.status)}
+                      <span className="text-sm font-medium">
+                        {reservation.status === 'CONFIRMED' && 'Confirmada'}
+                        {reservation.status === 'PENDING' && 'Pendiente'}
+                        {reservation.status === 'CANCELLED' && 'Cancelada'}
+                        {reservation.status === 'COMPLETED' && 'Completada'}
+                        {reservation.status === 'MODIFIED' && 'Modificada'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-600">{formatDate(reservation.date)}</span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-600">{formatTime(reservation.timeSlot)}</span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Users className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-600">{reservation.numberOfPeople} persona{reservation.numberOfPeople !== 1 ? 's' : ''}</span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Euro className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-600">€{reservation.totalPrice}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Información del Cliente
+                </h3>
+                
+                {reservation.customerInfo ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <User className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-600">{reservation.customerInfo.name}</span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <Mail className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-600">{reservation.customerInfo.email}</span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <Phone className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-600">{reservation.customerInfo.phone}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No hay información del cliente</p>
+                )}
+              </div>
+            </div>
+
+            {/* Descripción del item */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-gray-900">Descripción del Servicio</h3>
+              <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                {getItemDescription(reservation.itemId)}
               </p>
             </div>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(reservation.status)}`}>
-              {reservation.status}
-            </span>
-            {reservation.isTemporary && (
-              <span className="px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800 border border-orange-200">
-                TEMPORAL
-              </span>
-            )}
-          </div>
-          <Button variant="outline" size="sm" onClick={onClose}>
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
 
-        {/* Content */}
-        <div className="p-6 max-h-[70vh] overflow-y-auto space-y-6">
-          {/* Información del Cliente */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="p-4">
-              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <User className="w-5 h-5 mr-2" />
-                Información del Cliente
-              </h3>
+            {/* Notas */}
+            {reservation.notes && (
               <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <User className="w-4 h-4 text-gray-400" />
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {reservation.customerInfo?.name}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Mail className="w-4 h-4 text-gray-400" />
-                  <div>
-                    <p className="text-gray-600">
-                      {reservation.customerInfo?.email}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Phone className="w-4 h-4 text-gray-400" />
-                  <div>
-                    <p className="text-gray-600">
-                      {reservation.customerInfo?.phone}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-4">
-              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <Calendar className="w-5 h-5 mr-2" />
-                Detalles de la Reserva
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <Calendar className="w-4 h-4 text-gray-400" />
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {formatDate(reservation.date)}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Clock className="w-4 h-4 text-gray-400" />
-                  <div>
-                    <p className="text-gray-600">
-                      {formatTime(reservation.timeSlot)}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Users className="w-4 h-4 text-gray-400" />
-                  <div>
-                    <p className="text-gray-600">
-                      {reservation.numberOfPeople} persona{reservation.numberOfPeople !== 1 ? 's' : ''}
-                      {reservation.isGroupReservation && (
-                        <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          Reserva grupal
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Bundle e Item */}
-          <Card className="p-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <Package className="w-5 h-5 mr-2" />
-              Servicio Reservado
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium text-gray-900">
-                  {getBundleName(reservation.bundleId)}
-                </h4>
-                <p className="text-sm text-gray-600 mt-1">
-                  Bundle principal del servicio
-                </p>
-              </div>
-              <div className="border-l-4 border-blue-200 pl-4">
-                <h5 className="font-medium text-gray-900">
-                  {getItemName(reservation.itemId)}
-                </h5>
-                <p className="text-sm text-gray-600 mt-1">
-                  {getItemDescription(reservation.itemId)}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          {/* Información Financiera */}
-          <Card className="p-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <Euro className="w-5 h-5 mr-2" />
-              Información Financiera
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-600">Precio por ítem</p>
-                <p className="text-lg font-semibold text-gray-900">
-                  €{reservation.itemPrice}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Total de la reserva</p>
-                <p className="text-xl font-bold text-blue-600">
-                  €{reservation.totalPrice}
-                </p>
-              </div>
-            </div>
-            
-            {reservation.cancellationPenalty && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-700">
-                  <strong>Penalidad de cancelación:</strong> {reservation.cancellationPenalty.reason}
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5" />
+                  Notas
+                </h3>
+                <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+                  {reservation.notes}
                 </p>
               </div>
             )}
-          </Card>
 
-          {/* Notas */}
-          {reservation.notes && (
-            <Card className="p-4">
-              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <MessageSquare className="w-5 h-5 mr-2" />
-                Notas
+            {/* Información técnica */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <History className="w-5 h-5" />
+                Información Técnica
               </h3>
-              <div className="bg-gray-50 border rounded-lg p-3">
-                <p className="text-gray-700">{reservation.notes}</p>
-              </div>
-            </Card>
-          )}
-
-          {/* Historial */}
-          {reservation.history && reservation.history.length > 0 && (
-            <Card className="p-4">
-              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <History className="w-5 h-5 mr-2" />
-                Historial de Cambios
-              </h3>
-              <div className="space-y-3">
-                {formatReservationHistory(reservation.history).map((entry, index) => (
-                  <div key={index} className="border-l-4 border-blue-200 pl-4 py-2">
-                    <p className="text-sm text-gray-700">{entry}</p>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
-
-          {/* Metadatos */}
-          <Card className="p-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Información del Sistema
-            </h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-gray-600">Creado por</p>
-                <p className="font-medium">{reservation.createdBy}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Fecha de creación</p>
-                <p className="font-medium">{formatDateTime(reservation.createdAt)}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Última actualización</p>
-                <p className="font-medium">{formatDateTime(reservation.updatedAt)}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">ID del usuario</p>
-                <p className="font-medium text-xs">{reservation.userId}</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-500">Creada:</span>
+                  <p className="font-medium">{formatDateTime(reservation.createdAt)}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500">Actualizada:</span>
+                  <p className="font-medium">{formatDateTime(reservation.updatedAt)}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500">ID de Reserva:</span>
+                  <p className="font-medium font-mono text-xs">{reservation.id}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500">Creada por:</span>
+                  <p className="font-medium">{reservation.createdBy}</p>
+                </div>
               </div>
             </div>
-          </Card>
-        </div>
 
-        {/* Footer con Acciones */}
-        <div className="border-t p-6">
-          <div className="flex justify-between">
-            <Button variant="outline" onClick={onClose}>
-              Cerrar
-            </Button>
-
-            <div className="flex space-x-3">
-              {onEdit && reservation.canBeModified && (
-                <Button variant="outline" onClick={() => onEdit(reservation)}>
-                  <Edit className="w-4 h-4 mr-2" />
+            {/* Acciones */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <Button variant="outline" onClick={onClose}>
+                Cerrar
+              </Button>
+              {onEdit && (
+                <Button onClick={() => onEdit(reservation)}>
                   Editar
                 </Button>
               )}
-              
               {onManage && (
                 <Button onClick={() => onManage(reservation)}>
-                  <Package className="w-4 h-4 mr-2" />
                   Gestionar
                 </Button>
               )}
             </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }; 

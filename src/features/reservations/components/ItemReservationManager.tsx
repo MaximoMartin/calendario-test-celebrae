@@ -7,10 +7,13 @@ import { Input } from '../../../components/ui/Input';
 import { 
   getAvailableSlotsForItem, 
   validateItemReservation, 
-  useCreateItemReservation
+  useCreateItemReservation,
+  getShopBusinessHoursForDate,
+  isShopOpenOnDate
 } from '../availabilityValidation';
 import { formatDate } from '../../../utils/dateHelpers';
 import { useReservations } from '../mockData';
+import { useEntitiesState } from '../../../hooks/useEntitiesState';
 
 interface ItemReservationManagerProps {
   item: Item;
@@ -25,7 +28,8 @@ export const ItemReservationManager: React.FC<ItemReservationManagerProps> = ({
   onReservationCreated,
   onClose
 }) => {
-  // Estados locales
+  const { allItems, allShops } = useEntitiesState();
+  
   const [currentDate, setCurrentDate] = useState(selectedDate || formatDate(new Date(Date.now() + 24 * 60 * 60 * 1000)));
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<{ startTime: string; endTime: string } | null>(null);
   const [numberOfPeople, setNumberOfPeople] = useState(1);
@@ -40,13 +44,19 @@ export const ItemReservationManager: React.FC<ItemReservationManagerProps> = ({
   const createItemReservation = useCreateItemReservation();
   const { reservasItems } = useReservations();
 
-  // Obtener slots disponibles para la fecha actual
   const availableSlots = useMemo(() => {
     console.log(`🔄 Recalculando slots para ${item.id} en ${currentDate}`);
-    return getAvailableSlotsForItem(item.id, currentDate);
-  }, [item.id, currentDate]);
+    return getAvailableSlotsForItem(item.id, currentDate, allItems, allShops);
+  }, [item.id, currentDate, allItems, allShops]);
 
-  // Validación en tiempo real
+  const shopBusinessHours = useMemo(() => {
+    return getShopBusinessHoursForDate(item.shopId, currentDate, allShops);
+  }, [item.shopId, currentDate, allShops]);
+
+  const isShopOpen = useMemo(() => {
+    return isShopOpenOnDate(item.shopId, currentDate, allShops);
+  }, [item.shopId, currentDate, allShops]);
+
   const currentValidation = useMemo(() => {
     if (!selectedTimeSlot) return null;
     
@@ -63,24 +73,21 @@ export const ItemReservationManager: React.FC<ItemReservationManagerProps> = ({
       notes: notes || undefined
     };
 
-    return validateItemReservation(request, undefined, reservasItems);
-  }, [item.id, currentDate, selectedTimeSlot, numberOfPeople, customerName, customerEmail, customerPhone, notes, reservasItems]);
+    return validateItemReservation(request, undefined, reservasItems, allItems, allShops);
+  }, [item.id, currentDate, selectedTimeSlot, numberOfPeople, customerName, customerEmail, customerPhone, notes, reservasItems, allItems, allShops]);
 
-  // Manejo de cambio de fecha
   const handleDateChange = (newDate: string) => {
     setCurrentDate(newDate);
-    setSelectedTimeSlot(null); // Reset selection
+    setSelectedTimeSlot(null);
     setErrorMessage('');
     setSuccessMessage('');
   };
 
-  // Manejo de selección de horario
   const handleTimeSlotSelect = (timeSlot: { startTime: string; endTime: string }) => {
     setSelectedTimeSlot(timeSlot);
     setErrorMessage('');
   };
 
-  // Crear reserva
   const handleCreateReservation = async () => {
     if (!selectedTimeSlot || !currentValidation?.isValid) return;
 
@@ -108,7 +115,6 @@ export const ItemReservationManager: React.FC<ItemReservationManagerProps> = ({
       if (result.success && result.reserva) {
         setSuccessMessage(`¡Reserva creada exitosamente! ID: ${result.reserva.id}`);
         
-        // Reset form
         setSelectedTimeSlot(null);
         setNumberOfPeople(1);
         setCustomerName('');
@@ -116,10 +122,8 @@ export const ItemReservationManager: React.FC<ItemReservationManagerProps> = ({
         setCustomerPhone('');
         setNotes('');
         
-        // Callback
         onReservationCreated?.(result.reserva.id);
         
-        // Auto-close after success
         setTimeout(() => {
           onClose?.();
         }, 2000);
@@ -134,7 +138,6 @@ export const ItemReservationManager: React.FC<ItemReservationManagerProps> = ({
     }
   };
 
-  // Obtener color del slot según disponibilidad
   const getSlotColor = (availability: ItemAvailability) => {
     if (!availability.isAvailable) {
       return 'bg-red-100 border-red-200 text-red-800 cursor-not-allowed';
@@ -183,6 +186,32 @@ export const ItemReservationManager: React.FC<ItemReservationManagerProps> = ({
                   {item.bookingConfig.requiresConfirmation && (
                     <span>✅ Requiere confirmación</span>
                   )}
+                </div>
+              )}
+            </div>
+
+            <div className={`p-4 rounded-lg border ${isShopOpen ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className={`w-4 h-4 ${isShopOpen ? 'text-green-600' : 'text-red-600'}`} />
+                <h3 className={`text-sm font-medium ${isShopOpen ? 'text-green-800' : 'text-red-800'}`}>
+                  Horarios de Atención para {new Date(currentDate).toLocaleDateString('es-ES', { weekday: 'long' })}
+                </h3>
+              </div>
+              
+              {isShopOpen ? (
+                <div className="space-y-1">
+                  {shopBusinessHours.map((range, index) => (
+                    <div key={index} className="text-sm text-green-700">
+                      📅 {range.from} - {range.to}
+                    </div>
+                  ))}
+                  <p className="text-xs text-green-600 mt-2">
+                    ✅ Solo puedes reservar dentro de estos horarios
+                  </p>
+                </div>
+              ) : (
+                <div className="text-sm text-red-700">
+                  🚫 El negocio está cerrado este día. No se pueden hacer reservas.
                 </div>
               )}
             </div>

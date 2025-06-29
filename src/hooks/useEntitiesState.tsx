@@ -1,9 +1,8 @@
 import { createContext, useContext, useState, useMemo, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { mockShops } from '../mockData';
-import type { Shop, Bundle, Item, Extra } from '../types';
+import type { Shop, Bundle, Item, Extra, BusinessHours } from '../types';
 
-// 🎯 CHECKPOINT 10: HOOK PARA GESTIÓN DINÁMICA DE ENTIDADES
 // Permite crear nuevos Shops, Bundles, Items y Extras desde la interfaz
 
 export interface CreateShopData {
@@ -61,6 +60,7 @@ interface EntitiesStateContextType {
   createExtra: (data: CreateExtraData, bundleId: string) => Extra;
   getBundleWithContent: (bundleId: string) => any;
   getShopWithBundles: (shopId: string) => any;
+  updateShopBusinessHours: (shopId: string, businessHours: BusinessHours) => void;
   dynamicEntitiesCount: {
     shops: number;
     bundles: number;
@@ -517,19 +517,6 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
     deletedAt: null
   }));
 
-  // --- MIGRACIÓN A NUEVO MODELO ---
-  // Mapear itemIds y extraIds a cada bundle
-  function getItemIdsForBundle(bundleId: string) {
-    return initialItems.filter(item => item.bundleId === bundleId).map(item => item.id);
-  }
-  function getExtraIdsForBundle(bundleId: string) {
-    return initialExtras.filter(extra => extra.bundleId === bundleId).map(extra => extra.id);
-  }
-  function getShopIdForBundle(bundleId: string) {
-    const bundle = initialBundles.find(b => b.id === bundleId);
-    return bundle ? bundle.shopId : '';
-  }
-
   // Migrar bundles a nueva estructura
   const migratedBundles = initialBundles.map(bundle => {
     // Migrar items y extras embebidos con los campos nuevos
@@ -559,7 +546,7 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
   // Migrar items a nueva estructura
   const migratedItems = initialItems.map(item => ({
     ...item,
-    shopId: getShopIdForBundle(item.bundleId),
+    shopId: migratedBundles.find(b => b.id === item.bundleId)?.shopId || '',
     status: 'active' as const,
     deletedAt: null
   }));
@@ -567,7 +554,7 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
   // Migrar extras a nueva estructura
   const migratedExtras = initialExtras.map(extra => ({
     ...extra,
-    shopId: getShopIdForBundle(extra.bundleId),
+    shopId: migratedBundles.find(b => b.id === extra.bundleId)?.shopId || '',
     status: 'active' as const,
     deletedAt: null
   }));
@@ -581,8 +568,17 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
   const [dynamicItems, setDynamicItems] = useState<Item[]>([...migratedItems]);
   const [dynamicExtras, setDynamicExtras] = useState<Extra[]>([...migratedExtras]);
 
+  const [updatedBusinessHours, setUpdatedBusinessHours] = useState<Record<string, BusinessHours>>({});
+
   // Combinar entidades estáticas con dinámicas
-  const allShops = useMemo(() => [...migratedShops, ...dynamicShops], [dynamicShops]);
+  const allShops = useMemo(() => {
+    const staticShopsWithUpdates = migratedShops.map(shop => ({
+      ...shop,
+      businessHours: updatedBusinessHours[shop.id] || shop.businessHours
+    }));
+    return [...staticShopsWithUpdates, ...dynamicShops];
+  }, [migratedShops, dynamicShops, updatedBusinessHours]);
+  
   const allBundles = useMemo(() => [...dynamicBundles], [dynamicBundles]); // Solo dinámicos por ahora
   const allItems = useMemo(() => [...dynamicItems], [dynamicItems]); // Solo dinámicos por ahora  
   const allExtras = useMemo(() => [...dynamicExtras], [dynamicExtras]); // Solo dinámicos por ahora
@@ -594,12 +590,23 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
 
   // Crear nuevo Shop
   const createShop = useCallback((data: CreateShopData, userId: string = "87IZYWdezwJQsILiU57z") => {
+    const defaultBusinessHours: BusinessHours = {
+      monday: { openRanges: [{ from: '09:00', to: '17:00' }] },
+      tuesday: { openRanges: [{ from: '09:00', to: '17:00' }] },
+      wednesday: { openRanges: [{ from: '09:00', to: '17:00' }] },
+      thursday: { openRanges: [{ from: '09:00', to: '17:00' }] },
+      friday: { openRanges: [{ from: '09:00', to: '17:00' }] },
+      saturday: { openRanges: [{ from: '10:00', to: '14:00' }] },
+      sunday: { openRanges: [] }
+    };
+
     const newShop: Shop = {
       id: generateId('shop'),
       name: data.name,
       address: data.address,
       shopStatus: 'ENABLED',
       userId,
+      businessHours: defaultBusinessHours,
       status: 'active',
       deletedAt: null
     };
@@ -720,6 +727,23 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
     return newExtra;
   }, [generateId, dynamicBundles]);
 
+  const updateShopBusinessHours = useCallback((shopId: string, businessHours: BusinessHours) => {
+    // Actualizar en shops dinámicos
+    setDynamicShops(prev => prev.map(shop => 
+      shop.id === shopId 
+        ? { ...shop, businessHours, updatedAt: new Date().toISOString() }
+        : shop
+    ));
+    
+    // Actualizar en shops estáticos (mockShops)
+    setUpdatedBusinessHours(prev => ({
+      ...prev,
+      [shopId]: businessHours
+    }));
+    
+    console.log('🕒 Horarios actualizados para shop:', shopId, businessHours);
+  }, []);
+
   // Obtener bundle con items y extras actualizados
   const getBundleWithContent = useCallback((bundleId: string) => {
     const bundle = allBundles.find(b => b.id === bundleId);
@@ -764,6 +788,8 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
     // Helpers
     getBundleWithContent,
     getShopWithBundles,
+    
+    updateShopBusinessHours,
     
     // Contadores
     dynamicEntitiesCount: {

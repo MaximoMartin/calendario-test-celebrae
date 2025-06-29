@@ -1,17 +1,24 @@
 import React, { useState } from 'react';
-import { Store, Package, Target, Plus, Settings, User } from 'lucide-react';
+import { 
+  Building2, 
+  Package, 
+  ListTodo, 
+  Plus, 
+  Settings,
+  Clock
+} from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { CreateShopForm } from './CreateShopForm';
 import { CreateBundleForm } from './CreateBundleForm';
 import { ItemCreator } from './ItemCreator';
 import { ExtraCreator } from './ExtraCreator';
+import { BusinessHoursManager } from './BusinessHoursManager';
 import { useEntitiesState } from '../hooks/useEntitiesState';
 import { useShopState } from '../hooks/useShopState';
+import type { BusinessHours } from '../types';
 
-// 🎯 CHECKPOINT 10: ADMINISTRADOR DE ENTIDADES DEL SISTEMA
-
-type EntityFormType = 'shop' | 'bundle' | 'item' | 'extra' | null;
+type EntityFormType = 'shop' | 'bundle' | 'item' | 'extra' | 'business-hours' | null;
 
 interface SelectedBundle {
   id: string;
@@ -20,7 +27,13 @@ interface SelectedBundle {
 }
 
 export const EntitiesManager: React.FC = () => {
-  const { allShops, allBundles, allItems, dynamicEntitiesCount } = useEntitiesState();
+  const { 
+    allShops, 
+    allBundles, 
+    allItems, 
+    allExtras, 
+    dynamicEntitiesCount 
+  } = useEntitiesState();
   const { selectedShopId, selectedShop } = useShopState();
   
   // Estados para formularios
@@ -34,22 +47,24 @@ export const EntitiesManager: React.FC = () => {
   };
 
   // Manejo de callbacks de éxito
-  const handleShopCreated = (shopId: string) => {
-    console.log('✅ Shop creado con ID:', shopId);
-    // Aquí podrías cambiar al shop recién creado automáticamente
+  const handleShopCreated = () => {
+    closeForm();
   };
 
   const handleBundleCreated = (bundleId: string) => {
-    console.log('✅ Bundle creado con ID:', bundleId);
-    // Aquí podrías mostrar opciones para agregar items/extras
+    const bundle = allBundles.find(b => b.id === bundleId);
+    if (bundle) {
+      setSelectedBundle({ id: bundle.id, name: bundle.name, items: [] });
+    }
+    closeForm();
   };
 
-  const handleItemCreated = (itemId: string) => {
-    console.log('✅ Item creado con ID:', itemId);
+  const handleItemCreated = () => {
+    closeForm();
   };
 
-  const handleExtraCreated = (extraId: string) => {
-    console.log('✅ Extra creado con ID:', extraId);
+  const handleExtraCreated = () => {
+    closeForm();
   };
 
   // Obtener bundles del shop seleccionado
@@ -99,6 +114,19 @@ export const EntitiesManager: React.FC = () => {
     );
   }
 
+  if (activeForm === 'business-hours') {
+    return (
+      <BusinessHoursManager
+        shop={selectedShop}
+        onSave={(businessHours: BusinessHours) => {
+          console.log('✅ Horarios actualizados:', businessHours);
+          closeForm();
+        }}
+        onClose={closeForm}
+      />
+    );
+  }
+
   // Vista principal del administrador
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -121,7 +149,7 @@ export const EntitiesManager: React.FC = () => {
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center p-4 bg-blue-50 rounded-lg">
-            <Store className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+            <Building2 className="w-8 h-8 text-blue-600 mx-auto mb-2" />
             <div className="text-2xl font-bold text-blue-900">{allShops.length}</div>
             <div className="text-sm text-blue-600">Shops Totales</div>
             {dynamicEntitiesCount.shops > 0 && (
@@ -143,7 +171,7 @@ export const EntitiesManager: React.FC = () => {
           </div>
           
           <div className="text-center p-4 bg-green-50 rounded-lg">
-            <Target className="w-8 h-8 text-green-600 mx-auto mb-2" />
+            <ListTodo className="w-8 h-8 text-green-600 mx-auto mb-2" />
             <div className="text-2xl font-bold text-green-900">{allItems.length}</div>
             <div className="text-sm text-green-600">Items Totales</div>
             {dynamicEntitiesCount.items > 0 && (
@@ -155,7 +183,7 @@ export const EntitiesManager: React.FC = () => {
           
           <div className="text-center p-4 bg-orange-50 rounded-lg">
             <Plus className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-orange-900">{allItems.reduce((total, item) => total + (allBundles.find(b => b.id === item.bundleId)?.extras?.length || 0), 0)}</div>
+            <div className="text-2xl font-bold text-orange-900">{allExtras.length}</div>
             <div className="text-sm text-orange-600">Extras Totales</div>
             {dynamicEntitiesCount.extras > 0 && (
               <div className="text-xs text-green-600 mt-1">
@@ -166,13 +194,55 @@ export const EntitiesManager: React.FC = () => {
         </div>
       </Card>
 
+      <Card className="p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Clock className="w-5 h-5" />
+          Horarios de Atención - {selectedShop.name}
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+          {Object.entries(selectedShop.businessHours).map(([day, config]) => {
+            const dayNames = {
+              monday: 'Lunes',
+              tuesday: 'Martes', 
+              wednesday: 'Miércoles',
+              thursday: 'Jueves',
+              friday: 'Viernes',
+              saturday: 'Sábado',
+              sunday: 'Domingo'
+            };
+            
+            return (
+              <div key={day} className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                <span className="font-medium text-gray-900">
+                  {dayNames[day as keyof typeof dayNames]}:
+                </span>
+                <span className="text-gray-600">
+                  {config.openRanges.length === 0
+                    ? 'Cerrado'
+                    : config.openRanges.map(range => `${range.from}-${range.to}`).join(', ')
+                  }
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            💡 <strong>Tip:</strong> Los horarios de atención determinan cuándo se pueden hacer reservas. 
+            Las reservas fuera de estos horarios serán automáticamente rechazadas.
+          </p>
+        </div>
+      </Card>
+
       {/* Acciones principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Crear Shop */}
         <Card className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Store className="w-5 h-5 text-blue-600" />
+              <Building2 className="w-5 h-5 text-blue-600" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Crear Nuevo Shop</h3>
@@ -183,7 +253,7 @@ export const EntitiesManager: React.FC = () => {
             onClick={() => setActiveForm('shop')}
             className="w-full"
           >
-            <Store className="w-4 h-4 mr-2" />
+            <Building2 className="w-4 h-4 mr-2" />
             Crear Shop
           </Button>
         </Card>
@@ -206,6 +276,26 @@ export const EntitiesManager: React.FC = () => {
           >
             <Package className="w-4 h-4 mr-2" />
             Crear Bundle
+          </Button>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+              <Clock className="w-5 h-5 text-indigo-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Horarios de Atención</h3>
+              <p className="text-sm text-gray-500">Para el shop: {selectedShop.name}</p>
+            </div>
+          </div>
+          <Button
+            onClick={() => setActiveForm('business-hours')}
+            className="w-full"
+            variant="outline"
+          >
+            <Clock className="w-4 h-4 mr-2" />
+            Configurar Horarios
           </Button>
         </Card>
       </div>
@@ -248,7 +338,7 @@ export const EntitiesManager: React.FC = () => {
                       variant="outline"
                       size="sm"
                     >
-                      <Target className="w-4 h-4 mr-2" />
+                      <ListTodo className="w-4 h-4 mr-2" />
                       Agregar Item
                     </Button>
                     
@@ -279,7 +369,7 @@ export const EntitiesManager: React.FC = () => {
       <Card className="p-6 bg-gradient-to-r from-blue-50 to-purple-50">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md">
-            <User className="w-6 h-6 text-blue-600" />
+            <Building2 className="w-6 h-6 text-blue-600" />
           </div>
           <div>
             <h3 className="font-semibold text-gray-900">¡Construye tu negocio paso a paso!</h3>

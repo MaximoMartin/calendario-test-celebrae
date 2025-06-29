@@ -5,8 +5,6 @@ export * from './mockData';
 export * from './availabilityValidation';
 export * from './bundleValidation';
 
-export * from './reservationModification';
-
 export { ItemReservationManager } from './components/ItemReservationManager';
 export { BundleReservationManager } from './components/BundleReservationManager';
 

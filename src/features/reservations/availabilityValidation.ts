@@ -3,7 +3,8 @@ import type {
   ItemAvailabilityValidation, 
   CreateReservaItemRequest,
   ReservaItem,
-  ExtendedItemAvailability
+  BusinessHours,
+  Shop
 } from '../../types';
 import { RESERVATION_CONFIG } from './types';
 import { mockItemTimeSlots, useReservations } from './mockData';
@@ -13,9 +14,28 @@ export const getItemAvailability = (
   itemId: string,
   date: string,
   timeSlot: { startTime: string; endTime: string },
-  reservasItems: ReservaItem[]
+  reservasItems: ReservaItem[],
+  shopId?: string,
+  allShops?: Shop[]
 ): ItemAvailability => {
   console.log(`🔍 Verificando disponibilidad para item ${itemId} en ${date} ${timeSlot.startTime}-${timeSlot.endTime}`);
+  
+  if (shopId && allShops) {
+    const businessHoursCheck = isTimeSlotWithinBusinessHours(shopId, date, timeSlot, allShops);
+    if (!businessHoursCheck.isWithin) {
+      console.log(`❌ Fuera del horario de atención: ${businessHoursCheck.reason}`);
+      return {
+        itemId,
+        date,
+        timeSlot,
+        isAvailable: false,
+        availableSpots: 0,
+        totalSpots: 10,
+        conflictingReservations: [],
+        blockingReason: 'BUSINESS_HOURS'
+      };
+    }
+  }
   
   const maxCapacity = 10;
   
@@ -50,7 +70,9 @@ export const getItemAvailability = (
 export const validateItemReservation = (
   request: CreateReservaItemRequest,
   _currentUserId: string = "87IZYWdezwJQsILiU57z",
-  reservasItems: ReservaItem[]
+  reservasItems: ReservaItem[],
+  allItems?: any[],
+  allShops?: Shop[]
 ): ItemAvailabilityValidation => {
   console.log(`🔍 Validando solicitud de reserva:`, request);
   
@@ -60,6 +82,9 @@ export const validateItemReservation = (
   if (!request.itemId) {
     errors.push('El item seleccionado no existe');
   }
+
+  const item = allItems?.find(i => i.id === request.itemId);
+  const shopId = item?.shopId;
 
   const requestDate = new Date(request.date);
   const today = new Date();
@@ -82,7 +107,7 @@ export const validateItemReservation = (
     errors.push('Horario inválido');
   }
 
-  const availability = getItemAvailability(request.itemId, request.date, request.timeSlot, reservasItems);
+  const availability = getItemAvailability(request.itemId, request.date, request.timeSlot, reservasItems, shopId, allShops);
   
   if (!availability.isAvailable) {
     switch (availability.blockingReason) {
@@ -121,7 +146,9 @@ export const validateItemReservation = (
 
 export const getAvailableSlotsForItem = (
   itemId: string,
-  date: string
+  date: string,
+  allItems?: any[],
+  allShops?: Shop[]
 ): Array<{ 
   timeSlot: { startTime: string; endTime: string }; 
   availability: ItemAvailability;
@@ -140,61 +167,10 @@ export const getAvailableSlotsForItem = (
       endTime: slot.endTime
     };
     
-    const availability = getItemAvailability(itemId, date, timeSlot, []);
+    const item = allItems?.find(i => i.id === itemId);
+    const shopId = item?.shopId;
     
-    return {
-      timeSlot,
-      availability
-    };
-  });
-
-  return availableSlots.sort((a, b) => a.timeSlot.startTime.localeCompare(b.timeSlot.startTime));
-};
-
-export const getExtendedItemAvailability = (
-  itemId: string,
-  date: string,
-  timeSlot: { startTime: string; endTime: string }
-): ExtendedItemAvailability => {
-  console.log(`🔍 Obteniendo disponibilidad extendida para item ${itemId}`);
-  
-  const baseAvailability = getItemAvailability(itemId, date, timeSlot, []);
-  
-  const extendedAvailability: ExtendedItemAvailability = {
-    ...baseAvailability,
-    applicableRules: [],
-    isBlockedByRules: false,
-    blockingRules: []
-  };
-  
-  console.log(`✅ Disponibilidad extendida: disponible=${extendedAvailability.isAvailable}, bloqueado_por_reglas=${extendedAvailability.isBlockedByRules}`);
-  
-  return extendedAvailability;
-};
-
-export const getExtendedAvailableSlotsForItem = (
-  itemId: string,
-  date: string
-): Array<{ 
-  timeSlot: { startTime: string; endTime: string }; 
-  availability: ExtendedItemAvailability;
-}> => {
-  console.log(`📅 Obteniendo slots extendidos para item ${itemId} en ${date}`);
-  
-  const itemSlots = mockItemTimeSlots.filter(slot => slot.itemId === itemId && slot.isActive);
-  
-  const requestDate = new Date(date);
-  const dayOfWeek = requestDate.getDay();
-  
-  const daySlots = itemSlots.filter(slot => slot.dayOfWeek === dayOfWeek);
-  
-  const availableSlots = daySlots.map(slot => {
-    const timeSlot = {
-      startTime: slot.startTime,
-      endTime: slot.endTime
-    };
-    
-    const availability = getExtendedItemAvailability(itemId, date, timeSlot);
+    const availability = getItemAvailability(itemId, date, timeSlot, [], shopId, allShops);
     
     return {
       timeSlot,
@@ -207,7 +183,7 @@ export const getExtendedAvailableSlotsForItem = (
 
 export const useCreateItemReservation = () => {
   const { reservasItems, setReservasItems } = useReservations();
-  const { allItems, allBundles } = useEntitiesState();
+  const { allItems, allBundles, allShops } = useEntitiesState();
 
   return (request: CreateReservaItemRequest, currentUserId: string = "87IZYWdezwJQsILiU57z") => {
     // Buscar el item real
@@ -226,7 +202,7 @@ export const useCreateItemReservation = () => {
         errors: ['No se encontró el bundle asociado a este item.']
       };
     }
-    const validation = validateItemReservation(request, currentUserId, reservasItems);
+    const validation = validateItemReservation(request, currentUserId, reservasItems, allItems, allShops);
     if (!validation.isValid) {
       return {
         success: false,
@@ -287,4 +263,106 @@ const isValidTimeSlot = (timeSlot: { startTime: string; endTime: string }): bool
   }
   
   return timeSlot.startTime < timeSlot.endTime;
+};
+
+/**
+ * Obtiene el día de la semana en formato string a partir de un número (0-6)
+ */
+const getDayNameFromNumber = (dayNumber: number): keyof BusinessHours => {
+  const days: Array<keyof BusinessHours> = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  return days[dayNumber];
+};
+
+/**
+ * Convierte una hora en formato "HH:mm" a minutos desde medianoche
+ */
+const timeToMinutes = (time: string): number => {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+/**
+ * Verifica si un horario está dentro de los rangos de horario de atención del shop
+ */
+export const isTimeSlotWithinBusinessHours = (
+  shopId: string,
+  date: string,
+  timeSlot: { startTime: string; endTime: string },
+  allShops: Shop[]
+): { isWithin: boolean; reason?: string } => {
+  // Obtener el shop desde los datos pasados como parámetro
+  const shop = allShops.find(s => s.id === shopId);
+  if (!shop) {
+    return { isWithin: false, reason: 'Shop no encontrado' };
+  }
+
+  // Obtener el día de la semana
+  const requestDate = new Date(date);
+  const dayOfWeek = requestDate.getDay();
+  const dayName = getDayNameFromNumber(dayOfWeek);
+
+  // Obtener los horarios de atención para ese día
+  const dayBusinessHours = shop.businessHours[dayName];
+  
+  // Si no hay rangos de horario, el shop está cerrado ese día
+  if (!dayBusinessHours.openRanges || dayBusinessHours.openRanges.length === 0) {
+    return { isWithin: false, reason: `El negocio está cerrado los ${dayName}s` };
+  }
+
+  // Convertir el timeSlot solicitado a minutos
+  const requestStartMinutes = timeToMinutes(timeSlot.startTime);
+  const requestEndMinutes = timeToMinutes(timeSlot.endTime);
+
+  // Verificar si el timeSlot está completamente dentro de algún rango de horario de atención
+  const isWithinAnyRange = dayBusinessHours.openRanges.some(range => {
+    const rangeStartMinutes = timeToMinutes(range.from);
+    const rangeEndMinutes = timeToMinutes(range.to);
+    
+    // El timeSlot debe estar completamente dentro del rango
+    return requestStartMinutes >= rangeStartMinutes && requestEndMinutes <= rangeEndMinutes;
+  });
+
+  if (!isWithinAnyRange) {
+    const openRangesText = dayBusinessHours.openRanges
+      .map(range => `${range.from} - ${range.to}`)
+      .join(', ');
+    return { 
+      isWithin: false, 
+      reason: `Fuera del horario de atención. Horarios disponibles: ${openRangesText}` 
+    };
+  }
+
+  return { isWithin: true };
+};
+
+/**
+ * Obtiene todos los rangos de horario disponibles para un shop en una fecha específica
+ */
+export const getShopBusinessHoursForDate = (
+  shopId: string,
+  date: string,
+  allShops: Shop[]
+): { from: string; to: string }[] => {
+  const shop = allShops.find(s => s.id === shopId);
+  if (!shop) {
+    return [];
+  }
+
+  const requestDate = new Date(date);
+  const dayOfWeek = requestDate.getDay();
+  const dayName = getDayNameFromNumber(dayOfWeek);
+
+  return shop.businessHours[dayName].openRanges || [];
+};
+
+/**
+ * Verifica si un shop está abierto en una fecha específica
+ */
+export const isShopOpenOnDate = (
+  shopId: string, 
+  date: string,
+  allShops: Shop[]
+): boolean => {
+  const ranges = getShopBusinessHoursForDate(shopId, date, allShops);
+  return ranges.length > 0;
 }; 

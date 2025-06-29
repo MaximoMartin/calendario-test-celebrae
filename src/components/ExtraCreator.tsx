@@ -6,8 +6,6 @@ import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { useEntitiesState, type CreateExtraData } from '../hooks/useEntitiesState';
 
-// 🎯 CHECKPOINT 10: COMPONENTE PARA CREAR EXTRAS
-
 interface ExtraCreatorProps {
   bundleId: string;
   bundleName: string;

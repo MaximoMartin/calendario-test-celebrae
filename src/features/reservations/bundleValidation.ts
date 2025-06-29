@@ -8,7 +8,7 @@ import type {
   GroupValidation,
   ReservaItem
 } from '../../types';
-import { validateItemReservation } from './availabilityValidation';
+import { validateItemReservation, isShopOpenOnDate } from './availabilityValidation';
 import { useReservations } from './mockData';
 import { useEntitiesState } from '../../hooks/useEntitiesState';
 
@@ -51,7 +51,10 @@ const validateGroupItem = (
 export const validateBundleReservation = (
   request: CreateReservaBundleRequest,
   currentUserId: string = "87IZYWdezwJQsILiU57z",
-  reservasItems: ReservaItem[] = []
+  reservasItems: ReservaItem[] = [],
+  allBundles?: Bundle[],
+  allItems?: any[],
+  allShops?: any[]
 ): BundleAvailabilityValidation => {
   console.log(`🎯 Validando reserva de bundle completo:`, request);
   
@@ -76,6 +79,19 @@ export const validateBundleReservation = (
     errors.push('Debe seleccionar al menos un item para reservar');
   }
 
+  const bundle = allBundles?.find(b => b.id === request.bundleId);
+  const shopId = bundle?.shopId;
+
+  if (shopId && allShops) {
+    request.itemReservations.forEach((itemReq, index) => {
+      const isShopOpenForDate = isShopOpenOnDate(shopId, itemReq.date, allShops);
+      if (!isShopOpenForDate) {
+        const dateStr = new Date(itemReq.date).toLocaleDateString('es-ES');
+        errors.push(`El negocio está cerrado el ${dateStr} (item ${index + 1})`);
+      }
+    });
+  }
+
   // 3. Validar items grupales (simplificado)
   const groupValidations = request.itemReservations.map(itemReq => 
     validateGroupItem(reservasItems, itemReq.itemId, itemReq.date, itemReq.timeSlot)
@@ -94,7 +110,7 @@ export const validateBundleReservation = (
     };
     
     console.log(`🔍 Validando item ${itemReq.itemId} dentro del bundle`);
-    return validateItemReservation(itemRequest, currentUserId, reservasItems);
+    return validateItemReservation(itemRequest, currentUserId, reservasItems, allItems, allShops);
   });
 
   // 5. Validar extras (simplificado)
@@ -188,12 +204,12 @@ const validateExtraSimplified = (
  * Crea una reserva de bundle completa (SIMPLIFICADO)
  */
 export const useCreateBundleReservation = () => {
-  const { reservasBundle, setReservasBundle, reservasItems, setReservasItems } = useReservations();
-  const { allBundles, allItems } = useEntitiesState();
+  const { setReservasBundle, reservasItems, setReservasItems } = useReservations();
+  const { allBundles, allItems, allShops } = useEntitiesState();
   return async (request: CreateReservaBundleRequest, currentUserId: string = "87IZYWdezwJQsILiU57z") => {
     console.log(`🎯 Creando reserva de bundle completo (simplificado):`, request);
     // Validar la reserva primero
-    const validation = validateBundleReservation(request, currentUserId, reservasItems);
+    const validation = validateBundleReservation(request, currentUserId, reservasItems, allBundles, allItems, allShops);
     if (!validation.isValid) {
       return {
         success: false,
@@ -272,8 +288,4 @@ export const useCreateBundleReservation = () => {
       };
     }
   };
-};
-
-export const checkExtraAvailability = (): { available: boolean; reason?: string } => {
-  return { available: true };
 }; 

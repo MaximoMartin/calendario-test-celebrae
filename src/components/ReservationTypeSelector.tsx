@@ -217,7 +217,7 @@ export const ReservationTypeSelector: React.FC<ReservationTypeSelectorProps> = (
                           </div>
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-gray-500">Items incluidos:</span>
-                            <span className="text-gray-700">{bundle.items.length}</span>
+                            <span className="text-gray-700">{bundle.items?.length || 0}</span>
                           </div>
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-gray-500">Capacidad máxima:</span>

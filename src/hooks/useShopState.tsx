@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { mockShops } from '../mockData';
 import { useReservations } from '../features/reservations/mockData';
 import { useEntitiesState } from './useEntitiesState';
 import type { ReservaItem, Shop, Bundle, Item } from '../types';
@@ -53,13 +52,17 @@ const ShopStateContext = createContext<ShopStateContextType | undefined>(undefin
 export const ShopStateProvider = ({ children }: { children: ReactNode }) => {
   const { allShops, allBundles, allItems } = useEntitiesState();
   const { reservasItems } = useReservations();
-  const [selectedShopId, setSelectedShopId] = useState<string>(mockShops[0].id);
+  const [selectedShopId, setSelectedShopId] = useState<string>('');
   
   // Shop seleccionado (combina shops estáticos y dinámicos)
-  const selectedShop = useMemo(() => 
-    allShops.find(shop => shop.id === selectedShopId) || mockShops[0],
-    [selectedShopId, allShops]
-  );
+  const selectedShop = useMemo(() => {
+    // Si no hay shop seleccionado, usar el primero disponible
+    if (!selectedShopId && allShops.length > 0) {
+      setSelectedShopId(allShops[0].id);
+      return allShops[0];
+    }
+    return allShops.find(shop => shop.id === selectedShopId) || allShops[0] || null;
+  }, [selectedShopId, allShops]);
 
   // Reservas del shop seleccionado (sistema moderno)
   const shopReservations = useMemo(() => 

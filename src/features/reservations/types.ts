@@ -1,4 +1,3 @@
-// 🎯 CHECKPOINT 2: TIPOS ESPECÍFICOS DEL SISTEMA DE RESERVAS
 // Tipos auxiliares y constantes para el manejo de reservas de items
 
 export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW' | 'EXPIRED';

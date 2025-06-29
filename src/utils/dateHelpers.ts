@@ -1,12 +1,10 @@
 import { format } from 'date-fns';
 
-export const formatTime = (time: string): string => {
-  const [hours, minutes] = time.split(':');
-  return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
-};
-
+/**
+ * Formatea una fecha a formato YYYY-MM-DD
+ */
 export const formatDate = (date: Date): string => {
-  return format(date, 'dd/MM/yyyy');
+  return date.toISOString().split('T')[0];
 };
 
 export const formatDateTime = (date: Date): string => {

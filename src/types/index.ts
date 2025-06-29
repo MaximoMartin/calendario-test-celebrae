@@ -6,13 +6,21 @@ export interface User {
   phoneNumber: string;
 }
 
+export type BusinessHours = {
+  [day in 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday']: {
+    openRanges: { from: string; to: string }[]; // formato 24h → "08:00", "13:30"
+  };
+};
+
 export interface Shop {
   id: string;
   name: string;
   address: string;
   shopStatus: 'ENABLED' | 'DISABLED';
   userId: string;
-  // businessHours y bookingSettings eliminados por simplicidad
+  
+  businessHours: BusinessHours;
+  
   status: 'active' | 'inactive' | 'archived';
   deletedAt?: string | null;
 }
@@ -28,10 +36,6 @@ export interface Shop {
 
  
 
-// 📌 ENTIDADES BASE DEL SISTEMA DE RESERVAS
-// Checkpoint 1: Definición de entidades principales con relaciones jerárquicas
-// User → Shop → Bundle → { Items[], Extras[] }
-
 /**
  * Item - Elementos principales de un bundle que pueden ser reservados
  * Los items tienen horarios de disponibilidad independientes entre sí
@@ -46,21 +50,16 @@ export interface Item {
   bundleId: string;
   shopId: string;
   
-  // 🎯 CHECKPOINT 4: LÓGICA DE RESERVAS GRUPALES
   isPerGroup: boolean; // true = se cobra por grupo completo, false = se cobra por persona
   
-  // Configuración específica para reservas (opcional por ahora)
   bookingConfig?: {
     maxCapacity: number;
     duration: number; // en minutos
     requiresConfirmation: boolean;
     advanceBookingDays: number;
-    // 🎯 CHECKPOINT 4: Configuración específica para grupos
     groupCapacity?: number; // capacidad específica cuando isPerGroup: true
     isExclusive?: boolean; // true = solo 1 grupo puede reservar este horario
   };
-  
-  // timeSlots eliminado por simplicidad del sistema
   
   // Metadatos
   isActive: boolean;
@@ -84,10 +83,8 @@ export interface Extra {
   bundleId: string;
   shopId: string;
   
-  // 🎯 CHECKPOINT 4: LÓGICA DE RESERVAS GRUPALES
   isPerGroup: boolean; // true = se cobra por grupo completo, false = se cobra por persona
   
-  // 🎯 CHECKPOINT 4: RELACIONES CONDICIONALES
   requiredItemId?: string; // ID del item que debe estar reservado para poder agregar este extra
   
   // Configuración del extra
@@ -150,28 +147,6 @@ export interface Bundle {
   deletedAt?: string | null;
 }
 
-
-
-// 📋 RELACIONES DEL SISTEMA
-// Las relaciones se mantienen mediante IDs:
-// 
-// User.id ←→ Shop.userId (1:N - Un usuario puede tener múltiples shops)
-// Shop.id ←→ Bundle.shopId (1:N - Un shop puede tener múltiples bundles)  
-// Bundle.id ←→ Item.bundleId (1:N - Un bundle puede tener múltiples items)
-// Bundle.id ←→ Extra.bundleId (1:N - Un bundle puede tener múltiples extras)
-//
-// COMPATIBILIDAD:
-// - Kit se mantiene para retrocompatibilidad con el calendario existente
-// - Bundle es la nueva entidad principal para el sistema de reservas
-// - Se puede mapear Kit ↔ Bundle según se necesite en los componentes
-
-// 🔄 PRÓXIMO PASO LÓGICO:
-// Checkpoint 2: Crear mocks realistas de estas entidades con datos de ejemplo
-// y establecer la migración/compatibilidad con el sistema Kit existente 
-
-// 🎯 CHECKPOINT 2: SISTEMA DE RESERVAS PARA ITEMS INDIVIDUALES
-// Nuevas interfaces para el manejo de reservas específicas de items
-
 /**
  * ReservaItem - Reserva específica para un item individual dentro de un bundle
  * Esta es la entidad central del nuevo sistema de reservas
@@ -198,19 +173,15 @@ export interface ReservaItem {
   };
   numberOfPeople: number;
   
-  // 🎯 CHECKPOINT 4: LÓGICA DE RESERVAS GRUPALES
   isGroupReservation: boolean; // true si esta reserva es para un grupo completo
   groupSize?: number; // tamaño del grupo (solo relevante si isGroupReservation: true)
   
-  // 🎯 CHECKPOINT 6: ESTADOS EXTENDIDOS Y MODIFICACIONES
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW' | 'EXPIRED' | 'MODIFIED';
   isTemporary: boolean; // true si es una reserva temporal (ej: 15 min para completar pago)
   temporaryExpiresAt?: string; // fecha/hora de expiración para reservas temporales
   
-  // 🎯 CHECKPOINT 6: HISTORIAL Y AUDITORÍA
   history?: ReservationHistoryEntry[];
   
-  // 🎯 CHECKPOINT 6: CONTROL DE MODIFICACIONES
   canBeModified?: boolean; // calculado basado en reglas
   canBeCancelled?: boolean; // calculado basado en reglas
   modificationsAllowed?: ReservationModificationRule[];
@@ -304,9 +275,6 @@ export interface ItemTimeSlot {
   updatedAt: string;
 }
 
-// 🎯 CHECKPOINT 3: SISTEMA DE RESERVAS DE BUNDLE COMPLETO
-// Nuevas interfaces para reservas múltiples con Items + Extras
-
 /**
  * ExtraSelected - Representa un extra seleccionado en una reserva
  */
@@ -316,7 +284,6 @@ export interface ExtraSelected {
   unitPrice: number;
   totalPrice: number;
   
-  // 🎯 CHECKPOINT 4: LÓGICA DE RESERVAS GRUPALES
   isGroupSelection: boolean; // true si este extra se seleccionó para el grupo completo
 }
 
@@ -399,7 +366,6 @@ export interface BundleAvailabilityValidation {
   isValid: boolean;
   itemValidations: ItemAvailabilityValidation[];
   extraValidations: ExtraValidation[];
-  // 🎯 CHECKPOINT 4: VALIDACIONES DE GRUPO
   groupValidations: GroupValidation[];
   errors: string[];
   warnings: string[];
@@ -420,12 +386,10 @@ export interface ExtraValidation {
   unitPrice: number;
   totalPrice: number;
   
-  // 🎯 CHECKPOINT 4: VALIDACIÓN DE RELACIONES CONDICIONALES
   requiredItemMissing?: boolean; // true si falta un item requerido
   requiredItemId?: string; // ID del item requerido
 }
 
-// 🎯 CHECKPOINT 4: NUEVA INTERFAZ PARA VALIDACIÓN DE GRUPOS
 export interface GroupValidation {
   itemId: string;
   isValid: boolean;
@@ -435,17 +399,6 @@ export interface GroupValidation {
   warnings: string[];
 }
 
-// 🎯 CHECKPOINT 5: SISTEMA DE BLOQUEO INTELIGENTE DE HORARIOS
-// Reglas de disponibilidad flexibles por Shop, Bundle o Item
-
-export interface ExtendedItemAvailability extends ItemAvailability {
-  // 🎯 CHECKPOINT 5: Información adicional sobre reglas de bloqueo (simplificado)
-  applicableRules: any[];
-  isBlockedByRules: boolean;
-  blockingRules: any[]; // reglas que bloquean esta reserva
-}
-
-// 🎯 CHECKPOINT 6: HISTORIAL Y MODIFICACIONES
 
 export interface ReservationHistoryEntry {
   id: string;

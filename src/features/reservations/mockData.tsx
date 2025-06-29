@@ -146,7 +146,4 @@ export const mockItemTimeSlots: ItemTimeSlot[] = [
     updatedAt: new Date().toISOString()
   }
 ];
-
-// 🎯 CHECKPOINT 3: FUNCIONES HELPER PARA CONSULTAS
-// (Eliminados helpers vacíos para limpieza máxima) 
  
