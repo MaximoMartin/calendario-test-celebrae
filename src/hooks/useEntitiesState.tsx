@@ -13,6 +13,13 @@ export interface CreateShopData {
   email: string;
   category?: string;
   subCategory?: string;
+  businessHours?: BusinessHours;
+  maxCapacity?: number;
+  advanceBookingDays?: number;
+  cancellationPolicy?: string;
+  refundPolicy?: string;
+  allowInstantBooking?: boolean;
+  requiresApproval?: boolean;
 }
 
 export interface CreateBundleData {
@@ -55,6 +62,7 @@ interface EntitiesStateContextType {
   allItems: Item[];
   allExtras: Extra[];
   createShop: (data: CreateShopData, userId?: string) => Shop;
+  updateShop: (shopId: string, data: Partial<CreateShopData>) => void;
   createBundle: (data: CreateBundleData, shopId: string) => Bundle;
   createItem: (data: CreateItemData, bundleId: string) => Item;
   createExtra: (data: CreateExtraData, bundleId: string) => Extra;
@@ -604,9 +612,20 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
       id: generateId('shop'),
       name: data.name,
       address: data.address,
+      description: data.description,
+      phone: data.phone,
+      email: data.email,
+      category: data.category,
+      subCategory: data.subCategory,
       shopStatus: 'ENABLED',
       userId,
-      businessHours: defaultBusinessHours,
+      businessHours: data.businessHours || defaultBusinessHours,
+      maxCapacity: data.maxCapacity || 20,
+      advanceBookingDays: data.advanceBookingDays || 30,
+      cancellationPolicy: data.cancellationPolicy || 'Cancelación gratuita hasta 24 horas antes',
+      refundPolicy: data.refundPolicy || 'Reembolso total hasta 24 horas antes',
+      allowInstantBooking: data.allowInstantBooking !== false,
+      requiresApproval: data.requiresApproval || false,
       status: 'active',
       deletedAt: null
     };
@@ -744,6 +763,21 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
     console.log('🕒 Horarios actualizados para shop:', shopId, businessHours);
   }, []);
 
+  // Actualizar shop completo
+  const updateShop = useCallback((shopId: string, data: Partial<CreateShopData>) => {
+    setDynamicShops(prev => prev.map(shop => 
+      shop.id === shopId 
+        ? { 
+            ...shop, 
+            ...data,
+            updatedAt: new Date().toISOString() 
+          }
+        : shop
+    ));
+    
+    console.log('🏪 Shop actualizado:', shopId, data);
+  }, []);
+
   // Obtener bundle con items y extras actualizados
   const getBundleWithContent = useCallback((bundleId: string) => {
     const bundle = allBundles.find(b => b.id === bundleId);
@@ -790,6 +824,7 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
     getShopWithBundles,
     
     updateShopBusinessHours,
+    updateShop,
     
     // Contadores
     dynamicEntitiesCount: {

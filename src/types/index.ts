@@ -16,10 +16,23 @@ export interface Shop {
   id: string;
   name: string;
   address: string;
+  description?: string;
+  phone?: string;
+  email?: string;
+  category?: string;
+  subCategory?: string;
   shopStatus: 'ENABLED' | 'DISABLED';
   userId: string;
   
   businessHours: BusinessHours;
+  
+  // Configuración de reservas
+  maxCapacity?: number;
+  advanceBookingDays?: number;
+  cancellationPolicy?: string;
+  refundPolicy?: string;
+  allowInstantBooking?: boolean;
+  requiresApproval?: boolean;
   
   status: 'active' | 'inactive' | 'archived';
   deletedAt?: string | null;

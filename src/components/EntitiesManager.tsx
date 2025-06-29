@@ -13,12 +13,11 @@ import { CreateShopForm } from './CreateShopForm';
 import { CreateBundleForm } from './CreateBundleForm';
 import { ItemCreator } from './ItemCreator';
 import { ExtraCreator } from './ExtraCreator';
-import { BusinessHoursManager } from './BusinessHoursManager';
 import { useEntitiesState } from '../hooks/useEntitiesState';
 import { useShopState } from '../hooks/useShopState';
-import type { BusinessHours } from '../types';
+import type { Shop } from '../types';
 
-type EntityFormType = 'shop' | 'bundle' | 'item' | 'extra' | 'business-hours' | null;
+type EntityFormType = 'shop' | 'bundle' | 'item' | 'extra' | null;
 
 interface SelectedBundle {
   id: string;
@@ -39,15 +38,21 @@ export const EntitiesManager: React.FC = () => {
   // Estados para formularios
   const [activeForm, setActiveForm] = useState<EntityFormType>(null);
   const [selectedBundle, setSelectedBundle] = useState<SelectedBundle | null>(null);
+  const [shopToEdit, setShopToEdit] = useState<Shop | null>(null);
 
   // Cerrar formularios
   const closeForm = () => {
     setActiveForm(null);
     setSelectedBundle(null);
+    setShopToEdit(null);
   };
 
   // Manejo de callbacks de éxito
   const handleShopCreated = () => {
+    closeForm();
+  };
+
+  const handleShopUpdated = () => {
     closeForm();
   };
 
@@ -74,7 +79,9 @@ export const EntitiesManager: React.FC = () => {
   if (activeForm === 'shop') {
     return (
       <CreateShopForm
+        shopToEdit={shopToEdit}
         onShopCreated={handleShopCreated}
+        onShopUpdated={handleShopUpdated}
         onClose={closeForm}
       />
     );
@@ -109,19 +116,6 @@ export const EntitiesManager: React.FC = () => {
         bundleName={selectedBundle.name}
         availableItems={selectedBundle.items}
         onExtraCreated={handleExtraCreated}
-        onClose={closeForm}
-      />
-    );
-  }
-
-  if (activeForm === 'business-hours') {
-    return (
-      <BusinessHoursManager
-        shop={selectedShop}
-        onSave={(businessHours: BusinessHours) => {
-          console.log('✅ Horarios actualizados:', businessHours);
-          closeForm();
-        }}
         onClose={closeForm}
       />
     );
@@ -258,6 +252,30 @@ export const EntitiesManager: React.FC = () => {
           </Button>
         </Card>
 
+        {/* Editar Shop Actual */}
+        <Card className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+              <Settings className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Editar Shop Actual</h3>
+              <p className="text-sm text-gray-500">{selectedShop.name}</p>
+            </div>
+          </div>
+          <Button
+            onClick={() => {
+              setShopToEdit(selectedShop);
+              setActiveForm('shop');
+            }}
+            className="w-full"
+            variant="secondary"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Editar Shop
+          </Button>
+        </Card>
+
         {/* Crear Bundle */}
         <Card className="p-6">
           <div className="flex items-center gap-3 mb-4">
@@ -272,30 +290,10 @@ export const EntitiesManager: React.FC = () => {
           <Button
             onClick={() => setActiveForm('bundle')}
             className="w-full"
-            variant="secondary"
+            variant="outline"
           >
             <Package className="w-4 h-4 mr-2" />
             Crear Bundle
-          </Button>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-              <Clock className="w-5 h-5 text-indigo-600" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Horarios de Atención</h3>
-              <p className="text-sm text-gray-500">Para el shop: {selectedShop.name}</p>
-            </div>
-          </div>
-          <Button
-            onClick={() => setActiveForm('business-hours')}
-            className="w-full"
-            variant="outline"
-          >
-            <Clock className="w-4 h-4 mr-2" />
-            Configurar Horarios
           </Button>
         </Card>
       </div>
