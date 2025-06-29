@@ -9,6 +9,7 @@ import {
   useCreateBundleReservation 
 } from '../bundleValidation';
 import { formatDate } from '../../../utils/dateHelpers';
+import { useEntitiesState } from '../../../hooks/useEntitiesState';
 
 interface BundleReservationManagerProps {
   bundle: Bundle;
@@ -36,6 +37,7 @@ export const BundleReservationManager: React.FC<BundleReservationManagerProps> =
   onReservationCreated,
   onClose
 }) => {
+  const { allItems, allExtras } = useEntitiesState();
   // Estados principales
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [selectedExtras, setSelectedExtras] = useState<SelectedExtra[]>([]);
@@ -49,6 +51,10 @@ export const BundleReservationManager: React.FC<BundleReservationManagerProps> =
 
   // Estados para UI
   const [activeTab, setActiveTab] = useState<'items' | 'extras' | 'review'>('items');
+
+  // Obtener items y extras del bundle
+  const bundleItems = allItems.filter(i => bundle.itemIds.includes(i.id));
+  const bundleExtras = allExtras.filter(e => bundle.extraIds.includes(e.id));
 
   // Validación en tiempo real
   const currentValidation = useMemo((): BundleAvailabilityValidation | null => {
@@ -156,12 +162,12 @@ export const BundleReservationManager: React.FC<BundleReservationManagerProps> =
 
   // Obtener información del item
   const getItemInfo = (itemId: string) => {
-    return bundle.items.find(item => item.id === itemId);
+    return bundleItems.find(item => item.id === itemId);
   };
 
   // Obtener información del extra
   const getExtraInfo = (extraId: string) => {
-    return bundle.extras.find(extra => extra.id === extraId);
+    return bundleExtras.find(extra => extra.id === extraId);
   };
 
   // Obtener cantidad de extra seleccionado
@@ -184,7 +190,7 @@ export const BundleReservationManager: React.FC<BundleReservationManagerProps> =
                   Reservar Bundle: {bundle.name}
                 </h2>
                 <p className="text-sm text-gray-600">
-                  Desde ${bundle.basePrice} • {bundle.items.length} items • {bundle.extras.length} extras
+                  Desde ${bundle.basePrice} • {bundle.itemIds.length} items • {bundle.extraIds.length} extras
                 </p>
               </div>
             </div>
@@ -250,7 +256,7 @@ export const BundleReservationManager: React.FC<BundleReservationManagerProps> =
                     Items Disponibles en el Bundle
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {bundle.items.map((item) => (
+                    {bundleItems.map((item) => (
                       <div
                         key={item.id}
                         className="border rounded-lg p-4 hover:bg-gray-50"
@@ -401,7 +407,7 @@ export const BundleReservationManager: React.FC<BundleReservationManagerProps> =
                     Extras Disponibles
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {bundle.extras.map((extra) => {
+                    {bundleExtras.map((extra) => {
                       const quantity = getExtraQuantity(extra.id);
                       return (
                         <div

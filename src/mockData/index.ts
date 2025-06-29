@@ -15,14 +15,18 @@ export const mockShops: Shop[] = [
     name: "La vuelta del Maxi",
     address: "Av. Fuerza Aérea 2350, Córdoba",
     shopStatus: "ENABLED",
-    userId: "87IZYWdezwJQsILiU57z"
+    userId: "87IZYWdezwJQsILiU57z",
+    status: 'active',
+    deletedAt: null
   },
   {
     id: "shop_cafe", 
     name: "Café Delicias",
     address: "Belgrano 456, Córdoba",
     shopStatus: "ENABLED",
-    userId: "87IZYWdezwJQsILiU57z"
+    userId: "87IZYWdezwJQsILiU57z",
+    status: 'active',
+    deletedAt: null
   }
 ];
 

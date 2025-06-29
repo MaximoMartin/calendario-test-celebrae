@@ -10,6 +10,7 @@ import {
   useCreateItemReservation
 } from '../availabilityValidation';
 import { formatDate } from '../../../utils/dateHelpers';
+import { useReservations } from '../mockData';
 
 interface ItemReservationManagerProps {
   item: Item;
@@ -37,6 +38,7 @@ export const ItemReservationManager: React.FC<ItemReservationManagerProps> = ({
   const [errorMessage, setErrorMessage] = useState('');
 
   const createItemReservation = useCreateItemReservation();
+  const { reservasItems } = useReservations();
 
   // Obtener slots disponibles para la fecha actual
   const availableSlots = useMemo(() => {
@@ -61,8 +63,8 @@ export const ItemReservationManager: React.FC<ItemReservationManagerProps> = ({
       notes: notes || undefined
     };
 
-    return validateItemReservation(request);
-  }, [item.id, currentDate, selectedTimeSlot, numberOfPeople, customerName, customerEmail, customerPhone, notes]);
+    return validateItemReservation(request, undefined, reservasItems);
+  }, [item.id, currentDate, selectedTimeSlot, numberOfPeople, customerName, customerEmail, customerPhone, notes, reservasItems]);
 
   // Manejo de cambio de fecha
   const handleDateChange = (newDate: string) => {

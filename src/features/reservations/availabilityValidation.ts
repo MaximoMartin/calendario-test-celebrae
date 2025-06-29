@@ -6,7 +6,7 @@ import type {
   ExtendedItemAvailability
 } from '../../types';
 import { RESERVATION_CONFIG } from './types';
-import { mockItemTimeSlots } from './mockData';
+import { mockItemTimeSlots, useReservations } from './mockData';
 import { useEntitiesState } from '../../hooks/useEntitiesState';
 
 export const getItemAvailability = (

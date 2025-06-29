@@ -13,6 +13,8 @@ export interface Shop {
   shopStatus: 'ENABLED' | 'DISABLED';
   userId: string;
   // businessHours y bookingSettings eliminados por simplicidad
+  status: 'active' | 'inactive' | 'archived';
+  deletedAt?: string | null;
 }
 
 // Tipos legacy eliminados - ya no se usan
@@ -42,6 +44,7 @@ export interface Item {
   isForAdult: boolean;
   size?: number; // capacidad o cantidad de personas
   bundleId: string;
+  shopId: string;
   
   // 🎯 CHECKPOINT 4: LÓGICA DE RESERVAS GRUPALES
   isPerGroup: boolean; // true = se cobra por grupo completo, false = se cobra por persona
@@ -64,6 +67,8 @@ export interface Item {
   order: number; // para ordenar en la UI
   createdAt: string;
   updatedAt: string;
+  status: 'active' | 'inactive' | 'archived';
+  deletedAt?: string | null;
 }
 
 /**
@@ -77,6 +82,7 @@ export interface Extra {
   price: number;
   isForAdult: boolean;
   bundleId: string;
+  shopId: string;
   
   // 🎯 CHECKPOINT 4: LÓGICA DE RESERVAS GRUPALES
   isPerGroup: boolean; // true = se cobra por grupo completo, false = se cobra por persona
@@ -94,6 +100,8 @@ export interface Extra {
   order: number; // para ordenar en la UI
   createdAt: string;
   updatedAt: string;
+  status: 'active' | 'inactive' | 'archived';
+  deletedAt?: string | null;
 }
 
 /**
@@ -108,8 +116,12 @@ export interface Bundle {
   shopId: string;
   
   // Contenido del bundle
-  items: Item[];
-  extras: Extra[];
+  itemIds: string[];
+  extraIds: string[];
+  /** @deprecated Usar itemIds y extraIds */
+  items?: Item[];
+  /** @deprecated Usar itemIds y extraIds */
+  extras?: Extra[];
   
   // Configuración general del bundle
   basePrice: number; // precio base sin items/extras
@@ -134,6 +146,8 @@ export interface Bundle {
   order: number; // para ordenar en el shop
   createdAt: string;
   updatedAt: string;
+  status: 'active' | 'inactive' | 'archived';
+  deletedAt?: string | null;
 }
 
 

@@ -509,14 +509,80 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
     }
   ];
 
+  // En mockData/index.ts, mockShops debe tener status y deletedAt
+  // Si no, aquí forzamos el tipado correcto
+  const safeMockShops = mockShops.map(shop => ({
+    ...shop,
+    status: 'active' as const,
+    deletedAt: null
+  }));
+
+  // --- MIGRACIÓN A NUEVO MODELO ---
+  // Mapear itemIds y extraIds a cada bundle
+  function getItemIdsForBundle(bundleId: string) {
+    return initialItems.filter(item => item.bundleId === bundleId).map(item => item.id);
+  }
+  function getExtraIdsForBundle(bundleId: string) {
+    return initialExtras.filter(extra => extra.bundleId === bundleId).map(extra => extra.id);
+  }
+  function getShopIdForBundle(bundleId: string) {
+    const bundle = initialBundles.find(b => b.id === bundleId);
+    return bundle ? bundle.shopId : '';
+  }
+
+  // Migrar bundles a nueva estructura
+  const migratedBundles = initialBundles.map(bundle => {
+    // Migrar items y extras embebidos con los campos nuevos
+    const items = initialItems.filter(item => item.bundleId === bundle.id).map(item => ({
+      ...item,
+      shopId: bundle.shopId,
+      status: 'active' as const,
+      deletedAt: null
+    }));
+    const extras = initialExtras.filter(extra => extra.bundleId === bundle.id).map(extra => ({
+      ...extra,
+      shopId: bundle.shopId,
+      status: 'active' as const,
+      deletedAt: null
+    }));
+    return {
+      ...bundle,
+      itemIds: items.map(i => i.id),
+      extraIds: extras.map(e => e.id),
+      status: 'active' as const,
+      deletedAt: null,
+      items: items || [],
+      extras: extras || []
+    };
+  });
+
+  // Migrar items a nueva estructura
+  const migratedItems = initialItems.map(item => ({
+    ...item,
+    shopId: getShopIdForBundle(item.bundleId),
+    status: 'active' as const,
+    deletedAt: null
+  }));
+
+  // Migrar extras a nueva estructura
+  const migratedExtras = initialExtras.map(extra => ({
+    ...extra,
+    shopId: getShopIdForBundle(extra.bundleId),
+    status: 'active' as const,
+    deletedAt: null
+  }));
+
+  // Migrar shops a nueva estructura
+  const migratedShops = safeMockShops;
+
   // Estados para entidades dinámicas
   const [dynamicShops, setDynamicShops] = useState<Shop[]>([]);
-  const [dynamicBundles, setDynamicBundles] = useState<Bundle[]>([...initialBundles]);
-  const [dynamicItems, setDynamicItems] = useState<Item[]>([...initialItems]);
-  const [dynamicExtras, setDynamicExtras] = useState<Extra[]>([...initialExtras]);
+  const [dynamicBundles, setDynamicBundles] = useState<Bundle[]>([...migratedBundles]);
+  const [dynamicItems, setDynamicItems] = useState<Item[]>([...migratedItems]);
+  const [dynamicExtras, setDynamicExtras] = useState<Extra[]>([...migratedExtras]);
 
   // Combinar entidades estáticas con dinámicas
-  const allShops = useMemo(() => [...mockShops, ...dynamicShops], [dynamicShops]);
+  const allShops = useMemo(() => [...migratedShops, ...dynamicShops], [dynamicShops]);
   const allBundles = useMemo(() => [...dynamicBundles], [dynamicBundles]); // Solo dinámicos por ahora
   const allItems = useMemo(() => [...dynamicItems], [dynamicItems]); // Solo dinámicos por ahora  
   const allExtras = useMemo(() => [...dynamicExtras], [dynamicExtras]); // Solo dinámicos por ahora
@@ -533,13 +599,12 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
       name: data.name,
       address: data.address,
       shopStatus: 'ENABLED',
-      userId
+      userId,
+      status: 'active',
+      deletedAt: null
     };
-
     setDynamicShops(prev => [...prev, newShop]);
-    
     console.log('🏪 Nuevo shop creado:', newShop.name, '(ID:', newShop.id, ')');
-    
     return newShop;
   }, [generateId]);
 
@@ -551,47 +616,41 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
       description: data.description,
       shortDescription: data.shortDescription || '',
       shopId,
-      
-      // Contenido inicial vacío
+      itemIds: [],
+      extraIds: [],
       items: [],
       extras: [],
-      
-      // Configuración
       basePrice: data.basePrice,
       maxCapacity: data.maxCapacity,
       duration: data.duration,
-      
-      // Configuración de reservas
       bookingSettings: {
         allowInstantBooking: data.allowInstantBooking,
         requiresApproval: data.requiresApproval,
         cancellationPolicy: data.cancellationPolicy,
         refundPolicy: 'Reembolso según política de cancelación'
       },
-      
-      // Presentación
       imageUrls: [
         "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800"
       ],
       tags: data.tags,
-      
-      // Metadatos
       isActive: true,
       isFeatured: false,
       order: 999,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      status: 'active',
+      deletedAt: null
     };
-
     setDynamicBundles(prev => [...prev, newBundle]);
-    
     console.log('📦 Nuevo bundle creado:', newBundle.name, '(ID:', newBundle.id, ')');
-    
     return newBundle;
   }, [generateId]);
 
   // Crear nuevo Item
   const createItem = useCallback((data: CreateItemData, bundleId: string) => {
+    // Buscar shopId del bundle
+    const bundle = dynamicBundles.find(b => b.id === bundleId);
+    const shopId = bundle ? bundle.shopId : '';
     const newItem: Item = {
       id: generateId('item'),
       title: data.title,
@@ -599,11 +658,8 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
       price: data.price,
       isForAdult: true,
       bundleId,
-      
-      // Configuración de grupos
+      shopId,
       isPerGroup: data.isPerGroup,
-      
-      // Configuración de reserva
       bookingConfig: {
         maxCapacity: data.maxCapacity,
         duration: data.duration,
@@ -612,30 +668,28 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
         groupCapacity: data.isPerGroup ? data.maxCapacity : undefined,
         isExclusive: data.isPerGroup
       },
-      
-      // Metadatos
       isActive: true,
       order: 999,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      status: 'active',
+      deletedAt: null
     };
-
     setDynamicItems(prev => [...prev, newItem]);
-    
-    // Actualizar el bundle para incluir el nuevo item
-    setDynamicBundles(prev => prev.map(bundle => 
-      bundle.id === bundleId 
-        ? { ...bundle, items: [...bundle.items, newItem] }
+    setDynamicBundles(prev => prev.map(bundle =>
+      bundle.id === bundleId
+        ? { ...bundle, itemIds: [...bundle.itemIds, newItem.id], items: [...(bundle.items || []), newItem] }
         : bundle
     ));
-    
     console.log('🎯 Nuevo item creado:', newItem.title, '(ID:', newItem.id, ')');
-    
     return newItem;
-  }, [generateId]);
+  }, [generateId, dynamicBundles]);
 
   // Crear nuevo Extra
   const createExtra = useCallback((data: CreateExtraData, bundleId: string) => {
+    // Buscar shopId del bundle
+    const bundle = dynamicBundles.find(b => b.id === bundleId);
+    const shopId = bundle ? bundle.shopId : '';
     const newExtra: Extra = {
       id: generateId('extra'),
       title: data.title,
@@ -643,38 +697,28 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
       price: data.price,
       isForAdult: true,
       bundleId,
-      
-      // Configuración de grupos
+      shopId,
       isPerGroup: data.isPerGroup,
-      
-      // Relaciones condicionales
       requiredItemId: data.requiredItemId,
-      
-      // Configuración
       quantity: 0,
       maxQuantity: data.maxQuantity || 5,
       isRequired: data.isRequired || false,
-      
-      // Metadatos
       isActive: true,
       order: 999,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      status: 'active',
+      deletedAt: null
     };
-
     setDynamicExtras(prev => [...prev, newExtra]);
-    
-    // Actualizar el bundle para incluir el nuevo extra
-    setDynamicBundles(prev => prev.map(bundle => 
-      bundle.id === bundleId 
-        ? { ...bundle, extras: [...bundle.extras, newExtra] }
+    setDynamicBundles(prev => prev.map(bundle =>
+      bundle.id === bundleId
+        ? { ...bundle, extraIds: [...bundle.extraIds, newExtra.id], extras: [...(bundle.extras || []), newExtra] }
         : bundle
     ));
-    
     console.log('➕ Nuevo extra creado:', newExtra.title, '(ID:', newExtra.id, ')');
-    
     return newExtra;
-  }, [generateId]);
+  }, [generateId, dynamicBundles]);
 
   // Obtener bundle con items y extras actualizados
   const getBundleWithContent = useCallback((bundleId: string) => {

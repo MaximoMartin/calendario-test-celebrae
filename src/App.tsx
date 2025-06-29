@@ -36,7 +36,7 @@ const App: React.FC = () => {
     shopItems
   } = useShopState();
 
-  const { getBundleWithContent } = useEntitiesState();
+  const { getBundleWithContent, allItems, allExtras } = useEntitiesState();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('calendar');
   const [showShopSelector, setShowShopSelector] = useState(false);
@@ -194,84 +194,79 @@ const App: React.FC = () => {
 
         {/* Lista de Bundles */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {shopBundles.map((bundle) => (
-            <Card key={bundle.id} className="hover:shadow-lg transition-shadow">
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                      {bundle.name}
-                    </h3>
-                    <p className="text-sm text-gray-600 mb-3">
-                      {bundle.description}
-                    </p>
-                  </div>
-                  {bundle.isFeatured && (
-                    <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded-full flex items-center">
-                      <Zap className="w-3 h-3 mr-1" />
-                      Destacado
-                    </span>
-                  )}
-                </div>
-
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Precio base:</span>
-                    <span className="font-semibold text-gray-900 flex items-center">
-                      <Euro className="w-4 h-4 mr-1" />
-                      {bundle.basePrice}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Items incluidos:</span>
-                    <span className="text-gray-700">{bundle.items.length} servicios</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Extras disponibles:</span>
-                    <span className="text-gray-700">{bundle.extras.length} opciones</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Capacidad máxima:</span>
-                    <span className="text-gray-700">{bundle.maxCapacity} personas</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Duración estimada:</span>
-                    <span className="text-gray-700">{bundle.duration} min</span>
-                  </div>
-                </div>
-
-                {/* Resumen de contenido */}
-                <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Incluye:</h4>
-                  <div className="space-y-1">
-                    {bundle.items.slice(0, 3).map((item) => (
-                      <div key={item.id} className="text-xs text-gray-600 flex items-center">
-                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full mr-2"></div>
-                        {item.title} (€{item.price})
-                      </div>
-                    ))}
-                    {bundle.items.length > 3 && (
-                      <div className="text-xs text-gray-500">
-                        + {bundle.items.length - 3} servicios más...
-                      </div>
+          {shopBundles.map((bundle) => {
+            const items = allItems.filter(i => bundle.itemIds.includes(i.id));
+            return (
+              <Card key={bundle.id} className="hover:shadow-lg transition-shadow">
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                        {bundle.name}
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-3">
+                        {bundle.description}
+                      </p>
+                    </div>
+                    {bundle.isFeatured && (
+                      <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded-full flex items-center">
+                        <Zap className="w-3 h-3 mr-1" />
+                        Destacado
+                      </span>
                     )}
                   </div>
-                </div>
 
-                <Button
-                  onClick={() => setSelectedBundleForReservation(getBundleWithContent(bundle.id))}
-                  className="w-full"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Reservar Bundle
-                </Button>
-              </div>
-            </Card>
-          ))}
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Precio base:</span>
+                      <span className="font-semibold text-gray-900 flex items-center">
+                        <Euro className="w-4 h-4 mr-1" />
+                        {bundle.basePrice}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Items incluidos:</span>
+                      <span className="text-gray-700">{items.length} servicios</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Capacidad máxima:</span>
+                      <span className="text-gray-700">{bundle.maxCapacity} personas</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Duración estimada:</span>
+                      <span className="text-gray-700">{bundle.duration} min</span>
+                    </div>
+                  </div>
+
+                  {/* Resumen de contenido */}
+                  <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Incluye:</h4>
+                    <div className="space-y-1">
+                      {items.slice(0, 3).map((item) => (
+                        <div key={item.id} className="text-xs text-gray-600 flex items-center">
+                          <div className="w-1.5 h-1.5 bg-blue-400 rounded-full mr-2"></div>
+                          {item.title} (€{item.price})
+                        </div>
+                      ))}
+                      {items.length > 3 && (
+                        <div className="text-xs text-gray-500">
+                          + {items.length - 3} servicios más...
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => setSelectedBundleForReservation(getBundleWithContent(bundle.id))}
+                    className="w-full"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Reservar Bundle
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       </div>
     );
@@ -367,7 +362,7 @@ const App: React.FC = () => {
         </div>
 
           {/* Navigation tabs */}
-          <nav className="flex space-x-8 overflow-x-auto pb-px">
+          <nav className="flex space-x-8 py-4">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
