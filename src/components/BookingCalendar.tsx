@@ -1,35 +1,41 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Calendar, momentLocalizer } from 'react-big-calendar';
+import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import type { View } from 'react-big-calendar';
-import moment from 'moment';
+import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { es } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import { Plus, CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
-import type { Bundle } from '../types';
-import { useShopState } from '../hooks/useShopState';
-import { ReservationDetailPanel } from './ReservationDetailPanel';
 import { ReservationTypeSelector } from './ReservationTypeSelector';
+import { ReservationDetailPanel } from './ReservationDetailPanel';
 import { ShopStatsCard } from './ShopStatsCard';
-import { ChevronLeft, ChevronRight, CalendarIcon, Plus } from 'lucide-react';
-import { isShopOpenOnDate } from '../features/reservations/availabilityValidation';
+import { useShopState } from '../hooks/useShopState';
 import { useEntitiesState } from '../hooks/useEntitiesState';
+import { isShopOpenOnDate } from '../features/reservations/availabilityValidation';
+import type { Bundle } from '../types';
 
-moment.locale('es');
-const localizer = momentLocalizer(moment);
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek,
+  getDay,
+  locales: { es }
+});
 
-  const messages = {
-    allDay: 'Todo el día',
-    previous: 'Anterior',
-    next: 'Siguiente',
-    today: 'Hoy',
-    month: 'Mes',
-    week: 'Semana',
-    day: 'Día',
-    agenda: 'Agenda',
-    date: 'Fecha',
-    time: 'Hora',
-    event: 'Evento',
+const messages = {
+  allDay: 'Todo el día',
+  previous: 'Anterior',
+  next: 'Siguiente',
+  today: 'Hoy',
+  month: 'Mes',
+  week: 'Semana',
+  day: 'Día',
+  agenda: 'Agenda',
+  date: 'Fecha',
+  time: 'Hora',
+  event: 'Evento',
   noEventsInRange: 'No hay reservas en este rango de fechas',
   showMore: (total: number) => `+ Ver ${total} más`
 };

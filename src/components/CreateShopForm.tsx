@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Store, Phone, Building, X, Check, Clock, Plus, AlertCircle, Settings, MapPin, Mail, Users, Calendar } from 'lucide-react';
+import { Store, Phone, Building, X, Check, Clock, Plus, AlertCircle, Calendar } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { Input } from './ui/Input';
@@ -56,7 +56,7 @@ export const CreateShopForm: React.FC<ShopFormProps> = ({
   onShopUpdated,
   onClose 
 }) => {
-  const { createShop, updateShop, updateShopBusinessHours } = useEntitiesState();
+  const { createShop, updateShop } = useEntitiesState();
   const isEditing = !!shopToEdit;
   
   // Estado del formulario

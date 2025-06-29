@@ -73,6 +73,93 @@ export interface Item {
     groupCapacity?: number; // capacidad específica cuando isPerGroup: true
     isExclusive?: boolean; // true = solo 1 grupo puede reservar este horario
   };
+
+  // Horarios específicos del item - Sistema flexible inspirado en booking.com
+  timeSlots?: {
+    // Configuración general de horarios
+    scheduleType: 'FIXED' | 'FLEXIBLE' | 'CUSTOM' | 'CONTINUOUS';
+    
+    // Horarios fijos por día de la semana (0-6, domingo-sábado)
+    weeklySchedule?: {
+      [dayOfWeek: number]: {
+        isAvailable: boolean;
+        slots: Array<{
+          startTime: string; // HH:mm
+          endTime: string; // HH:mm
+          maxBookingsPerSlot: number;
+          minPeoplePerBooking?: number;
+          maxPeoplePerBooking?: number;
+          bufferMinutes?: number; // tiempo de buffer entre reservas
+          isActive: boolean;
+        }>;
+      };
+    };
+    
+    // Horarios especiales para fechas específicas
+    specialDates?: {
+      [date: string]: { // YYYY-MM-DD
+        isAvailable: boolean;
+        slots: Array<{
+          startTime: string;
+          endTime: string;
+          maxBookingsPerSlot: number;
+          minPeoplePerBooking?: number;
+          maxPeoplePerBooking?: number;
+          bufferMinutes?: number;
+          isActive: boolean;
+        }>;
+        reason?: string; // motivo del horario especial
+      };
+    };
+    
+    // Configuración para horarios flexibles
+    flexibleConfig?: {
+      startHour: number; // hora de inicio (0-23)
+      endHour: number; // hora de fin (0-23)
+      slotDuration: number; // duración de cada slot en minutos
+      intervalMinutes: number; // intervalo entre slots
+      maxBookingsPerSlot: number;
+      minPeoplePerBooking?: number;
+      maxPeoplePerBooking?: number;
+      bufferMinutes?: number;
+    };
+    
+    // Configuración para horarios continuos (24/7)
+    continuousConfig?: {
+      slotDuration: number; // duración de cada slot en minutos
+      intervalMinutes: number; // intervalo entre slots
+      maxBookingsPerSlot: number;
+      minPeoplePerBooking?: number;
+      maxPeoplePerBooking?: number;
+      bufferMinutes?: number;
+    };
+    
+    // Excepciones (días cerrados, horarios especiales)
+    exceptions?: Array<{
+      id: string;
+      type: 'CLOSED' | 'MODIFIED_HOURS' | 'SPECIAL_EVENT';
+      date: string; // YYYY-MM-DD
+      endDate?: string; // YYYY-MM-DD (para rangos)
+      reason: string;
+      slots?: Array<{
+        startTime: string;
+        endTime: string;
+        maxBookingsPerSlot: number;
+        minPeoplePerBooking?: number;
+        maxPeoplePerBooking?: number;
+        bufferMinutes?: number;
+        isActive: boolean;
+      }>;
+    }>;
+    
+    // Configuración de anticipación y límites
+    bookingLimits?: {
+      minAdvanceHours: number; // horas mínimas de anticipación
+      maxAdvanceDays: number; // días máximos de anticipación
+      sameDayBooking: boolean; // permite reservas del mismo día
+      lastMinuteBooking: boolean; // permite reservas de última hora
+    };
+  };
   
   // Metadatos
   isActive: boolean;
@@ -263,29 +350,6 @@ export interface ItemAvailabilityValidation {
   availability: ItemAvailability;
   errors: string[];
   warnings: string[];
-}
-
-/**
- * Configuración de slots de tiempo para items
- * Extiende la funcionalidad de TimeSlot para items específicos
- */
-export interface ItemTimeSlot {
-  id: string;
-  itemId: string;
-  dayOfWeek: number; // 0-6 (domingo-sábado)
-  startTime: string; // HH:mm
-  endTime: string; // HH:mm
-  maxBookingsPerSlot: number; // cuántas reservas simultáneas se permiten
-  isActive: boolean;
-  
-  // Configuración específica del slot
-  minPeoplePerBooking?: number;
-  maxPeoplePerBooking?: number;
-  bufferMinutes?: number; // tiempo de buffer entre reservas
-  
-  // Metadata
-  createdAt: string;
-  updatedAt: string;
 }
 
 /**

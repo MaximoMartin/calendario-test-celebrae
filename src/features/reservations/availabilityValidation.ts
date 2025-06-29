@@ -1,44 +1,202 @@
 import type { 
+  ReservaItem, 
+  CreateReservaItemRequest, 
   ItemAvailability, 
-  ItemAvailabilityValidation, 
-  CreateReservaItemRequest,
-  ReservaItem,
-  BusinessHours,
-  Shop
+  ItemAvailabilityValidation,
+  Item,
+  Shop,
+  BusinessHours
 } from '../../types';
 import { RESERVATION_CONFIG } from './types';
-import { mockItemTimeSlots, useReservations } from './mockData';
+import { useReservations } from './mockData';
 import { useEntitiesState } from '../../hooks/useEntitiesState';
+import { 
+  createDateFromString, 
+  getDayOfWeek, 
+  getDayNameForBusinessHours, 
+  getDayNameInSpanish 
+} from '../../utils/dateHelpers';
 
 export const getItemAvailability = (
   itemId: string,
   date: string,
   timeSlot: { startTime: string; endTime: string },
   reservasItems: ReservaItem[],
-  shopId?: string,
+  allItems?: any[],
   allShops?: Shop[]
 ): ItemAvailability => {
   console.log(`🔍 Verificando disponibilidad para item ${itemId} en ${date} ${timeSlot.startTime}-${timeSlot.endTime}`);
   
-  if (shopId && allShops) {
-    const businessHoursCheck = isTimeSlotWithinBusinessHours(shopId, date, timeSlot, allShops);
-    if (!businessHoursCheck.isWithin) {
-      console.log(`❌ Fuera del horario de atención: ${businessHoursCheck.reason}`);
+  // Buscar el item para obtener su configuración
+  const item = allItems?.find(i => i.id === itemId);
+  if (!item) {
+    return {
+      itemId,
+      date,
+      timeSlot,
+      isAvailable: false,
+      availableSpots: 0,
+      totalSpots: 0,
+      conflictingReservations: [],
+      blockingReason: 'ITEM_INACTIVE'
+    };
+  }
+
+  // Verificar si el item está activo
+  if (!item.isActive) {
+    return {
+      itemId,
+      date,
+      timeSlot,
+      isAvailable: false,
+      availableSpots: 0,
+      totalSpots: 0,
+      conflictingReservations: [],
+      blockingReason: 'ITEM_INACTIVE'
+    };
+  }
+
+  // Buscar el shop para validar horarios
+  const shop = allShops?.find(s => s.id === item.shopId);
+  if (!shop) {
+    return {
+      itemId,
+      date,
+      timeSlot,
+      isAvailable: false,
+      availableSpots: 0,
+      totalSpots: 0,
+      conflictingReservations: [],
+      blockingReason: 'ITEM_INACTIVE'
+    };
+  }
+
+  // === VALIDACIÓN 1: Horarios del Shop ===
+  const dayOfWeek = getDayOfWeek(date);
+  const dayName = getDayNameForBusinessHours(date);
+  const shopDaySchedule = shop.businessHours[dayName];
+
+  // Verificar si el shop está abierto en ese día
+  if (!shopDaySchedule.openRanges || shopDaySchedule.openRanges.length === 0) {
+    console.log(`🚫 Shop ${shop.name} está cerrado el ${dayName} (${date})`);
+    return {
+      itemId,
+      date,
+      timeSlot,
+      isAvailable: false,
+      availableSpots: 0,
+      totalSpots: 0,
+      conflictingReservations: [],
+      blockingReason: 'BUSINESS_HOURS'
+    };
+  }
+
+  // Verificar si el horario del item está dentro del horario del shop
+  const timeToMinutes = (time: string) => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  const slotStart = timeToMinutes(timeSlot.startTime);
+  const slotEnd = timeToMinutes(timeSlot.endTime);
+
+  const isWithinShopHours = shopDaySchedule.openRanges.some(range => {
+    const rangeStart = timeToMinutes(range.from);
+    const rangeEnd = timeToMinutes(range.to);
+    return slotStart >= rangeStart && slotEnd <= rangeEnd;
+  });
+
+  if (!isWithinShopHours) {
+    console.log(`🚫 Horario ${timeSlot.startTime}-${timeSlot.endTime} está fuera del horario del shop ${shop.name} (${shopDaySchedule.openRanges.map(r => `${r.from}-${r.to}`).join(', ')})`);
+    return {
+      itemId,
+      date,
+      timeSlot,
+      isAvailable: false,
+      availableSpots: 0,
+      totalSpots: 0,
+      conflictingReservations: [],
+      blockingReason: 'BUSINESS_HOURS'
+    };
+  }
+
+  // === VALIDACIÓN 2: Horarios específicos del Item ===
+  if (item.timeSlots) {
+    // Verificar si el día está disponible según el horario del item
+    const daySchedule = item.timeSlots.weeklySchedule?.[dayOfWeek];
+    if (!daySchedule || !daySchedule.isAvailable) {
+      console.log(`🚫 Item ${item.title} no está disponible el ${dayName} (${date})`);
       return {
         itemId,
         date,
         timeSlot,
         isAvailable: false,
         availableSpots: 0,
-        totalSpots: 10,
+        totalSpots: 0,
         conflictingReservations: [],
         blockingReason: 'BUSINESS_HOURS'
       };
     }
+
+    // Verificar si el horario específico está disponible
+    const matchingSlot = daySchedule.slots.find((slot: { startTime: string; endTime: string; maxBookingsPerSlot: number; isActive: boolean }) => 
+      slot.isActive && 
+      slot.startTime === timeSlot.startTime && 
+      slot.endTime === timeSlot.endTime
+    );
+
+    if (!matchingSlot) {
+      console.log(`🚫 Horario ${timeSlot.startTime}-${timeSlot.endTime} no está configurado para el item ${item.title} el ${dayName}`);
+      return {
+        itemId,
+        date,
+        timeSlot,
+        isAvailable: false,
+        availableSpots: 0,
+        totalSpots: 0,
+        conflictingReservations: [],
+        blockingReason: 'BUSINESS_HOURS'
+      };
+    }
+
+    // === VALIDACIÓN 3: Capacidad y reservas existentes ===
+    const maxCapacity = matchingSlot.maxBookingsPerSlot;
+    const existingReservations = reservasItems.filter(r => r.itemId === itemId && r.date === date);
+    
+    const conflictingReservations = existingReservations.filter(reserva => {
+      return timeSlotsOverlap(
+        { startTime: timeSlot.startTime, endTime: timeSlot.endTime },
+        reserva.timeSlot
+      );
+    });
+
+    const occupiedSpots = conflictingReservations.reduce((total, reserva) => {
+      return total + reserva.numberOfPeople;
+    }, 0);
+
+    const availableSpots = Math.max(0, maxCapacity - occupiedSpots);
+    const isAvailable = availableSpots > 0;
+
+    if (!isAvailable) {
+      console.log(`🚫 Item ${item.title} está completamente reservado para ${timeSlot.startTime}-${timeSlot.endTime} (${occupiedSpots}/${maxCapacity} ocupados)`);
+    } else {
+      console.log(`✅ Item ${item.title} disponible: ${availableSpots}/${maxCapacity} spots libres`);
+    }
+
+    return {
+      itemId,
+      date,
+      timeSlot,
+      isAvailable,
+      availableSpots,
+      totalSpots: maxCapacity,
+      conflictingReservations: conflictingReservations.map(r => r.id),
+      blockingReason: isAvailable ? undefined : 'FULLY_BOOKED'
+    };
   }
-  
-  const maxCapacity = 10;
-  
+
+  // === FALLBACK: Configuración básica del item ===
+  const maxCapacity = item.bookingConfig?.maxCapacity || 10;
   const existingReservations = reservasItems.filter(r => r.itemId === itemId && r.date === date);
   
   const conflictingReservations = existingReservations.filter(reserva => {
@@ -79,14 +237,49 @@ export const validateItemReservation = (
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  if (!request.itemId) {
+  // Buscar el item para obtener información específica
+  const item = allItems?.find(i => i.id === request.itemId);
+  if (!item) {
     errors.push('El item seleccionado no existe');
+    return {
+      isValid: false,
+      availability: {
+        itemId: request.itemId,
+        date: request.date,
+        timeSlot: request.timeSlot,
+        isAvailable: false,
+        availableSpots: 0,
+        totalSpots: 0,
+        conflictingReservations: [],
+        blockingReason: 'ITEM_INACTIVE'
+      },
+      errors,
+      warnings
+    };
   }
 
-  const item = allItems?.find(i => i.id === request.itemId);
-  const shopId = item?.shopId;
+  // Buscar el shop para validaciones específicas
+  const shop = allShops?.find(s => s.id === item.shopId);
+  if (!shop) {
+    errors.push('No se encontró información del negocio');
+    return {
+      isValid: false,
+      availability: {
+        itemId: request.itemId,
+        date: request.date,
+        timeSlot: request.timeSlot,
+        isAvailable: false,
+        availableSpots: 0,
+        totalSpots: 0,
+        conflictingReservations: [],
+        blockingReason: 'ITEM_INACTIVE'
+      },
+      errors,
+      warnings
+    };
+  }
 
-  const requestDate = new Date(request.date);
+  const requestDate = createDateFromString(request.date);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
@@ -98,27 +291,44 @@ export const validateItemReservation = (
     errors.push('Debe reservar para al menos 1 persona');
   }
 
-  const maxCapacity = 10;
+  // Usar la capacidad real del item
+  const maxCapacity = item.bookingConfig?.maxCapacity || 10;
   if (request.numberOfPeople > maxCapacity) {
-    errors.push(`Máximo ${maxCapacity} personas permitidas para este item`);
+    errors.push(`Máximo ${maxCapacity} personas permitidas para "${item.title}"`);
   }
 
   if (!isValidTimeSlot(request.timeSlot)) {
     errors.push('Horario inválido');
   }
 
-  const availability = getItemAvailability(request.itemId, request.date, request.timeSlot, reservasItems, shopId, allShops);
+  // === VALIDACIÓN PRINCIPAL: Disponibilidad ===
+  const availability = getItemAvailability(request.itemId, request.date, request.timeSlot, reservasItems, allItems, allShops);
   
   if (!availability.isAvailable) {
     switch (availability.blockingReason) {
       case 'FULLY_BOOKED':
-        errors.push('No hay espacios disponibles en este horario');
+        errors.push(`No hay espacios disponibles en el horario ${request.timeSlot.startTime}-${request.timeSlot.endTime}`);
         break;
       case 'ITEM_INACTIVE':
-        errors.push('El item no está disponible');
+        errors.push(`El item "${item.title}" no está disponible actualmente`);
         break;
       case 'BUSINESS_HOURS':
-        errors.push('Fuera del horario de atención');
+        // Proporcionar mensaje más específico
+        const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+        const dayOfWeek = requestDate.getDay();
+        const dayName = dayNames[dayOfWeek];
+        
+        // Verificar si el shop está cerrado ese día
+        const shopDayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const shopDayName = shopDayNames[dayOfWeek] as keyof typeof shop.businessHours;
+        const shopDaySchedule = shop.businessHours[shopDayName];
+        
+        if (!shopDaySchedule.openRanges || shopDaySchedule.openRanges.length === 0) {
+          errors.push(`El negocio "${shop.name}" está cerrado los ${dayName}s`);
+        } else {
+          const shopHours = shopDaySchedule.openRanges.map(r => `${r.from}-${r.to}`).join(', ');
+          errors.push(`El horario ${request.timeSlot.startTime}-${request.timeSlot.endTime} está fuera del horario de atención del negocio (${shopHours})`);
+        }
         break;
       case 'ADVANCE_BOOKING':
         errors.push('No se puede reservar con tan poca anticipación');
@@ -127,11 +337,17 @@ export const validateItemReservation = (
         errors.push('Horario no disponible');
     }
   } else if (availability.availableSpots < request.numberOfPeople) {
-    errors.push(`Solo quedan ${availability.availableSpots} espacios disponibles, pero solicitaste ${request.numberOfPeople}`);
+    errors.push(`Solo quedan ${availability.availableSpots} espacios disponibles para "${item.title}", pero solicitaste ${request.numberOfPeople}`);
   }
 
+  // Advertencias
   if (availability.availableSpots > 0 && availability.availableSpots <= 2) {
-    warnings.push(`Quedan pocos espacios disponibles (${availability.availableSpots})`);
+    warnings.push(`Quedan pocos espacios disponibles (${availability.availableSpots}) para "${item.title}"`);
+  }
+
+  // Advertencia si el item requiere confirmación
+  if (item.bookingConfig?.requiresConfirmation) {
+    warnings.push('Esta reserva requiere confirmación del negocio');
   }
 
   const isValid = errors.length === 0;
@@ -154,31 +370,68 @@ export const getAvailableSlotsForItem = (
   availability: ItemAvailability;
 }> => {
   
-  const itemSlots = mockItemTimeSlots.filter(slot => slot.itemId === itemId && slot.isActive);
-  
-  const requestDate = new Date(date);
-  const dayOfWeek = requestDate.getDay();
-  
-  const daySlots = itemSlots.filter(slot => slot.dayOfWeek === dayOfWeek);
-  
-  const availableSlots = daySlots.map(slot => {
-    const timeSlot = {
-      startTime: slot.startTime,
-      endTime: slot.endTime
-    };
-    
-    const item = allItems?.find(i => i.id === itemId);
-    const shopId = item?.shopId;
-    
-    const availability = getItemAvailability(itemId, date, timeSlot, [], shopId, allShops);
-    
-    return {
-      timeSlot,
-      availability
-    };
-  });
+  const item = allItems?.find(i => i.id === itemId);
+  if (!item || !item.timeSlots) {
+    return [];
+  }
 
-  return availableSlots.sort((a, b) => a.timeSlot.startTime.localeCompare(b.timeSlot.startTime));
+  const shop = allShops?.find(s => s.id === item.shopId);
+  if (!shop) {
+    return [];
+  }
+
+  const dayOfWeek = getDayOfWeek(date);
+  
+  // Verificar si el shop está abierto en ese día
+  const dayName = getDayNameForBusinessHours(date);
+  const shopDaySchedule = shop.businessHours[dayName];
+
+  if (!shopDaySchedule.openRanges || shopDaySchedule.openRanges.length === 0) {
+    return [];
+  }
+  
+  // Obtener slots del día específico del item
+  const daySchedule = item.timeSlots.weeklySchedule?.[dayOfWeek];
+  if (!daySchedule || !daySchedule.isAvailable) {
+    return [];
+  }
+
+  // Función para verificar si un horario está dentro del horario del shop
+  const timeToMinutes = (time: string) => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  const isWithinShopHours = (startTime: string, endTime: string) => {
+    const slotStart = timeToMinutes(startTime);
+    const slotEnd = timeToMinutes(endTime);
+
+    return shopDaySchedule.openRanges.some(range => {
+      const rangeStart = timeToMinutes(range.from);
+      const rangeEnd = timeToMinutes(range.to);
+      return slotStart >= rangeStart && slotEnd <= rangeEnd;
+    });
+  };
+
+  const availableSlots = daySchedule.slots
+    .filter((slot: { isActive: boolean; startTime: string; endTime: string }) => 
+      slot.isActive && isWithinShopHours(slot.startTime, slot.endTime)
+    )
+    .map((slot: { startTime: string; endTime: string }) => {
+      const timeSlot = {
+        startTime: slot.startTime,
+        endTime: slot.endTime
+      };
+      
+      const availability = getItemAvailability(itemId, date, timeSlot, [], allItems, allShops);
+      
+      return {
+        timeSlot,
+        availability
+      };
+    });
+
+  return availableSlots.sort((a: { timeSlot: { startTime: string } }, b: { timeSlot: { startTime: string } }) => a.timeSlot.startTime.localeCompare(b.timeSlot.startTime));
 };
 
 export const useCreateItemReservation = () => {
@@ -266,14 +519,6 @@ const isValidTimeSlot = (timeSlot: { startTime: string; endTime: string }): bool
 };
 
 /**
- * Obtiene el día de la semana en formato string a partir de un número (0-6)
- */
-const getDayNameFromNumber = (dayNumber: number): keyof BusinessHours => {
-  const days: Array<keyof BusinessHours> = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  return days[dayNumber];
-};
-
-/**
  * Convierte una hora en formato "HH:mm" a minutos desde medianoche
  */
 const timeToMinutes = (time: string): number => {
@@ -297,9 +542,7 @@ export const isTimeSlotWithinBusinessHours = (
   }
 
   // Obtener el día de la semana
-  const requestDate = new Date(date);
-  const dayOfWeek = requestDate.getDay();
-  const dayName = getDayNameFromNumber(dayOfWeek);
+  const dayName = getDayNameForBusinessHours(date);
 
   // Obtener los horarios de atención para ese día
   const dayBusinessHours = shop.businessHours[dayName];
@@ -348,9 +591,7 @@ export const getShopBusinessHoursForDate = (
     return [];
   }
 
-  const requestDate = new Date(date);
-  const dayOfWeek = requestDate.getDay();
-  const dayName = getDayNameFromNumber(dayOfWeek);
+  const dayName = getDayNameForBusinessHours(date);
 
   return shop.businessHours[dayName].openRanges || [];
 };
@@ -365,4 +606,197 @@ export const isShopOpenOnDate = (
 ): boolean => {
   const ranges = getShopBusinessHoursForDate(shopId, date, allShops);
   return ranges.length > 0;
+};
+
+/**
+ * Función de debug para verificar el problema de fechas
+ * Esta función nos ayudará a identificar si el problema está en el mapeo de días
+ */
+export const debugDateMapping = (
+  shopId: string,
+  date: string,
+  allShops: Shop[]
+): {
+  inputDate: string;
+  parsedDate: Date;
+  dayOfWeek: number;
+  dayName: string;
+  shopDayName: keyof BusinessHours;
+  isOpen: boolean;
+  businessHours: { from: string; to: string }[];
+} => {
+  const shop = allShops.find(s => s.id === shopId);
+  if (!shop) {
+    return {
+      inputDate: date,
+      parsedDate: new Date(date),
+      dayOfWeek: -1,
+      dayName: 'unknown',
+      shopDayName: 'sunday',
+      isOpen: false,
+      businessHours: []
+    };
+  }
+
+  // Crear la fecha de manera más explícita para evitar problemas de zona horaria
+  const parsedDate = createDateFromString(date);
+  
+  const dayOfWeek = getDayOfWeek(date);
+  const dayName = getDayNameInSpanish(date);
+  const shopDayName = getDayNameForBusinessHours(date);
+  
+  const businessHours = shop.businessHours[shopDayName].openRanges || [];
+  const isOpen = businessHours.length > 0;
+
+  return {
+    inputDate: date,
+    parsedDate,
+    dayOfWeek,
+    dayName,
+    shopDayName,
+    isOpen,
+    businessHours
+  };
+};
+
+/**
+ * Valida si los horarios de un item siguen siendo válidos después de cambios en los horarios del shop
+ * Esta función es útil para detectar items que necesitan actualización después de cambios en el shop
+ */
+export const validateItemAgainstShopHours = (
+  item: Item,
+  shop: Shop
+): {
+  isValid: boolean;
+  conflicts: Array<{
+    dayOfWeek: number;
+    dayName: string;
+    itemSlots: Array<{ startTime: string; endTime: string }>;
+    shopHours: string;
+    reason: 'SHOP_CLOSED' | 'HOURS_OUT_OF_RANGE';
+  }>;
+  warnings: string[];
+} => {
+  const conflicts: Array<{
+    dayOfWeek: number;
+    dayName: string;
+    itemSlots: Array<{ startTime: string; endTime: string }>;
+    shopHours: string;
+    reason: 'SHOP_CLOSED' | 'HOURS_OUT_OF_RANGE';
+  }> = [];
+  const warnings: string[] = [];
+
+  if (!item.timeSlots?.weeklySchedule) {
+    return { isValid: true, conflicts, warnings };
+  }
+
+  const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const shopDayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+  // Verificar cada día de la semana
+  Object.entries(item.timeSlots.weeklySchedule).forEach(([dayStr, daySchedule]) => {
+    const dayOfWeek = parseInt(dayStr);
+    const dayName = dayNames[dayOfWeek];
+    const shopDayName = shopDayNames[dayOfWeek] as keyof typeof shop.businessHours;
+    const shopDaySchedule = shop.businessHours[shopDayName];
+
+    if ((daySchedule as any).isAvailable && (daySchedule as any).slots.length > 0) {
+      // Verificar si el shop está abierto en este día
+      if (!shopDaySchedule.openRanges || shopDaySchedule.openRanges.length === 0) {
+        conflicts.push({
+          dayOfWeek,
+          dayName,
+          itemSlots: (daySchedule as any).slots.map((slot: any) => ({ startTime: slot.startTime, endTime: slot.endTime })),
+          shopHours: 'Cerrado',
+          reason: 'SHOP_CLOSED'
+        });
+        return;
+      }
+
+      // Verificar si los horarios del item están dentro del horario del shop
+      const shopHours = shopDaySchedule.openRanges.map(r => `${r.from}-${r.to}`).join(', ');
+      const timeToMinutes = (time: string) => {
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + minutes;
+      };
+
+      const conflictingSlots = (daySchedule as any).slots.filter((slot: any) => {
+        const slotStart = timeToMinutes(slot.startTime);
+        const slotEnd = timeToMinutes(slot.endTime);
+
+        return !shopDaySchedule.openRanges.some(range => {
+          const rangeStart = timeToMinutes(range.from);
+          const rangeEnd = timeToMinutes(range.to);
+          return slotStart >= rangeStart && slotEnd <= rangeEnd;
+        });
+      });
+
+      if (conflictingSlots.length > 0) {
+        conflicts.push({
+          dayOfWeek,
+          dayName,
+          itemSlots: conflictingSlots.map((slot: any) => ({ startTime: slot.startTime, endTime: slot.endTime })),
+          shopHours,
+          reason: 'HOURS_OUT_OF_RANGE'
+        });
+      }
+    }
+  });
+
+  // Generar advertencias
+  if (conflicts.length > 0) {
+    warnings.push(`El item "${item.title}" tiene ${conflicts.length} conflicto(s) con los horarios actuales del negocio`);
+  }
+
+  return {
+    isValid: conflicts.length === 0,
+    conflicts,
+    warnings
+  };
+};
+
+/**
+ * Obtiene todos los items que tienen conflictos con los horarios actuales del shop
+ * Útil para mostrar al administrador qué items necesitan actualización
+ */
+export const getItemsWithShopHoursConflicts = (
+  shopId: string,
+  allItems?: Item[],
+  allShops?: Shop[]
+): Array<{
+  item: Item;
+  conflicts: Array<{
+    dayOfWeek: number;
+    dayName: string;
+    itemSlots: Array<{ startTime: string; endTime: string }>;
+    shopHours: string;
+    reason: 'SHOP_CLOSED' | 'HOURS_OUT_OF_RANGE';
+  }>;
+}> => {
+  const shop = allShops?.find(s => s.id === shopId);
+  if (!shop) return [];
+
+  const shopItems = allItems?.filter(item => item.shopId === shopId) || [];
+  const itemsWithConflicts: Array<{
+    item: Item;
+    conflicts: Array<{
+      dayOfWeek: number;
+      dayName: string;
+      itemSlots: Array<{ startTime: string; endTime: string }>;
+      shopHours: string;
+      reason: 'SHOP_CLOSED' | 'HOURS_OUT_OF_RANGE';
+    }>;
+  }> = [];
+
+  shopItems.forEach(item => {
+    const validation = validateItemAgainstShopHours(item, shop);
+    if (!validation.isValid) {
+      itemsWithConflicts.push({
+        item,
+        conflicts: validation.conflicts
+      });
+    }
+  });
+
+  return itemsWithConflicts;
 }; 

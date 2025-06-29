@@ -32,7 +32,11 @@ export interface CreateBundleData {
   allowInstantBooking: boolean;
   requiresApproval: boolean;
   cancellationPolicy: string;
+  refundPolicy: string;
   tags: string[];
+  isFeatured?: boolean;
+  order?: number;
+  imageUrls?: string[];
 }
 
 export interface CreateItemData {
@@ -42,7 +46,101 @@ export interface CreateItemData {
   isPerGroup: boolean;
   maxCapacity: number;
   duration: number;
+  isForAdult?: boolean;
   isRequired?: boolean;
+  order?: number;
+  
+  // Configuración avanzada de reservas
+  requiresConfirmation?: boolean;
+  advanceBookingDays?: number;
+  groupCapacity?: number;
+  isExclusive?: boolean;
+  
+  // Configuración de horarios flexible
+  timeSlots?: {
+    scheduleType: 'FIXED' | 'FLEXIBLE' | 'CUSTOM' | 'CONTINUOUS';
+    
+    // Horarios fijos por día de la semana
+    weeklySchedule?: {
+      [dayOfWeek: number]: {
+        isAvailable: boolean;
+        slots: Array<{
+          startTime: string;
+          endTime: string;
+          maxBookingsPerSlot: number;
+          minPeoplePerBooking?: number;
+          maxPeoplePerBooking?: number;
+          bufferMinutes?: number;
+          isActive: boolean;
+        }>;
+      };
+    };
+    
+    // Horarios especiales para fechas específicas
+    specialDates?: {
+      [date: string]: {
+        isAvailable: boolean;
+        slots: Array<{
+          startTime: string;
+          endTime: string;
+          maxBookingsPerSlot: number;
+          minPeoplePerBooking?: number;
+          maxPeoplePerBooking?: number;
+          bufferMinutes?: number;
+          isActive: boolean;
+        }>;
+        reason?: string;
+      };
+    };
+    
+    // Configuración para horarios flexibles
+    flexibleConfig?: {
+      startHour: number;
+      endHour: number;
+      slotDuration: number;
+      intervalMinutes: number;
+      maxBookingsPerSlot: number;
+      minPeoplePerBooking?: number;
+      maxPeoplePerBooking?: number;
+      bufferMinutes?: number;
+    };
+    
+    // Configuración para horarios continuos
+    continuousConfig?: {
+      slotDuration: number;
+      intervalMinutes: number;
+      maxBookingsPerSlot: number;
+      minPeoplePerBooking?: number;
+      maxPeoplePerBooking?: number;
+      bufferMinutes?: number;
+    };
+    
+    // Excepciones
+    exceptions?: Array<{
+      id: string;
+      type: 'CLOSED' | 'MODIFIED_HOURS' | 'SPECIAL_EVENT';
+      date: string;
+      endDate?: string;
+      reason: string;
+      slots?: Array<{
+        startTime: string;
+        endTime: string;
+        maxBookingsPerSlot: number;
+        minPeoplePerBooking?: number;
+        maxPeoplePerBooking?: number;
+        bufferMinutes?: number;
+        isActive: boolean;
+      }>;
+    }>;
+    
+    // Configuración de anticipación y límites
+    bookingLimits?: {
+      minAdvanceHours: number;
+      maxAdvanceDays: number;
+      sameDayBooking: boolean;
+      lastMinuteBooking: boolean;
+    };
+  };
 }
 
 export interface CreateExtraData {
@@ -50,9 +148,17 @@ export interface CreateExtraData {
   description: string;
   price: number;
   isPerGroup: boolean;
+  isForAdult?: boolean;
   maxQuantity?: number;
   isRequired?: boolean;
   requiredItemId?: string;
+  order?: number;
+  
+  // Configuración de cantidad
+  defaultQuantity?: number;
+  
+  // Configuración de disponibilidad
+  isActive?: boolean;
 }
 
 // --- CONTEXTO GLOBAL DE ENTIDADES ---
@@ -86,6 +192,30 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
   // IDs de shops
   const shopMaxi = "shop_maxi";
   const shopCafe = "shop_cafe";
+
+  // Función helper para crear horarios completos
+  const createWeeklySchedule = (availableDays: Record<number, Array<{ startTime: string; endTime: string; maxBookingsPerSlot: number }>>) => {
+    const schedule: Record<number, { isAvailable: boolean; slots: Array<{ startTime: string; endTime: string; maxBookingsPerSlot: number; isActive: boolean }> }> = {};
+    
+    for (let day = 0; day <= 6; day++) {
+      if (availableDays[day]) {
+        schedule[day] = {
+          isAvailable: true,
+          slots: availableDays[day].map(slot => ({
+            ...slot,
+            isActive: true
+          }))
+        };
+      } else {
+        schedule[day] = {
+          isAvailable: false,
+          slots: []
+        };
+      }
+    }
+    
+    return schedule;
+  };
 
   // Bundles de ejemplo
   const initialBundles = [
@@ -235,6 +365,23 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
         requiresConfirmation: false,
         advanceBookingDays: 30
       },
+      timeSlots: {
+        scheduleType: 'FIXED' as const,
+        weeklySchedule: createWeeklySchedule({
+          1: [{ startTime: '09:00', endTime: '12:00', maxBookingsPerSlot: 5 }], // Lunes
+          2: [{ startTime: '09:00', endTime: '12:00', maxBookingsPerSlot: 5 }], // Martes
+          3: [{ startTime: '09:00', endTime: '12:00', maxBookingsPerSlot: 5 }], // Miércoles
+          4: [{ startTime: '09:00', endTime: '12:00', maxBookingsPerSlot: 5 }], // Jueves
+          5: [{ startTime: '09:00', endTime: '12:00', maxBookingsPerSlot: 5 }], // Viernes
+          6: [{ startTime: '10:00', endTime: '14:00', maxBookingsPerSlot: 5 }]  // Sábado
+        }),
+        bookingLimits: {
+          minAdvanceHours: 2,
+          maxAdvanceDays: 30,
+          sameDayBooking: true,
+          lastMinuteBooking: true
+        }
+      },
       isActive: true,
       order: 1,
       createdAt: now,
@@ -255,6 +402,19 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
         advanceBookingDays: 30,
         groupCapacity: 5,
         isExclusive: true
+      },
+      timeSlots: {
+        scheduleType: 'FIXED' as const,
+        weeklySchedule: createWeeklySchedule({
+          3: [{ startTime: '14:00', endTime: '17:00', maxBookingsPerSlot: 3 }], // Miércoles
+          5: [{ startTime: '14:00', endTime: '17:00', maxBookingsPerSlot: 3 }]  // Viernes
+        }),
+        bookingLimits: {
+          minAdvanceHours: 24,
+          maxAdvanceDays: 30,
+          sameDayBooking: false,
+          lastMinuteBooking: false
+        }
       },
       isActive: true,
       order: 2,
@@ -278,6 +438,24 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
         groupCapacity: 8,
         isExclusive: true
       },
+      timeSlots: {
+        scheduleType: 'FIXED' as const,
+        weeklySchedule: createWeeklySchedule({
+          5: [ // Viernes
+            { startTime: '18:00', endTime: '19:30', maxBookingsPerSlot: 2 }
+          ],
+          6: [ // Sábado
+            { startTime: '15:00', endTime: '16:30', maxBookingsPerSlot: 2 },
+            { startTime: '18:00', endTime: '19:30', maxBookingsPerSlot: 2 }
+          ]
+        }),
+        bookingLimits: {
+          minAdvanceHours: 12,
+          maxAdvanceDays: 15,
+          sameDayBooking: false,
+          lastMinuteBooking: false
+        }
+      },
       isActive: true,
       order: 1,
       createdAt: now,
@@ -298,6 +476,35 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
         requiresConfirmation: false,
         advanceBookingDays: 10
       },
+      timeSlots: {
+        scheduleType: 'FLEXIBLE' as const,
+        flexibleConfig: {
+          startHour: 10,
+          endHour: 18,
+          slotDuration: 60,
+          intervalMinutes: 30,
+          maxBookingsPerSlot: 2,
+          bufferMinutes: 15
+        },
+        weeklySchedule: createWeeklySchedule({
+          2: [ // Martes
+            { startTime: '10:00', endTime: '11:00', maxBookingsPerSlot: 2 },
+            { startTime: '14:00', endTime: '15:00', maxBookingsPerSlot: 2 },
+            { startTime: '16:00', endTime: '17:00', maxBookingsPerSlot: 2 }
+          ],
+          4: [ // Jueves
+            { startTime: '10:00', endTime: '11:00', maxBookingsPerSlot: 2 },
+            { startTime: '14:00', endTime: '15:00', maxBookingsPerSlot: 2 },
+            { startTime: '16:00', endTime: '17:00', maxBookingsPerSlot: 2 }
+          ]
+        }),
+        bookingLimits: {
+          minAdvanceHours: 2,
+          maxAdvanceDays: 10,
+          sameDayBooking: true,
+          lastMinuteBooking: true
+        }
+      },
       isActive: true,
       order: 1,
       createdAt: now,
@@ -316,6 +523,30 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
         duration: 30,
         requiresConfirmation: false,
         advanceBookingDays: 10
+      },
+      timeSlots: {
+        scheduleType: 'FLEXIBLE' as const,
+        flexibleConfig: {
+          startHour: 11,
+          endHour: 17,
+          slotDuration: 30,
+          intervalMinutes: 15,
+          maxBookingsPerSlot: 4,
+          bufferMinutes: 10
+        },
+        weeklySchedule: createWeeklySchedule({
+          2: [ // Martes
+            { startTime: '11:30', endTime: '12:00', maxBookingsPerSlot: 4 },
+            { startTime: '14:30', endTime: '15:00', maxBookingsPerSlot: 4 },
+            { startTime: '16:30', endTime: '17:00', maxBookingsPerSlot: 4 }
+          ]
+        }),
+        bookingLimits: {
+          minAdvanceHours: 1,
+          maxAdvanceDays: 10,
+          sameDayBooking: true,
+          lastMinuteBooking: true
+        }
       },
       isActive: true,
       order: 2,
@@ -337,6 +568,24 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
         requiresConfirmation: false,
         advanceBookingDays: 7
       },
+      timeSlots: {
+        scheduleType: 'FIXED' as const,
+        weeklySchedule: {
+          0: { isAvailable: true, slots: [{ startTime: '09:00', endTime: '11:00', maxBookingsPerSlot: 10, isActive: true }] }, // Domingo
+          1: { isAvailable: true, slots: [{ startTime: '09:00', endTime: '11:00', maxBookingsPerSlot: 10, isActive: true }] }, // Lunes
+          2: { isAvailable: true, slots: [{ startTime: '09:00', endTime: '11:00', maxBookingsPerSlot: 10, isActive: true }] }, // Martes
+          3: { isAvailable: true, slots: [{ startTime: '09:00', endTime: '11:00', maxBookingsPerSlot: 10, isActive: true }] }, // Miércoles
+          4: { isAvailable: true, slots: [{ startTime: '09:00', endTime: '11:00', maxBookingsPerSlot: 10, isActive: true }] }, // Jueves
+          5: { isAvailable: true, slots: [{ startTime: '09:00', endTime: '11:00', maxBookingsPerSlot: 10, isActive: true }] }, // Viernes
+          6: { isAvailable: true, slots: [{ startTime: '09:00', endTime: '11:00', maxBookingsPerSlot: 10, isActive: true }] }, // Sábado
+        },
+        bookingLimits: {
+          minAdvanceHours: 2,
+          maxAdvanceDays: 7,
+          sameDayBooking: true,
+          lastMinuteBooking: true
+        }
+      },
       isActive: true,
       order: 1,
       createdAt: now,
@@ -355,6 +604,24 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
         duration: 60,
         requiresConfirmation: false,
         advanceBookingDays: 7
+      },
+      timeSlots: {
+        scheduleType: 'FIXED' as const,
+        weeklySchedule: {
+          0: { isAvailable: true, slots: [{ startTime: '11:00', endTime: '12:00', maxBookingsPerSlot: 10, isActive: true }] }, // Domingo
+          1: { isAvailable: true, slots: [{ startTime: '11:00', endTime: '12:00', maxBookingsPerSlot: 10, isActive: true }] }, // Lunes
+          2: { isAvailable: true, slots: [{ startTime: '11:00', endTime: '12:00', maxBookingsPerSlot: 10, isActive: true }] }, // Martes
+          3: { isAvailable: true, slots: [{ startTime: '11:00', endTime: '12:00', maxBookingsPerSlot: 10, isActive: true }] }, // Miércoles
+          4: { isAvailable: true, slots: [{ startTime: '11:00', endTime: '12:00', maxBookingsPerSlot: 10, isActive: true }] }, // Jueves
+          5: { isAvailable: true, slots: [{ startTime: '11:00', endTime: '12:00', maxBookingsPerSlot: 10, isActive: true }] }, // Viernes
+          6: { isAvailable: true, slots: [{ startTime: '11:00', endTime: '12:00', maxBookingsPerSlot: 10, isActive: true }] }, // Sábado
+        },
+        bookingLimits: {
+          minAdvanceHours: 2,
+          maxAdvanceDays: 7,
+          sameDayBooking: true,
+          lastMinuteBooking: true
+        }
       },
       isActive: true,
       order: 2,
@@ -376,6 +643,28 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
         requiresConfirmation: false,
         advanceBookingDays: 5
       },
+      timeSlots: {
+        scheduleType: 'CONTINUOUS' as const,
+        continuousConfig: {
+          slotDuration: 30,
+          intervalMinutes: 30,
+          maxBookingsPerSlot: 15,
+          bufferMinutes: 5
+        },
+        weeklySchedule: createWeeklySchedule({
+          6: [ // Sábado
+            { startTime: '16:00', endTime: '16:30', maxBookingsPerSlot: 15 },
+            { startTime: '17:00', endTime: '17:30', maxBookingsPerSlot: 15 },
+            { startTime: '18:00', endTime: '18:30', maxBookingsPerSlot: 15 }
+          ]
+        }),
+        bookingLimits: {
+          minAdvanceHours: 1,
+          maxAdvanceDays: 5,
+          sameDayBooking: true,
+          lastMinuteBooking: true
+        }
+      },
       isActive: true,
       order: 1,
       createdAt: now,
@@ -394,6 +683,22 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
         duration: 30,
         requiresConfirmation: false,
         advanceBookingDays: 5
+      },
+      timeSlots: {
+        scheduleType: 'FIXED' as const,
+        weeklySchedule: createWeeklySchedule({
+          6: [ // Sábado
+            { startTime: '16:30', endTime: '17:00', maxBookingsPerSlot: 15 },
+            { startTime: '17:30', endTime: '18:00', maxBookingsPerSlot: 15 },
+            { startTime: '18:30', endTime: '19:00', maxBookingsPerSlot: 15 }
+          ]
+        }),
+        bookingLimits: {
+          minAdvanceHours: 1,
+          maxAdvanceDays: 5,
+          sameDayBooking: true,
+          lastMinuteBooking: true
+        }
       },
       isActive: true,
       order: 2,
@@ -580,11 +885,19 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
 
   // Combinar entidades estáticas con dinámicas
   const allShops = useMemo(() => {
-    const staticShopsWithUpdates = migratedShops.map(shop => ({
-      ...shop,
-      businessHours: updatedBusinessHours[shop.id] || shop.businessHours
-    }));
-    return [...staticShopsWithUpdates, ...dynamicShops];
+    // Obtener IDs de shops dinámicos (que pueden ser versiones editadas de shops mock)
+    const dynamicShopIds = new Set(dynamicShops.map(shop => shop.id));
+    
+    // Filtrar shops estáticos: solo incluir los que NO tienen versión dinámica
+    const staticShopsWithoutDuplicates = migratedShops
+      .filter(shop => !dynamicShopIds.has(shop.id))
+      .map(shop => ({
+        ...shop,
+        businessHours: updatedBusinessHours[shop.id] || shop.businessHours
+      }));
+    
+    // Combinar shops estáticos filtrados + todos los dinámicos
+    return [...staticShopsWithoutDuplicates, ...dynamicShops];
   }, [migratedShops, dynamicShops, updatedBusinessHours]);
   
   const allBundles = useMemo(() => [...dynamicBundles], [dynamicBundles]); // Solo dinámicos por ahora
@@ -653,15 +966,15 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
         allowInstantBooking: data.allowInstantBooking,
         requiresApproval: data.requiresApproval,
         cancellationPolicy: data.cancellationPolicy,
-        refundPolicy: 'Reembolso según política de cancelación'
+        refundPolicy: data.refundPolicy
       },
-      imageUrls: [
+      imageUrls: data.imageUrls || [
         "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800"
       ],
       tags: data.tags,
       isActive: true,
-      isFeatured: false,
-      order: 999,
+      isFeatured: data.isFeatured || false,
+      order: data.order || 999,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       status: 'active',
@@ -682,20 +995,20 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
       title: data.title,
       description: data.description,
       price: data.price,
-      isForAdult: true,
+      isForAdult: data.isForAdult || false,
       bundleId,
       shopId,
       isPerGroup: data.isPerGroup,
       bookingConfig: {
         maxCapacity: data.maxCapacity,
         duration: data.duration,
-        requiresConfirmation: true,
-        advanceBookingDays: 30,
-        groupCapacity: data.isPerGroup ? data.maxCapacity : undefined,
-        isExclusive: data.isPerGroup
+        requiresConfirmation: data.requiresConfirmation || false,
+        advanceBookingDays: data.advanceBookingDays || 30,
+        groupCapacity: data.groupCapacity || (data.isPerGroup ? data.maxCapacity : undefined),
+        isExclusive: data.isExclusive || data.isPerGroup
       },
       isActive: true,
-      order: 999,
+      order: data.order || 999,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       status: 'active',
@@ -721,16 +1034,16 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
       title: data.title,
       description: data.description,
       price: data.price,
-      isForAdult: true,
+      isForAdult: data.isForAdult || false,
       bundleId,
       shopId,
       isPerGroup: data.isPerGroup,
       requiredItemId: data.requiredItemId,
-      quantity: 0,
+      quantity: data.defaultQuantity || 0,
       maxQuantity: data.maxQuantity || 5,
       isRequired: data.isRequired || false,
-      isActive: true,
-      order: 999,
+      isActive: data.isActive !== false,
+      order: data.order || 999,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       status: 'active',
@@ -765,18 +1078,34 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
 
   // Actualizar shop completo
   const updateShop = useCallback((shopId: string, data: Partial<CreateShopData>) => {
-    setDynamicShops(prev => prev.map(shop => 
-      shop.id === shopId 
-        ? { 
-            ...shop, 
-            ...data,
-            updatedAt: new Date().toISOString() 
-          }
-        : shop
-    ));
-    
+    setDynamicShops(prev => {
+      const exists = prev.some(shop => shop.id === shopId);
+      if (exists) {
+        // Actualizar shop dinámico existente
+        return prev.map(shop => 
+          shop.id === shopId 
+            ? { 
+                ...shop, 
+                ...data,
+                updatedAt: new Date().toISOString() 
+              }
+            : shop
+        );
+      } else {
+        // Buscar el shop original (mock)
+        const original = migratedShops.find(shop => shop.id === shopId);
+        if (!original) return prev;
+        // Crear una copia dinámica con los cambios
+        const updatedShop = {
+          ...original,
+          ...data,
+          updatedAt: new Date().toISOString()
+        };
+        return [...prev, updatedShop];
+      }
+    });
     console.log('🏪 Shop actualizado:', shopId, data);
-  }, []);
+  }, [migratedShops]);
 
   // Obtener bundle con items y extras actualizados
   const getBundleWithContent = useCallback((bundleId: string) => {
