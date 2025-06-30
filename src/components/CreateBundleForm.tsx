@@ -3,7 +3,8 @@ import { Package, DollarSign, Settings, X, Check, Tag, Image, Star } from 'lucid
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { Input } from './ui/Input';
-import { useEntitiesState, type CreateBundleData } from '../hooks/useEntitiesState';
+import { useEntitiesState } from '../hooks/useEntitiesState';
+import type { CreateBundleData } from '../hooks/types';
 
 interface CreateBundleFormProps {
   shopId: string;
@@ -84,10 +85,10 @@ export const CreateBundleForm: React.FC<CreateBundleFormProps> = ({
 
   // Manejar cambios en inputs
   const handleInputChange = (field: keyof CreateBundleData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev: CreateBundleData) => ({ ...prev, [field]: value }));
     // Limpiar error del campo si existe
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev: Record<string, string>) => ({ ...prev, [field]: '' }));
     }
   };
 
@@ -97,16 +98,16 @@ export const CreateBundleForm: React.FC<CreateBundleFormProps> = ({
       e.preventDefault();
       const tag = tagsInput.trim().toLowerCase();
       if (tag && !formData.tags.includes(tag)) {
-        setFormData(prev => ({ ...prev, tags: [...prev.tags, tag] }));
+        setFormData((prev: CreateBundleData) => ({ ...prev, tags: [...prev.tags, tag] }));
         setTagsInput('');
       }
     }
   };
 
   const removeTag = (tagToRemove: string) => {
-    setFormData(prev => ({
+    setFormData((prev: CreateBundleData) => ({
       ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
+      tags: prev.tags.filter((tag: string) => tag !== tagToRemove)
     }));
   };
 
@@ -116,7 +117,7 @@ export const CreateBundleForm: React.FC<CreateBundleFormProps> = ({
       e.preventDefault();
       const url = imageUrlInput.trim();
       if (url && !formData.imageUrls?.includes(url)) {
-        setFormData(prev => ({ 
+        setFormData((prev: CreateBundleData) => ({ 
           ...prev, 
           imageUrls: [...(prev.imageUrls || []), url] 
         }));
@@ -126,9 +127,9 @@ export const CreateBundleForm: React.FC<CreateBundleFormProps> = ({
   };
 
   const removeImageUrl = (urlToRemove: string) => {
-    setFormData(prev => ({
+    setFormData((prev: CreateBundleData) => ({
       ...prev,
-      imageUrls: prev.imageUrls?.filter(url => url !== urlToRemove) || []
+      imageUrls: prev.imageUrls?.filter((url: string) => url !== urlToRemove) || []
     }));
   };
 

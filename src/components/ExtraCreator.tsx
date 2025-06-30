@@ -4,7 +4,8 @@ import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
-import { useEntitiesState, type CreateExtraData } from '../hooks/useEntitiesState';
+import { useEntitiesState } from '../hooks/useEntitiesState';
+import type { CreateExtraData } from '../hooks/types';
 
 interface ExtraCreatorProps {
   bundleId: string;
@@ -79,10 +80,10 @@ export const ExtraCreator: React.FC<ExtraCreatorProps> = ({
 
   // Manejar cambios en inputs
   const handleInputChange = (field: keyof CreateExtraData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev: CreateExtraData) => ({ ...prev, [field]: value }));
     // Limpiar error del campo si existe
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev: Record<string, string>) => ({ ...prev, [field]: '' }));
     }
   };
 

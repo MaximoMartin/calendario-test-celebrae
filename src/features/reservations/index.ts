@@ -13,7 +13,6 @@ export type {
   ItemAvailability,
   ItemAvailabilityValidation,
   CreateReservaItemRequest,
-  ItemTimeSlot,
   ReservaBundle,
   ExtraSelected,
   CreateReservaBundleRequest,

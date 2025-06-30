@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useMemo } from 'react';
-import type { ReservaItem, ItemTimeSlot, ReservaBundle } from '../../types';
+import type { ReservaItem, ReservaBundle } from '../../types';
 
 // Datos de prueba para simular reservas existentes y conflictos
 
@@ -37,8 +37,18 @@ export const useReservations = () => {
   return context;
 };
 
-// Time slots disponibles por item
-export const mockItemTimeSlots: ItemTimeSlot[] = [
+// Time slots disponibles por item (usando el tipo correcto)
+export const mockItemTimeSlots: Array<{
+  id: string;
+  itemId: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  maxBookingsPerSlot: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}> = [
   // --- La vuelta del Maxi ---
   // Alquiler París
   {

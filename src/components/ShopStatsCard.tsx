@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Calendar, CheckCircle, Clock, XCircle, Euro } from 'lucide-react';
 import { Card } from './ui/Card';
 import { useShopState } from '../hooks/useShopState';
@@ -17,16 +17,8 @@ export const ShopStatsCard: React.FC<ShopStatsCardProps> = ({
 }) => {
   const { 
     selectedShop, 
-    shopReservations, 
     shopStats 
   } = useShopState();
-
-  // Calcular ingresos dinámicamente
-  const revenue = useMemo(() => {
-    return shopReservations
-      .filter(r => r.status === 'CONFIRMED' || r.status === 'COMPLETED')
-      .reduce((sum, r) => sum + r.totalPrice, 0);
-  }, [shopReservations]);
 
   const stats = [
     {
@@ -62,7 +54,7 @@ export const ShopStatsCard: React.FC<ShopStatsCardProps> = ({
   if (showRevenue) {
     stats.push({
       label: 'Ingresos',
-      value: `€${revenue.toFixed(2)}`,
+      value: `€${shopStats.totalRevenue.toFixed(2)}`,
       icon: Euro,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100'
@@ -79,7 +71,7 @@ export const ShopStatsCard: React.FC<ShopStatsCardProps> = ({
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
-                {selectedShop.name}
+                {selectedShop?.name || 'Shop no seleccionado'}
               </h3>
               <p className="text-sm text-gray-600">
                 Estadísticas del negocio
@@ -118,7 +110,7 @@ export const ShopStatsCard: React.FC<ShopStatsCardProps> = ({
           </div>
           <div>
             <h3 className="text-lg font-semibold text-gray-900">
-              {selectedShop.name}
+              {selectedShop?.name || 'Shop no seleccionado'}
             </h3>
             <p className="text-sm text-gray-600">
               Estadísticas del negocio
