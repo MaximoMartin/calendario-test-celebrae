@@ -97,13 +97,28 @@ export const getItemAvailability = (
     return hours * 60 + minutes;
   };
 
-  const slotStart = timeToMinutes(timeSlot.startTime);
-  const slotEnd = timeToMinutes(timeSlot.endTime);
+  const normalizeTime = (time: string): string => {
+    if (!time) return '';
+    const [h, m] = time.split(':');
+    const hours = h.padStart(2, '0');
+    const minutes = (m || '00').padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  const slotStart = timeToMinutes(normalizeTime(timeSlot.startTime));
+  const slotEnd = timeToMinutes(normalizeTime(timeSlot.endTime));
 
   const isWithinShopHours = shopDaySchedule.openRanges.some(range => {
-    const rangeStart = timeToMinutes(range.from);
-    const rangeEnd = timeToMinutes(range.to);
-    return slotStart >= rangeStart && slotEnd <= rangeEnd;
+    const rangeStart = timeToMinutes(normalizeTime(range.from));
+    const rangeEnd = timeToMinutes(normalizeTime(range.to));
+    const debugMsg = `Comparando slot [${normalizeTime(timeSlot.startTime)}-${normalizeTime(timeSlot.endTime)}] con rango [${normalizeTime(range.from)}-${normalizeTime(range.to)}] => ${slotStart} >= ${rangeStart} && ${slotEnd} <= ${rangeEnd}`;
+    if (slotStart >= rangeStart && slotEnd <= rangeEnd) {
+      console.log('✅', debugMsg);
+      return true;
+    } else {
+      console.log('❌', debugMsg);
+      return false;
+    }
   });
 
   if (!isWithinShopHours) {
@@ -402,14 +417,29 @@ export const getAvailableSlotsForItem = (
     return hours * 60 + minutes;
   };
 
+  const normalizeTime = (time: string): string => {
+    if (!time) return '';
+    const [h, m] = time.split(':');
+    const hours = h.padStart(2, '0');
+    const minutes = (m || '00').padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
   const isWithinShopHours = (startTime: string, endTime: string) => {
-    const slotStart = timeToMinutes(startTime);
-    const slotEnd = timeToMinutes(endTime);
+    const slotStart = timeToMinutes(normalizeTime(startTime));
+    const slotEnd = timeToMinutes(normalizeTime(endTime));
 
     return shopDaySchedule.openRanges.some(range => {
-      const rangeStart = timeToMinutes(range.from);
-      const rangeEnd = timeToMinutes(range.to);
-      return slotStart >= rangeStart && slotEnd <= rangeEnd;
+      const rangeStart = timeToMinutes(normalizeTime(range.from));
+      const rangeEnd = timeToMinutes(normalizeTime(range.to));
+      const debugMsg = `Comparando slot [${normalizeTime(startTime)}-${normalizeTime(endTime)}] con rango [${normalizeTime(range.from)}-${normalizeTime(range.to)}] => ${slotStart} >= ${rangeStart} && ${slotEnd} <= ${rangeEnd}`;
+      if (slotStart >= rangeStart && slotEnd <= rangeEnd) {
+        console.log('✅', debugMsg);
+        return true;
+      } else {
+        console.log('❌', debugMsg);
+        return false;
+      }
     });
   };
 
