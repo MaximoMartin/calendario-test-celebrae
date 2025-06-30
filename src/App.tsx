@@ -1,471 +1,427 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Plus, Settings, Calendar as CalendarIcon, Search, AlertTriangle, Calendar, Building2, Menu, X } from 'lucide-react';
-import type { BookingFormData, CalendarEvent, BusinessHours, Shop, ViewType, Booking } from './types';
-import { useBookings } from './hooks/useBookings';
-import { mockKits, mockTimeSlots, mockShops } from './mockData';
-import { BookingCalendar } from './components/BookingCalendar';
-import { BookingForm } from './components/BookingForm';
-import { BookingList } from './components/BookingList';
-import { BookingStats } from './components/BookingStats';
-import { BusinessHoursForm } from './components/BusinessHoursForm';
-import { GlobalSearch } from './components/GlobalSearch';
-import { ExceptionManager } from './components/ExceptionManager';
-import { AvailabilityManager } from './components/AvailabilityManager';
-import { BookingDetailModal } from './components/BookingDetailModal';
+import React, { useState } from 'react';
+import { 
+  Calendar, 
+  ListTodo, 
+  Package, 
+  Building2,
+  Layers3,
+  ChevronDown,
+  Plus,
+  Zap,
+  Euro,
+  Settings
+} from 'lucide-react';
+import './index.css';
+import BookingCalendar from './components/BookingCalendar';
+import { ItemReservationManager } from './features/reservations/components/ItemReservationManager';
+import { BundleReservationManager } from './features/reservations/components/BundleReservationManager';
+
+import { EntitiesManager } from './components/EntitiesManager';
+import { useShopState } from './hooks/useShopState';
 import { Button } from './components/ui/Button';
 import { Card } from './components/ui/Card';
+import type { Item, Bundle } from './types';
+import { useEntitiesState } from './hooks/useEntitiesState';
 
-function App() {
-  const [activeTab, setActiveTab] = useState<'calendar' | 'bookings' | 'settings'>('calendar');
-  const [selectedShopId, setSelectedShopId] = useState<string>(mockShops[0].id);
-  const [showBookingForm, setShowBookingForm] = useState(false);
-  const [showBusinessHoursForm, setShowBusinessHoursForm] = useState(false);
-  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
-  const [showExceptionManager, setShowExceptionManager] = useState(false);
-  const [showAvailabilityManager, setShowAvailabilityManager] = useState(false);
-  const [showBookingDetail, setShowBookingDetail] = useState(false);
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [selectedKitFilter, setSelectedKitFilter] = useState<string>('all');
-  const [calendarView, setCalendarView] = useState<ViewType>('week');
-  const [calendarDate, setCalendarDate] = useState<Date>(new Date());
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+type ActiveTab = 'calendar' | 'items' | 'bundles' | 'entities-manager';
 
-  // Resetear filtro de kit cuando cambia el shop
-  useEffect(() => {
-    setSelectedKitFilter('all');
-  }, [selectedShopId]);
-
+const App: React.FC = () => {
   const {
-    bookings,
-    addBooking,
-    updateBooking,
-    convertBookingsToCalendarEvents,
-  } = useBookings();
+    selectedShop, 
+    selectedShopId, 
+    setSelectedShopId,
+    shopBundles,
+    shopStats,
+    shopItems
+  } = useShopState();
 
-  // Negocio seleccionado
-  const selectedShop = useMemo(() => 
-    mockShops.find(shop => shop.id === selectedShopId) || mockShops[0],
-    [selectedShopId]
-  );
+  const { getBundleWithContent, allItems, allShops } = useEntitiesState();
 
-  // Kits del negocio seleccionado
-  const shopKits = useMemo(() => 
-    mockKits.filter(kit => kit.shopId === selectedShopId),
-    [selectedShopId]
-  );
-
-  // Filtrar reservas por shop
-  const shopBookings = useMemo(() => 
-    bookings.filter(booking => booking.shopId === selectedShopId),
-    [bookings, selectedShopId]
-  );
-
-  // Convertir reservas a eventos de calendario
-  const calendarEvents: CalendarEvent[] = useMemo(() => 
-    convertBookingsToCalendarEvents(shopBookings, shopKits),
-    [shopBookings, shopKits, convertBookingsToCalendarEvents]
-  );
-
-
-
-  const handleCreateBooking = (data: BookingFormData) => {
-    const kit = shopKits.find(k => k.id === data.kitId);
-    if (kit) {
-      addBooking({
-        ...data,
-        kitName: kit.name,
-        shopId: selectedShopId,
-        status: 'PENDING',
-        isManual: true,
-      });
-      setShowBookingForm(false);
-    }
-  };
-
-  const handleUpdateBooking = (bookingId: string, updates: any) => {
-    updateBooking(bookingId, updates);
-  };
-
-  const handleBusinessHoursSubmit = (businessHours: BusinessHours[]) => {
-    console.log('Updating business hours:', businessHours);
-    // En un escenario real, aquí actualizarías el shop
-    setShowBusinessHoursForm(false);
-  };
-
-  const handleCalendarEventSelect = (event: CalendarEvent) => {
-    setSelectedBooking(event.resource);
-    setShowBookingDetail(true);
-  };
-
-  const handleCalendarSlotSelect = (slotInfo: { start: Date; end: Date }) => {
-    console.log('Selected slot:', slotInfo);
-    // Aquí podrías abrir el formulario de reserva con la fecha preseleccionada
-  };
-
-  const handleCalendarViewChange = (view: ViewType, date: Date) => {
-    setCalendarView(view);
-    setCalendarDate(date);
-  };
-
-  const getShopCategoryText = (shop: Shop) => {
-    switch (shop.id) {
-      case 'ab55132c-dcc8-40d6-9ac4-5f573285f55f':
-        return 'Ofertas y Descuentos • Relajación y bienestar';
-      case 'cb4813f2-3bb9-48d3-ae7d-a72eb1e1f4bf':
-        return 'Al mediodía • A la noche';
-      case '75cdf85a-67f9-40c4-9fc1-ee1019138bec':
-        return 'Al mediodía';
-      default:
-        return '';
-    }
-  };
+  const [activeTab, setActiveTab] = useState<ActiveTab>('calendar');
+  const [showShopSelector, setShowShopSelector] = useState(false);
+  
+  const [selectedItemForReservation, setSelectedItemForReservation] = useState<Item | null>(null);
+  const [selectedBundleForReservation, setSelectedBundleForReservation] = useState<Bundle | null>(null);
 
   const tabs = [
-    { id: 'calendar' as const, label: 'Calendario', icon: CalendarIcon },
-    { id: 'bookings' as const, label: 'Reservas', icon: Plus },
-    { id: 'settings' as const, label: 'Configuración', icon: Settings },
+    {
+      id: 'calendar' as const,
+      name: 'Calendario',
+      icon: Calendar,
+      description: 'Vista de calendario con reservas modernas'
+    },
+    {
+      id: 'items' as const,
+      name: 'Items',
+      icon: ListTodo,
+      description: 'Reservas individuales de items'
+    },
+    {
+      id: 'bundles' as const,
+      name: 'Bundles',
+      icon: Package,
+      description: 'Reservas de paquetes completos'
+    },
+    {
+      id: 'entities-manager' as const,
+      name: 'Crear Entidades',
+      icon: Settings,
+      description: 'Crear shops, bundles, items y extras'
+    }
   ];
 
-  return (
-    <div className="min-h-screen bg-gray-50 w-screen">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4 lg:py-6">
-            {/* Logo y título */}
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate">
-                Sistema de Reservas
+  const renderItemsTab = () => {
+    if (shopItems.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <ListTodo className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-600 mb-2">
+            No hay items disponibles
+          </h3>
+          <p className="text-gray-500">
+            El shop "{selectedShop.name}" no tiene items configurados.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                🎯 Items - {selectedShop.name}
               </h1>
-              
-              {/* Selector de Negocio - Desktop */}
-              <div className="hidden sm:flex items-center space-x-4 mt-2">
-                <div className="flex items-center space-x-2">
-                  <Building2 className="w-4 h-4 lg:w-5 lg:h-5 text-gray-500 flex-shrink-0" />
-                  <select
-                    value={selectedShopId}
-                    onChange={(e) => setSelectedShopId(e.target.value)}
-                    className="text-sm lg:text-lg font-medium text-gray-900 bg-transparent border-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1 min-w-0"
-                  >
-                    {mockShops.map((shop) => (
-                      <option key={shop.id} value={shop.id}>
-                        {shop.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              
-              {/* Información del negocio - Desktop */}
-              <p className="hidden lg:block text-gray-600 mt-1 truncate">
-                {selectedShop.address} • {getShopCategoryText(selectedShop)}
+              <p className="text-gray-600 mt-1">
+                {shopItems.length} items disponibles para reserva individual
               </p>
             </div>
-            
-            {/* Actions - Desktop */}
-            <div className="hidden lg:flex items-center space-x-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowGlobalSearch(true)}
-                className="flex items-center space-x-2"
-              >
-                <Search className="w-4 h-4" />
-                <span>Búsqueda</span>
-              </Button>
-              <Button
-                onClick={() => setShowBookingForm(true)}
-                className="flex items-center space-x-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden xl:inline">Nueva Reserva</span>
-                <span className="xl:hidden">Nueva</span>
-              </Button>
-            </div>
+          </div>
+        </div>
 
-            {/* Mobile menu button */}
-            <div className="lg:hidden">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2"
-              >
-                {isMobileMenuOpen ? (
-                  <X className="w-5 h-5" />
-                ) : (
-                  <Menu className="w-5 h-5" />
-                )}
-              </Button>
+        {/* Lista de Items */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {shopItems.map((item) => (
+            <Card key={item.id} className="hover:shadow-lg transition-shadow">
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      {item.title}
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-3">
+                      {item.description}
+                    </p>
+                  </div>
+                  {item.isPerGroup && (
+                    <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
+                      Por Grupo
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">Precio:</span>
+                    <span className="font-semibold text-gray-900 flex items-center">
+                      <Euro className="w-4 h-4 mr-1" />
+                      {item.price}
+                    </span>
+                  </div>
+                  
+                  {item.bookingConfig && (
+                    <>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">Capacidad:</span>
+                        <span className="text-gray-700">{item.bookingConfig.maxCapacity} personas</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">Duración:</span>
+                        <span className="text-gray-700">{item.bookingConfig.duration} min</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <Button
+                  onClick={() => setSelectedItemForReservation(item)}
+                  className="w-full"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Reservar Item
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderBundlesTab = () => {
+    if (shopBundles.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-600 mb-2">
+            No hay bundles disponibles
+          </h3>
+          <p className="text-gray-500">
+            El shop "{selectedShop.name}" no tiene bundles configurados.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                📦 Bundles - {selectedShop.name}
+              </h1>
+              <p className="text-gray-600 mt-1">
+                {shopBundles.length} paquetes disponibles con múltiples servicios
+              </p>
             </div>
           </div>
-
-          {/* Mobile menu */}
-          {isMobileMenuOpen && (
-            <div className="lg:hidden border-t bg-white">
-              {/* Selector de Negocio - Mobile */}
-              <div className="px-4 py-3 border-b">
-                <div className="flex items-center space-x-2">
-                  <Building2 className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                  <select
-                    value={selectedShopId}
-                    onChange={(e) => {
-                      setSelectedShopId(e.target.value);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="text-sm font-medium text-gray-900 bg-transparent border-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1 py-1 flex-1"
-                  >
-                    {mockShops.map((shop) => (
-                      <option key={shop.id} value={shop.id}>
-                        {shop.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <p className="text-xs text-gray-600 mt-1 truncate">
-                  {selectedShop.address}
-                </p>
-              </div>
-
-              {/* Mobile Actions */}
-              <div className="px-4 py-3 space-y-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowGlobalSearch(true);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full flex items-center justify-center space-x-2"
-                >
-                  <Search className="w-4 h-4" />
-                  <span>Búsqueda Global</span>
-                </Button>
-                <Button
-                  onClick={() => {
-                    setShowBookingForm(true);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full flex items-center justify-center space-x-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Nueva Reserva</span>
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
-      </header>
 
-      {/* Navigation Tabs */}
-      <nav className="bg-white border-b sticky top-0 z-40">
-        <div className="w-full px-4 sm:px-6 lg:px-8">
-          {/* Desktop tabs */}
-          <div className="hidden sm:flex space-x-8">
+        {/* Lista de Bundles */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {shopBundles.map((bundle) => {
+            const items = allItems.filter(i => bundle.itemIds.includes(i.id));
+            return (
+              <Card key={bundle.id} className="hover:shadow-lg transition-shadow">
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                        {bundle.name}
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-3">
+                        {bundle.description}
+                      </p>
+                    </div>
+                    {bundle.isFeatured && (
+                      <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded-full flex items-center">
+                        <Zap className="w-3 h-3 mr-1" />
+                        Destacado
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Precio base:</span>
+                      <span className="font-semibold text-gray-900 flex items-center">
+                        <Euro className="w-4 h-4 mr-1" />
+                        {bundle.basePrice}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Items incluidos:</span>
+                      <span className="text-gray-700">{items.length} servicios</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Capacidad máxima:</span>
+                      <span className="text-gray-700">{bundle.maxCapacity} personas</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Duración estimada:</span>
+                      <span className="text-gray-700">{bundle.duration} min</span>
+                    </div>
+                  </div>
+
+                  {/* Resumen de contenido */}
+                  <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Incluye:</h4>
+                    <div className="space-y-1">
+                      {items.slice(0, 3).map((item) => (
+                        <div key={item.id} className="text-xs text-gray-600 flex items-center">
+                          <div className="w-1.5 h-1.5 bg-blue-400 rounded-full mr-2"></div>
+                          {item.title} (€{item.price})
+                        </div>
+                      ))}
+                      {items.length > 3 && (
+                        <div className="text-xs text-gray-500">
+                          + {items.length - 3} servicios más...
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => setSelectedBundleForReservation(getBundleWithContent(bundle.id))}
+                    className="w-full"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Reservar Bundle
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'calendar':
+        return <BookingCalendar />;
+      case 'items':
+        return renderItemsTab();
+      case 'bundles':
+        return renderBundlesTab();
+      case 'entities-manager':
+        return <EntitiesManager />;
+      default:
+        return <BookingCalendar />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            {/* Logo y título */}
+            <div className="flex items-center space-x-4">
+              <div className="p-2 bg-blue-600 rounded-lg">
+                <Calendar className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">
+                  Celebrae Calendar System
+                </h1>
+            </div>
+            </div>
+
+            {/* Selector de Shop */}
+            <div className="relative">
+              <button
+                onClick={() => setShowShopSelector(!showShopSelector)}
+                className="flex items-center space-x-3 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <div className="flex items-center space-x-2">
+                  <Building2 className="w-4 h-4 text-gray-500" />
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedShop.name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {shopStats.totalReservations} reservas
+                    </p>
+                  </div>
+                </div>
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              </button>
+
+              {/* Dropdown del selector */}
+              {showShopSelector && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                  <div className="p-2">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide px-3 py-2">
+                      Cambiar Shop Activo
+                    </p>
+                    {allShops.map((shop) => (
+                      <button
+                        key={shop.id}
+                        onClick={() => {
+                          setSelectedShopId(shop.id);
+                          setShowShopSelector(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
+                          shop.id === selectedShopId
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'hover:bg-gray-50 text-gray-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{shop.name}</p>
+                            <p className="text-sm text-gray-500">{shop.address}</p>
+                          </div>
+                          {shop.id === selectedShopId && (
+                            <Layers3 className="w-4 h-4 text-blue-600" />
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+        </div>
+
+          {/* Navigation tabs */}
+          <nav className="flex space-x-8 py-4">
             {tabs.map((tab) => {
               const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors ${
-                    activeTab === tab.id
+                  className={`flex items-center space-x-2 px-1 py-4 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
+                    isActive
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
+                  title={tab.description}
                 >
                   <Icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
+                  <span>{tab.name}</span>
                 </button>
               );
             })}
-          </div>
-
-          {/* Mobile tabs */}
-          <div className="sm:hidden">
-            <div className="flex">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 py-3 px-2 border-b-2 font-medium text-xs flex flex-col items-center space-y-1 transition-colors ${
-                      activeTab === tab.id
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span className="truncate">{tab.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          </nav>
         </div>
-      </nav>
+      </header>
 
-      {/* Main Content */}
-      <main className="w-full px-4 sm:px-6 lg:px-8 py-4 lg:py-8">
-        {/* Estadísticas */}
-        <BookingStats 
-          bookings={shopBookings}
-          selectedKitId={selectedKitFilter}
-          selectedView={calendarView}
-          currentDate={calendarDate}
-          kits={shopKits}
-          className="mb-4 lg:mb-8" 
-        />
-
-        {/* Content based on active tab */}
-        {activeTab === 'calendar' && (
-          <div className="space-y-4 lg:space-y-8">
-            <BookingCalendar
-              events={calendarEvents}
-              kits={shopKits}
-              onSelectEvent={handleCalendarEventSelect}
-              onSelectSlot={handleCalendarSlotSelect}
-              selectedKitId={selectedKitFilter}
-              onKitFilter={setSelectedKitFilter}
-              onViewChange={handleCalendarViewChange}
-            />
-          </div>
-        )}
-
-        {activeTab === 'bookings' && (
-          <div className="space-y-4 lg:space-y-8">
-            <BookingList
-              bookings={shopBookings}
-              kits={shopKits}
-              onUpdateBooking={handleUpdateBooking}
-              onViewBooking={(booking) => {
-                setSelectedBooking(booking);
-                setShowBookingDetail(true);
-              }}
-            />
-          </div>
-        )}
-
-        {activeTab === 'settings' && (
-          <div className="space-y-4 lg:space-y-8 max-w-1/2">
-            <Card title="Configuración del Negocio">
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Información del Negocio
-                    </h3>
-                    <div className="space-y-2 text-sm">
-                      <p><span className="font-medium text-gray-900">Nombre:</span> <span className="text-gray-700">{selectedShop.name}</span></p>
-                      <p><span className="font-medium text-gray-900">Dirección:</span> <span className="text-gray-700">{selectedShop.address}</span></p>
-                      <p><span className="font-medium text-gray-900">Categorías:</span> <span className="text-gray-700">{getShopCategoryText(selectedShop)}</span></p>
-                      <p><span className="font-medium text-gray-900">Estado:</span> 
-                        <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
-                          selectedShop.shopStatus === 'ENABLED' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {selectedShop.shopStatus === 'ENABLED' ? 'Activo' : 'Inactivo'}
-                        </span>
-                      </p>
-                      <p><span className="font-medium text-gray-900">Servicios:</span> <span className="text-gray-700">{shopKits.length} kits disponibles</span></p>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Acciones Rápidas
-                    </h3>
-                    <div className="space-y-3">
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowBusinessHoursForm(true)}
-                        className="w-full flex items-center justify-center space-x-2"
-                      >
-                        <Calendar className="w-4 h-4" />
-                        <span>Configurar Horarios</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowExceptionManager(true)}
-                        className="w-full flex items-center justify-center space-x-2"
-                      >
-                        <AlertTriangle className="w-4 h-4" />
-                        <span>Gestionar Excepciones</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowAvailabilityManager(true)}
-                        className="w-full flex items-center justify-center space-x-2"
-                      >
-                        <Settings className="w-4 h-4" />
-                        <span>Disponibilidad Avanzada</span>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
+      {/* Main content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {renderTabContent()}
       </main>
 
-      {/* Modals */}
-      {showBookingForm && (
-        <BookingForm
-          kits={shopKits}
-          timeSlots={mockTimeSlots.filter(slot => 
-            shopKits.some(kit => kit.id === slot.kitId)
-          )}
-          existingBookings={shopBookings}
-          onSubmit={handleCreateBooking}
-          onCancel={() => setShowBookingForm(false)}
-        />
-      )}
-
-      {showBusinessHoursForm && (
-        <BusinessHoursForm
-          initialData={selectedShop.businessHours || []}
-          onSubmit={handleBusinessHoursSubmit}
-          onCancel={() => setShowBusinessHoursForm(false)}
-        />
-      )}
-
-      {showGlobalSearch && (
-        <GlobalSearch
-          kits={mockKits}
-          onClose={() => setShowGlobalSearch(false)}
-        />
-      )}
-
-      {showExceptionManager && (
-        <ExceptionManager
-          shopId={selectedShopId}
-          kits={shopKits}
-          onClose={() => setShowExceptionManager(false)}
-        />
-      )}
-
-      {showAvailabilityManager && (
-        <AvailabilityManager
-          shopId={selectedShopId}
-          kits={shopKits}
-          onClose={() => setShowAvailabilityManager(false)}
-        />
-      )}
-
-      {showBookingDetail && selectedBooking && (
-        <BookingDetailModal
-          booking={selectedBooking}
-          kit={shopKits.find(kit => kit.id === selectedBooking.kitId)}
-          onClose={() => {
-            setShowBookingDetail(false);
-            setSelectedBooking(null);
+      {selectedItemForReservation && (
+        <ItemReservationManager
+          item={selectedItemForReservation}
+          onReservationCreated={(reservationId) => {
+            console.log('Item reservation created:', reservationId);
+            setSelectedItemForReservation(null);
           }}
-          onUpdateBooking={handleUpdateBooking}
+          onClose={() => setSelectedItemForReservation(null)}
+        />
+      )}
+
+      {selectedBundleForReservation && (
+        <BundleReservationManager
+          bundle={selectedBundleForReservation}
+          onReservationCreated={(reservationId) => {
+            console.log('Bundle reservation created:', reservationId);
+            setSelectedBundleForReservation(null);
+          }}
+          onClose={() => setSelectedBundleForReservation(null)}
+        />
+      )}
+
+      {/* Click outside handler para cerrar el selector */}
+      {showShopSelector && (
+        <div
+          className="fixed inset-0 z-30"
+          onClick={() => setShowShopSelector(false)}
         />
       )}
     </div>
   );
-}
+};
 
 export default App;
