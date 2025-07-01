@@ -49,7 +49,6 @@ const validateGroupItem = (
  */
 export const validateBundleReservation = (
   request: CreateReservaBundleRequest,
-  currentUserId: string = "87IZYWdezwJQsILiU57z",
   reservasItems: ReservaItem[] = [],
   allBundles?: Bundle[],
   allItems?: any[],
@@ -211,7 +210,7 @@ export const useCreateBundleReservation = () => {
   return async (request: CreateReservaBundleRequest, currentUserId: string = "87IZYWdezwJQsILiU57z") => {
     console.log(`🎯 Creando reserva de bundle completo (simplificado):`, request);
     // Validar la reserva primero
-    const validation = validateBundleReservation(request, currentUserId, reservasItems, allBundles, allItems, allShops);
+    const validation = validateBundleReservation(request, reservasItems, allBundles, allItems, allShops);
     if (!validation.isValid) {
       return {
         success: false,

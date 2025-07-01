@@ -219,19 +219,19 @@ export const ReservationDetailPanel: React.FC<ReservationDetailPanelProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-gray-500">Creada:</span>
-                  <p className="font-medium">{formatDateTime(reservation.createdAt)}</p>
+                  <p className="font-medium text-gray-900">{formatDateTime(reservation.createdAt)}</p>
                 </div>
                 <div>
                   <span className="text-gray-500">Actualizada:</span>
-                  <p className="font-medium">{formatDateTime(reservation.updatedAt)}</p>
+                  <p className="font-medium text-gray-900">{formatDateTime(reservation.updatedAt)}</p>
                 </div>
                 <div>
                   <span className="text-gray-500">ID de Reserva:</span>
-                  <p className="font-medium font-mono text-xs">{reservation.id}</p>
+                  <p className="font-medium font-mono text-xs text-gray-900">{reservation.id}</p>
                 </div>
                 <div>
                   <span className="text-gray-500">Creada por:</span>
-                  <p className="font-medium">{reservation.createdBy}</p>
+                  <p className="font-medium text-gray-900">{reservation.createdBy}</p>
                 </div>
               </div>
             </div>

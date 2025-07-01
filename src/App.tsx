@@ -20,8 +20,9 @@ import { Button } from './components/ui/Button';
 import { Card } from './components/ui/Card';
 import type { Bundle } from './types';
 import { useEntitiesState } from './hooks/useEntitiesState';
+import { ReservationsManager } from './components/ReservationsManager';
 
-type ActiveTab = 'calendar' | 'bundles' | 'entities-manager';
+type ActiveTab = 'calendar' | 'reservations' | 'bundles' | 'entities-manager';
 
 const App: React.FC = () => {
   const {
@@ -45,6 +46,12 @@ const App: React.FC = () => {
       name: 'Calendario',
       icon: Calendar,
       description: 'Vista de calendario con reservas modernas'
+    },
+    {
+      id: 'reservations' as const,
+      name: 'Reservas',
+      icon: Layers3,
+      description: 'Gestión centralizada de reservas por shop'
     },
     {
       id: 'bundles' as const,
@@ -175,6 +182,8 @@ const App: React.FC = () => {
     switch (activeTab) {
       case 'calendar':
         return <BookingCalendar />;
+      case 'reservations':
+        return <ReservationsManager />;
       case 'bundles':
         return renderBundlesTab();
       case 'entities-manager':

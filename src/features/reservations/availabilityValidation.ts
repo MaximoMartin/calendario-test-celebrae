@@ -1,15 +1,10 @@
 import type { 
   ReservaItem, 
-  CreateReservaItemRequest, 
   ItemAvailability, 
-  ItemAvailabilityValidation,
   Item,
   Shop,
   BusinessHours
 } from '../../types';
-import { RESERVATION_CONFIG } from './types';
-import { useReservations } from './mockData';
-import { useEntitiesState } from '../../hooks/useEntitiesState';
 import { 
   createDateFromString, 
   getDayOfWeek, 
@@ -342,17 +337,6 @@ const timeSlotsOverlap = (
   
   return start1 < end2 && start2 < end1;
 };
-
-const isValidTimeSlot = (timeSlot: { startTime: string; endTime: string }): boolean => {
-  const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-  
-  if (!timeRegex.test(timeSlot.startTime) || !timeRegex.test(timeSlot.endTime)) {
-    return false;
-  }
-  
-  return timeSlot.startTime < timeSlot.endTime;
-};
-
 /**
  * Convierte una hora en formato "HH:mm" a minutos desde medianoche
  */
