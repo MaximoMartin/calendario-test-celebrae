@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Calendar, Clock, Users, AlertCircle, CheckCircle, Info } from 'lucide-react';
-import type { Item, CreateReservaItemRequest, ItemAvailability } from '../../../types';
+import { Calendar, Clock, AlertCircle, CheckCircle, Info } from 'lucide-react';
+import type { Item, CreateReservaItemRequest } from '../../../types';
 import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
 import { Input } from '../../../components/ui/Input';
@@ -46,8 +46,8 @@ export const ItemReservationManager: React.FC<ItemReservationManagerProps> = ({
 
   const availableSlots = useMemo(() => {
     console.log(`🔄 Recalculando slots para ${item.id} en ${currentDate}`);
-    return getAvailableSlotsForItem(item.id, currentDate, allItems, allShops);
-  }, [item.id, currentDate, allItems, allShops]);
+    return getAvailableSlotsForItem(item.id, currentDate, allItems, allShops, reservasItems);
+  }, [item.id, currentDate, allItems, allShops, reservasItems]);
 
   const shopBusinessHours = useMemo(() => {
     return getShopBusinessHoursForDate(item.shopId, currentDate, allShops);
@@ -81,11 +81,6 @@ export const ItemReservationManager: React.FC<ItemReservationManagerProps> = ({
     setSelectedTimeSlot(null);
     setErrorMessage('');
     setSuccessMessage('');
-  };
-
-  const handleTimeSlotSelect = (timeSlot: { startTime: string; endTime: string }) => {
-    setSelectedTimeSlot(timeSlot);
-    setErrorMessage('');
   };
 
   const handleCreateReservation = async () => {
@@ -136,16 +131,6 @@ export const ItemReservationManager: React.FC<ItemReservationManagerProps> = ({
     } finally {
       setIsCreatingReservation(false);
     }
-  };
-
-  const getSlotColor = (availability: ItemAvailability) => {
-    if (!availability.isAvailable) {
-      return 'bg-red-100 border-red-200 text-red-800 cursor-not-allowed';
-    }
-    if (availability.availableSpots <= 2) {
-      return 'bg-yellow-100 border-yellow-200 text-yellow-800 hover:bg-yellow-200 cursor-pointer';
-    }
-    return 'bg-green-100 border-green-200 text-green-800 hover:bg-green-200 cursor-pointer';
   };
 
   // Fecha mínima (mañana)
@@ -236,50 +221,34 @@ export const ItemReservationManager: React.FC<ItemReservationManagerProps> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Horarios disponibles
                   </label>
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {availableSlots.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">
-                        <Clock className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                        <p>No hay horarios disponibles para esta fecha</p>
-                      </div>
-                    ) : (
-                      availableSlots.map(({ timeSlot, availability }, index) => (
-                        <div
-                          key={index}
-                          className={`p-3 border rounded-lg transition-colors ${getSlotColor(availability)} ${
-                            selectedTimeSlot?.startTime === timeSlot.startTime ? 'ring-2 ring-blue-500' : ''
-                          }`}
-                          onClick={() => availability.isAvailable && handleTimeSlotSelect(timeSlot)}
+                  {availableSlots.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Clock className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                      <p>No hay horarios disponibles para esta fecha</p>
+                    </div>
+                  ) : (
+                    <select
+                      className="w-full border rounded-md p-2 text-sm"
+                      value={selectedTimeSlot ? `${selectedTimeSlot.startTime}-${selectedTimeSlot.endTime}` : ''}
+                      onChange={e => {
+                        const val = e.target.value;
+                        const slot = availableSlots.find(s => `${s.timeSlot.startTime}-${s.timeSlot.endTime}` === val);
+                        setSelectedTimeSlot(slot ? slot.timeSlot : null);
+                        setErrorMessage('');
+                      }}
+                    >
+                      <option value="">Selecciona un horario...</option>
+                      {availableSlots.map(({ timeSlot, availability }, idx) => (
+                        <option
+                          key={idx}
+                          value={`${timeSlot.startTime}-${timeSlot.endTime}`}
+                          disabled={!availability.isAvailable}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                              <Clock className="w-4 h-4" />
-                              <span className="font-medium">
-                                {timeSlot.startTime} - {timeSlot.endTime}
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-2 text-xs">
-                              <Users className="w-3 h-3" />
-                              <span>
-                                {availability.isAvailable 
-                                  ? `${availability.availableSpots}/${availability.totalSpots} disponibles`
-                                  : 'No disponible'
-                                }
-                              </span>
-                            </div>
-                          </div>
-                          {!availability.isAvailable && (
-                            <p className="text-xs mt-1 opacity-75">
-                              {availability.blockingReason === 'FULLY_BOOKED' 
-                                ? 'Completamente reservado' 
-                                : 'No disponible'
-                              }
-                            </p>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
+                          {`${timeSlot.startTime} - ${timeSlot.endTime} (${availability.availableSpots}/${availability.totalSpots} disponibles)`}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
 

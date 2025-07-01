@@ -379,7 +379,8 @@ export const getAvailableSlotsForItem = (
   itemId: string,
   date: string,
   allItems?: any[],
-  allShops?: Shop[]
+  allShops?: Shop[],
+  reservasItems: ReservaItem[] = []
 ): Array<{ 
   timeSlot: { startTime: string; endTime: string }; 
   availability: ItemAvailability;
@@ -452,9 +453,8 @@ export const getAvailableSlotsForItem = (
         startTime: slot.startTime,
         endTime: slot.endTime
       };
-      
-      const availability = getItemAvailability(itemId, date, timeSlot, [], allItems, allShops);
-      
+      // Usar reservasItems real
+      const availability = getItemAvailability(itemId, date, timeSlot, reservasItems, allItems, allShops);
       return {
         timeSlot,
         availability

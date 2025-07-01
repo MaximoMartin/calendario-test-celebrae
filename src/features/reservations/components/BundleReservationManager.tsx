@@ -7,6 +7,8 @@ import { Input } from '../../../components/ui/Input';
 import { useCreateBundleReservation } from '../bundleValidation';
 import { formatDate } from '../../../utils/dateHelpers';
 import { useEntitiesState } from '../../../hooks/useEntitiesState';
+import { getAvailableSlotsForItem } from '../availabilityValidation';
+import { useReservations } from '../mockData';
 
 interface BundleReservationManagerProps {
   bundle: Bundle;
@@ -34,7 +36,7 @@ export const BundleReservationManager: React.FC<BundleReservationManagerProps> =
   onReservationCreated,
   onClose
 }) => {
-  const { allItems, allExtras } = useEntitiesState();  
+  const { allItems, allExtras, allShops } = useEntitiesState();  
   const bundleItems = allItems.filter(item => item.bundleId === bundle.id);
   const bundleExtras = allExtras.filter(extra => extra.bundleId === bundle.id);
 
@@ -49,6 +51,7 @@ export const BundleReservationManager: React.FC<BundleReservationManagerProps> =
   const [errorMessage, setErrorMessage] = useState('');
 
   const createBundleReservation = useCreateBundleReservation();
+  const { reservasItems } = useReservations();
 
   const handleAddItem = (itemId: string) => {
     const item = bundleItems.find(i => i.id === itemId);
@@ -253,25 +256,33 @@ export const BundleReservationManager: React.FC<BundleReservationManagerProps> =
                                       <label className="block text-xs font-medium text-blue-700 mb-1">
                                         Horario
                                       </label>
-                                      <div className="flex gap-2">
-                                        <Input
-                                          type="time"
-                                          value={selectedItem.timeSlot.startTime}
-                                          onChange={(e) => handleUpdateItem(index, { 
-                                            timeSlot: { ...selectedItem.timeSlot, startTime: e.target.value }
-                                          })}
-                                          className="text-xs"
-                                        />
-                                        <span className="text-xs text-blue-600 self-center">a</span>
-                                        <Input
-                                          type="time"
-                                          value={selectedItem.timeSlot.endTime}
-                                          onChange={(e) => handleUpdateItem(index, { 
-                                            timeSlot: { ...selectedItem.timeSlot, endTime: e.target.value }
-                                          })}
-                                          className="text-xs"
-                                        />
-                                      </div>
+                                      {(() => {
+                                        const availableSlots = getAvailableSlotsForItem(selectedItem.itemId, selectedItem.date, allItems, allShops, reservasItems);
+                                        return availableSlots.length === 0 ? (
+                                          <div className="text-xs text-gray-500 py-2">No hay horarios disponibles para esta fecha</div>
+                                        ) : (
+                                          <select
+                                            className="w-full border rounded-md p-2 text-xs"
+                                            value={`${selectedItem.timeSlot.startTime}-${selectedItem.timeSlot.endTime}`}
+                                            onChange={e => {
+                                              const val = e.target.value;
+                                              const slot = availableSlots.find(s => `${s.timeSlot.startTime}-${s.timeSlot.endTime}` === val);
+                                              handleUpdateItem(index, { timeSlot: slot ? slot.timeSlot : { startTime: '', endTime: '' } });
+                                            }}
+                                          >
+                                            <option value="">Selecciona un horario...</option>
+                                            {availableSlots.map(({ timeSlot, availability }, idx) => (
+                                              <option
+                                                key={idx}
+                                                value={`${timeSlot.startTime}-${timeSlot.endTime}`}
+                                                disabled={!availability.isAvailable}
+                                              >
+                                                {`${timeSlot.startTime} - ${timeSlot.endTime} (${availability.availableSpots}/${availability.totalSpots} disponibles)`}
+                                              </option>
+                                            ))}
+                                          </select>
+                                        );
+                                      })()}
                                     </div>
                                   </div>
                                 );
