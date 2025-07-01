@@ -323,7 +323,7 @@ export interface ItemAvailability {
 }
 
 /**
- * Solicitud de creación de reserva
+ * CreateReservaItemRequest - SOLO se usa para validar items dentro de una reserva de bundle. No se expone para reservas individuales.
  */
 export interface CreateReservaItemRequest {
   itemId: string;
@@ -343,7 +343,7 @@ export interface CreateReservaItemRequest {
 }
 
 /**
- * Resultado de validación de disponibilidad
+ * ItemAvailabilityValidation - SOLO se usa para validar items dentro de bundles. No se expone para reservas individuales.
  */
 export interface ItemAvailabilityValidation {
   isValid: boolean;

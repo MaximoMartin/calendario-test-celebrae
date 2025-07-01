@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { 
   Calendar, 
-  ListTodo, 
   Package, 
   Building2,
   Layers3,
@@ -13,17 +12,16 @@ import {
 } from 'lucide-react';
 import './index.css';
 import BookingCalendar from './components/BookingCalendar';
-import { ItemReservationManager } from './features/reservations/components/ItemReservationManager';
 import { BundleReservationManager } from './features/reservations/components/BundleReservationManager';
 
 import { EntitiesManager } from './components/EntitiesManager';
 import { useShopState } from './hooks/useShopState';
 import { Button } from './components/ui/Button';
 import { Card } from './components/ui/Card';
-import type { Item, Bundle } from './types';
+import type { Bundle } from './types';
 import { useEntitiesState } from './hooks/useEntitiesState';
 
-type ActiveTab = 'calendar' | 'items' | 'bundles' | 'entities-manager';
+type ActiveTab = 'calendar' | 'bundles' | 'entities-manager';
 
 const App: React.FC = () => {
   const {
@@ -32,7 +30,6 @@ const App: React.FC = () => {
     setSelectedShopId,
     shopBundles,
     shopStats,
-    shopItems
   } = useShopState();
 
   const { getBundleWithContent, allItems, allShops } = useEntitiesState();
@@ -40,7 +37,6 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('calendar');
   const [showShopSelector, setShowShopSelector] = useState(false);
   
-  const [selectedItemForReservation, setSelectedItemForReservation] = useState<Item | null>(null);
   const [selectedBundleForReservation, setSelectedBundleForReservation] = useState<Bundle | null>(null);
 
   const tabs = [
@@ -49,12 +45,6 @@ const App: React.FC = () => {
       name: 'Calendario',
       icon: Calendar,
       description: 'Vista de calendario con reservas modernas'
-    },
-    {
-      id: 'items' as const,
-      name: 'Items',
-      icon: ListTodo,
-      description: 'Reservas individuales de items'
     },
     {
       id: 'bundles' as const,
@@ -69,96 +59,6 @@ const App: React.FC = () => {
       description: 'Crear shops, bundles, items y extras'
     }
   ];
-
-  const renderItemsTab = () => {
-    if (shopItems.length === 0) {
-      return (
-        <div className="text-center py-12">
-          <ListTodo className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-600 mb-2">
-            No hay items disponibles
-          </h3>
-          <p className="text-gray-500">
-            El shop "{selectedShop.name}" no tiene items configurados.
-          </p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                🎯 Items - {selectedShop.name}
-              </h1>
-              <p className="text-gray-600 mt-1">
-                {shopItems.length} items disponibles para reserva individual
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Lista de Items */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {shopItems.map((item) => (
-            <Card key={item.id} className="hover:shadow-lg transition-shadow">
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      {item.title}
-                    </h3>
-                    <p className="text-sm text-gray-600 mb-3">
-                      {item.description}
-                    </p>
-                  </div>
-                  {item.isPerGroup && (
-                    <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
-                      Por Grupo
-                    </span>
-                  )}
-                </div>
-
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Precio:</span>
-                    <span className="font-semibold text-gray-900 flex items-center">
-                      <Euro className="w-4 h-4 mr-1" />
-                      {item.price}
-                    </span>
-                  </div>
-                  
-                  {item.bookingConfig && (
-                    <>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-500">Capacidad:</span>
-                        <span className="text-gray-700">{item.bookingConfig.maxCapacity} personas</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-500">Duración:</span>
-                        <span className="text-gray-700">{item.bookingConfig.duration} min</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                <Button
-                  onClick={() => setSelectedItemForReservation(item)}
-                  className="w-full"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Reservar Item
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  };
 
   const renderBundlesTab = () => {
     if (shopBundles.length === 0) {
@@ -275,8 +175,6 @@ const App: React.FC = () => {
     switch (activeTab) {
       case 'calendar':
         return <BookingCalendar />;
-      case 'items':
-        return renderItemsTab();
       case 'bundles':
         return renderBundlesTab();
       case 'entities-manager':
@@ -390,17 +288,6 @@ const App: React.FC = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {renderTabContent()}
       </main>
-
-      {selectedItemForReservation && (
-        <ItemReservationManager
-          item={selectedItemForReservation}
-          onReservationCreated={(reservationId) => {
-            console.log('Item reservation created:', reservationId);
-            setSelectedItemForReservation(null);
-          }}
-          onClose={() => setSelectedItemForReservation(null)}
-        />
-      )}
 
       {selectedBundleForReservation && (
         <BundleReservationManager

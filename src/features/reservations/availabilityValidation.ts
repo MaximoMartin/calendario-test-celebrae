@@ -17,6 +17,8 @@ import {
   getDayNameInSpanish 
 } from '../../utils/dateHelpers';
 
+// NOTA: Todas las funciones de validación de items y disponibilidad solo se usan para validar los items seleccionados dentro de una reserva de bundle. No existe reserva individual de items.
+
 export const getItemAvailability = (
   itemId: string,
   date: string,
@@ -240,141 +242,6 @@ export const getItemAvailability = (
   };
 };
 
-export const validateItemReservation = (
-  request: CreateReservaItemRequest,
-  _currentUserId: string = "87IZYWdezwJQsILiU57z",
-  reservasItems: ReservaItem[],
-  allItems?: any[],
-  allShops?: Shop[]
-): ItemAvailabilityValidation => {
-  console.log(`🔍 Validando solicitud de reserva:`, request);
-  
-  const errors: string[] = [];
-  const warnings: string[] = [];
-
-  // Buscar el item para obtener información específica
-  const item = allItems?.find(i => i.id === request.itemId);
-  if (!item) {
-    errors.push('El item seleccionado no existe');
-    return {
-      isValid: false,
-      availability: {
-        itemId: request.itemId,
-        date: request.date,
-        timeSlot: request.timeSlot,
-        isAvailable: false,
-        availableSpots: 0,
-        totalSpots: 0,
-        conflictingReservations: [],
-        blockingReason: 'ITEM_INACTIVE'
-      },
-      errors,
-      warnings
-    };
-  }
-
-  // Buscar el shop para validaciones específicas
-  const shop = allShops?.find(s => s.id === item.shopId);
-  if (!shop) {
-    errors.push('No se encontró información del negocio');
-    return {
-      isValid: false,
-      availability: {
-        itemId: request.itemId,
-        date: request.date,
-        timeSlot: request.timeSlot,
-        isAvailable: false,
-        availableSpots: 0,
-        totalSpots: 0,
-        conflictingReservations: [],
-        blockingReason: 'ITEM_INACTIVE'
-      },
-      errors,
-      warnings
-    };
-  }
-
-  const requestDate = createDateFromString(request.date);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  if (requestDate < today) {
-    errors.push('No se pueden hacer reservas para fechas pasadas');
-  }
-
-  if (request.numberOfPeople < 1) {
-    errors.push('Debe reservar para al menos 1 persona');
-  }
-
-  // Usar la capacidad real del item
-  const maxCapacity = item.bookingConfig?.maxCapacity || 10;
-  if (request.numberOfPeople > maxCapacity) {
-    errors.push(`Máximo ${maxCapacity} personas permitidas para "${item.title}"`);
-  }
-
-  if (!isValidTimeSlot(request.timeSlot)) {
-    errors.push('Horario inválido');
-  }
-
-  // === VALIDACIÓN PRINCIPAL: Disponibilidad ===
-  const availability = getItemAvailability(request.itemId, request.date, request.timeSlot, reservasItems, allItems, allShops);
-  
-  if (!availability.isAvailable) {
-    switch (availability.blockingReason) {
-      case 'FULLY_BOOKED':
-        errors.push(`No hay espacios disponibles en el horario ${request.timeSlot.startTime}-${request.timeSlot.endTime}`);
-        break;
-      case 'ITEM_INACTIVE':
-        errors.push(`El item "${item.title}" no está disponible actualmente`);
-        break;
-      case 'BUSINESS_HOURS':
-        // Proporcionar mensaje más específico
-        const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-        const dayOfWeek = requestDate.getDay();
-        const dayName = dayNames[dayOfWeek];
-        
-        // Verificar si el shop está cerrado ese día
-        const shopDayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const shopDayName = shopDayNames[dayOfWeek] as keyof typeof shop.businessHours;
-        const shopDaySchedule = shop.businessHours[shopDayName];
-        
-        if (!shopDaySchedule.openRanges || shopDaySchedule.openRanges.length === 0) {
-          errors.push(`El negocio "${shop.name}" está cerrado los ${dayName}s`);
-        } else {
-          const shopHours = shopDaySchedule.openRanges.map(r => `${r.from}-${r.to}`).join(', ');
-          errors.push(`El horario ${request.timeSlot.startTime}-${request.timeSlot.endTime} está fuera del horario de atención del negocio (${shopHours})`);
-        }
-        break;
-      case 'ADVANCE_BOOKING':
-        errors.push('No se puede reservar con tan poca anticipación');
-        break;
-      default:
-        errors.push('Horario no disponible');
-    }
-  } else if (availability.availableSpots < request.numberOfPeople) {
-    errors.push(`Solo quedan ${availability.availableSpots} espacios disponibles para "${item.title}", pero solicitaste ${request.numberOfPeople}`);
-  }
-
-  // Advertencias
-  if (availability.availableSpots > 0 && availability.availableSpots <= 2) {
-    warnings.push(`Quedan pocos espacios disponibles (${availability.availableSpots}) para "${item.title}"`);
-  }
-
-  // Advertencia si el item requiere confirmación
-  if (item.bookingConfig?.requiresConfirmation) {
-    warnings.push('Esta reserva requiere confirmación del negocio');
-  }
-
-  const isValid = errors.length === 0;
-
-  return {
-    isValid,
-    availability,
-    errors,
-    warnings
-  };
-};
-
 export const getAvailableSlotsForItem = (
   itemId: string,
   date: string,
@@ -462,68 +329,6 @@ export const getAvailableSlotsForItem = (
     });
 
   return availableSlots.sort((a: { timeSlot: { startTime: string } }, b: { timeSlot: { startTime: string } }) => a.timeSlot.startTime.localeCompare(b.timeSlot.startTime));
-};
-
-export const useCreateItemReservation = () => {
-  const { reservasItems, setReservasItems } = useReservations();
-  const { allItems, allBundles, allShops } = useEntitiesState();
-
-  return (request: CreateReservaItemRequest, currentUserId: string = "87IZYWdezwJQsILiU57z") => {
-    // Buscar el item real
-    const item = allItems.find((i: any) => i.id === request.itemId);
-    if (!item) {
-      return {
-        success: false,
-        errors: ['El item seleccionado no existe en el sistema.']
-      };
-    }
-    // Buscar el bundle real
-    const bundle = allBundles.find((b: any) => b.id === item.bundleId);
-    if (!bundle) {
-      return {
-        success: false,
-        errors: ['No se encontró el bundle asociado a este item.']
-      };
-    }
-    const validation = validateItemReservation(request, currentUserId, reservasItems, allItems, allShops);
-    if (!validation.isValid) {
-      return {
-        success: false,
-        errors: validation.errors
-      };
-    }
-    const price = item.price;
-    const nuevaReserva: ReservaItem = {
-      id: `reserva_item_${Date.now()}`,
-      itemId: item.id,
-      bundleId: bundle.id,
-      shopId: bundle.shopId,
-      userId: currentUserId,
-      customerInfo: request.customerInfo,
-      date: request.date,
-      timeSlot: request.timeSlot,
-      numberOfPeople: request.numberOfPeople,
-      status: request.isTemporary ? 'PENDING' : 'CONFIRMED',
-      isTemporary: request.isTemporary || false,
-      temporaryExpiresAt: request.isTemporary 
-        ? new Date(Date.now() + RESERVATION_CONFIG.TEMPORARY_RESERVATION_MINUTES * 60000).toISOString()
-        : undefined,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      createdBy: 'SELLER',
-      notes: request.notes,
-      itemPrice: price,
-      totalPrice: price * request.numberOfPeople,
-      isGroupReservation: false,
-      groupSize: request.numberOfPeople
-    };
-    setReservasItems((prev: any) => [...prev, nuevaReserva]);
-    return {
-      success: true,
-      reserva: nuevaReserva,
-      errors: []
-    };
-  };
 };
 
 const timeSlotsOverlap = (

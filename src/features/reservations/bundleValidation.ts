@@ -4,11 +4,10 @@ import type {
   ExtraValidation,
   ReservaBundle,
   Bundle,
-  CreateReservaItemRequest,
   GroupValidation,
   ReservaItem
 } from '../../types';
-import { validateItemReservation, isShopOpenOnDate } from './availabilityValidation';
+import { isShopOpenOnDate, getItemAvailability } from './availabilityValidation';
 import { useReservations } from './mockData';
 import { useEntitiesState } from '../../hooks/useEntitiesState';
 
@@ -99,18 +98,21 @@ export const validateBundleReservation = (
 
   // 4. Validar cada item individualmente (reutiliza lógica existente)
   const itemValidations = request.itemReservations.map(itemReq => {
-    const itemRequest: CreateReservaItemRequest = {
-      itemId: itemReq.itemId,
-      date: itemReq.date,
-      timeSlot: itemReq.timeSlot,
-      numberOfPeople: itemReq.numberOfPeople,
-      customerInfo: request.customerInfo,
-      notes: request.notes,
-      isTemporary: request.isTemporary
+    const availability = getItemAvailability(
+      itemReq.itemId,
+      itemReq.date,
+      itemReq.timeSlot,
+      reservasItems,
+      allItems,
+      allShops
+    );
+    const isValid = availability.isAvailable;
+    return {
+      isValid,
+      availability,
+      errors: isValid ? [] : [availability.blockingReason || 'No disponible'],
+      warnings: []
     };
-    
-    console.log(`🔍 Validando item ${itemReq.itemId} dentro del bundle`);
-    return validateItemReservation(itemRequest, currentUserId, reservasItems, allItems, allShops);
   });
 
   // 5. Validar extras (simplificado)
