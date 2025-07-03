@@ -29,8 +29,6 @@ export const EntitiesManager: React.FC = () => {
   const { 
     allShops, 
     allBundles, 
-    allItems, 
-    allExtras, 
     dynamicEntitiesCount 
   } = useEntitiesState();
   const { selectedShopId, selectedShop } = useShopState();
@@ -74,6 +72,10 @@ export const EntitiesManager: React.FC = () => {
 
   // Obtener bundles del shop seleccionado
   const shopBundles = allBundles.filter(bundle => bundle.shopId === selectedShopId);
+  
+  // Calcular totales de items y extras embebidos
+  const allItems = allBundles.flatMap(bundle => bundle.items);
+  const allExtras = allBundles.flatMap(bundle => bundle.extras);
   
   // Renderizar formulario activo
   if (activeForm === 'shop') {
@@ -310,7 +312,7 @@ export const EntitiesManager: React.FC = () => {
           
           <div className="space-y-3">
             {shopBundles.map(bundle => {
-              const bundleItems = allItems.filter(item => item.bundleId === bundle.id);
+              const bundleItems = bundle.items;
               
               return (
                 <div key={bundle.id} className="p-4 border border-gray-200 rounded-lg">

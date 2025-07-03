@@ -20,33 +20,35 @@ import type { ReservaItem } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useEntitiesState } from '../hooks/useEntitiesState';
+import { useReservations } from '../features/reservations/mockData';
+import { formatReservationStatus } from '../utils/formatHelpers';
 
 interface ReservationDetailPanelProps {
   reservation: ReservaItem;
   onClose: () => void;
   onEdit?: (reservation: ReservaItem) => void;
   onManage?: (reservation: ReservaItem) => void;
+  onNavigateToReservation?: (reservationId: string) => void;
 }
 
 export const ReservationDetailPanel: React.FC<ReservationDetailPanelProps> = ({
   reservation,
   onClose,
   onEdit,
-  onManage
+  onManage,
+  onNavigateToReservation
 }) => {
-  const { allBundles, allItems } = useEntitiesState();
+  const { allBundles } = useEntitiesState();
+  const { reservasItems } = useReservations() ? useReservations() : { reservasItems: [] };
   
-  const getBundleName = (bundleId: string) => {
-    return allBundles.find(bundle => bundle.id === bundleId)?.name || 'Bundle Desconocido';
+  const getBundle = (bundleId: string) => allBundles.find(bundle => bundle.id === bundleId);
+  const getBundleName = (bundleId: string) => getBundle(bundleId)?.name || 'Bundle Desconocido';
+  const getItemFromBundle = (bundleId: string, itemId: string) => {
+    const bundle = getBundle(bundleId);
+    return bundle?.items.find(item => item.id === itemId);
   };
-
-  const getItemName = (itemId: string) => {
-    return allItems.find(item => item.id === itemId)?.title || 'Item Desconocido';
-  };
-
-  const getItemDescription = (itemId: string) => {
-    return allItems.find(item => item.id === itemId)?.description || '';
-  };
+  const getItemName = (bundleId: string, itemId: string) => getItemFromBundle(bundleId, itemId)?.title || 'Item Desconocido';
+  const getItemDescription = (bundleId: string, itemId: string) => getItemFromBundle(bundleId, itemId)?.description || '';
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -89,10 +91,62 @@ export const ReservationDetailPanel: React.FC<ReservationDetailPanelProps> = ({
     return date.toLocaleString('es-ES');
   };
 
+  // Buscar reserva anterior/siguiente si corresponde
+  const previousReservation = reservation.originalReservationId
+    ? reservasItems?.find((r: ReservaItem) => r.id === reservation.originalReservationId)
+    : null;
+  const nextReservation = reservation.rescheduledToReservationId
+    ? reservasItems?.find((r: ReservaItem) => r.id === reservation.rescheduledToReservationId)
+    : null;
+
+  // Buscar motivo y fecha de reprogramación en el historial
+  const rescheduleHistory = (reservation.history || []).filter(h => h.action === 'MODIFIED' && h.details?.reason);
+  const lastReschedule = rescheduleHistory.length > 0 ? rescheduleHistory[rescheduleHistory.length - 1] : null;
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <Card>
+          {/* Banner de trazabilidad de reprogramación */}
+          {(reservation.originalReservationId || reservation.rescheduledToReservationId) && (
+            <div className="p-4 mb-4 rounded-lg border-l-4 border-purple-500 bg-purple-50 flex items-center gap-4">
+              <AlertTriangle className="w-6 h-6 text-purple-600" />
+              <div className="flex-1">
+                {reservation.originalReservationId && previousReservation && (
+                  <div className="text-sm text-purple-800">
+                    <strong>Esta reserva es una reprogramación</strong> de la reserva
+                    <button
+                      className="ml-1 underline text-purple-700 hover:text-purple-900"
+                      onClick={() => onNavigateToReservation?.(previousReservation.id)}
+                    >
+                      #{previousReservation.id}
+                    </button>
+                    .
+                  </div>
+                )}
+                {reservation.rescheduledToReservationId && nextReservation && (
+                  <div className="text-sm text-purple-800">
+                    <strong>Esta reserva fue reprogramada</strong> a la nueva reserva
+                    <button
+                      className="ml-1 underline text-purple-700 hover:text-purple-900"
+                      onClick={() => onNavigateToReservation?.(nextReservation.id)}
+                    >
+                      #{nextReservation.id}
+                    </button>
+                    .
+                  </div>
+                )}
+                {lastReschedule && (
+                  <div className="text-xs text-purple-700 mt-1">
+                    <span className="font-medium">Motivo:</span> {lastReschedule.details?.reason}
+                    {lastReschedule.timestamp && (
+                      <span className="ml-2">({new Date(lastReschedule.timestamp).toLocaleString('es-ES')})</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b">
             <div className="flex items-center space-x-3">
@@ -104,7 +158,7 @@ export const ReservationDetailPanel: React.FC<ReservationDetailPanelProps> = ({
                   Detalle de Reserva
                 </h2>
                 <p className="text-sm text-gray-600">
-                  {getBundleName(reservation.bundleId)} - {getItemName(reservation.itemId)}
+                  {getBundleName(reservation.bundleId)} - {getItemName(reservation.bundleId, reservation.itemId)}
                 </p>
               </div>
             </div>
@@ -128,11 +182,7 @@ export const ReservationDetailPanel: React.FC<ReservationDetailPanelProps> = ({
                     <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${getStatusColor(reservation.status)}`}>
                       {getStatusIcon(reservation.status)}
                       <span className="text-sm font-medium">
-                        {reservation.status === 'CONFIRMED' && 'Confirmada'}
-                        {reservation.status === 'PENDING' && 'Pendiente'}
-                        {reservation.status === 'CANCELLED' && 'Cancelada'}
-                        {reservation.status === 'COMPLETED' && 'Completada'}
-                        {reservation.status === 'MODIFIED' && 'Modificada'}
+                        {formatReservationStatus(reservation.status, reservation)}
                       </span>
                     </div>
                   </div>
@@ -192,7 +242,7 @@ export const ReservationDetailPanel: React.FC<ReservationDetailPanelProps> = ({
             <div className="space-y-3">
               <h3 className="text-lg font-semibold text-gray-900">Descripción del Servicio</h3>
               <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-                {getItemDescription(reservation.itemId)}
+                {getItemDescription(reservation.bundleId, reservation.itemId)}
               </p>
             </div>
 

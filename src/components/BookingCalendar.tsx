@@ -15,6 +15,7 @@ import { useShopState } from '../hooks/useShopState';
 import { useEntitiesState } from '../hooks/useEntitiesState';
 import { isShopOpenOnDate } from '../features/reservations/availabilityValidation';
 import type { Bundle } from '../types';
+import { formatReservationStatus, isReservationRescheduled } from '../utils/formatHelpers';
 
 const localizer = dateFnsLocalizer({
   format,
@@ -110,9 +111,10 @@ const BookingCalendar: React.FC = () => {
   }, [calendarEvents, selectedBundleId, searchTerm]);
 
   const eventStyleGetter = (event: typeof calendarEvents[0]) => {
-    const status = event.resource.status;
+    // Detectar si la reserva es reprogramada
+    const isRescheduled = isReservationRescheduled(event.resource.modernReservation || event.resource);
+    const status = isRescheduled ? 'RESCHEDULED' : event.resource.status;
     const colors = statusColors[status as keyof typeof statusColors] || statusColors.PENDING;
-    
     return {
       style: {
         backgroundColor: colors.backgroundColor,
@@ -345,6 +347,16 @@ const BookingCalendar: React.FC = () => {
                   </div>
                 </div>
               ),
+              event: (props: any) => {
+                // Mostrar el label correcto del estado
+                const resource = props.event.resource.modernReservation || props.event.resource;
+                const label = formatReservationStatus(resource.status, resource);
+                return (
+                  <span>
+                    {props.title} <span className="ml-1 text-xs font-semibold">({label})</span>
+                  </span>
+                );
+              }
             }}
           />
         </div>

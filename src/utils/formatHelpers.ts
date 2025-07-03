@@ -71,7 +71,14 @@ export const formatDurationRange = (minMinutes: number, maxMinutes: number): str
 
 // === FORMATEO DE ESTADOS ===
 
-export const formatReservationStatus = (status: string): string => {
+export const isReservationRescheduled = (reservation: any): boolean => {
+  return !!reservation.rescheduledToReservationId;
+};
+
+export const formatReservationStatus = (status: string, reservation?: any): string => {
+  if (reservation && isReservationRescheduled(reservation)) {
+    return 'Reprogramada';
+  }
   const statusMap: Record<string, string> = {
     'PENDING': 'Pendiente',
     'CONFIRMED': 'Confirmada',
@@ -83,7 +90,6 @@ export const formatReservationStatus = (status: string): string => {
     'RESCHEDULED': 'Reprogramada',
     'PARTIAL_REFUND': 'Reembolso parcial'
   };
-  
   return statusMap[status] || status;
 };
 

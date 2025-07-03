@@ -54,7 +54,7 @@ export const ReservationTypeSelector: React.FC<ReservationTypeSelectorProps> = (
                     <h4 className="text-lg font-semibold text-gray-900 mb-1">{bundle.name}</h4>
                     <p className="text-gray-600 text-sm mb-2">{bundle.shortDescription || bundle.description}</p>
                     <span className="inline-block px-2 py-1 text-xs rounded bg-blue-100 text-blue-800">
-                      {bundle.itemIds.length} servicios
+                      {(bundle.items?.length || 0)} servicios
                     </span>
                   </div>
                 ))}
@@ -76,9 +76,9 @@ export const ReservationTypeSelector: React.FC<ReservationTypeSelectorProps> = (
           </div>
         </Card>
         {/* Modal de reserva de bundle */}
-        {showReservationModal && selectedBundle && (
+        {showReservationModal && selectedBundle && getBundleWithContent(selectedBundle.id) && (
           <BundleReservationManager
-            bundle={getBundleWithContent(selectedBundle.id)}
+            bundle={getBundleWithContent(selectedBundle.id)!}
             onReservationCreated={onReservationCreated}
             onClose={onClose}
           />

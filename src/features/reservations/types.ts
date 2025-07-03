@@ -1,6 +1,6 @@
 // Tipos auxiliares y constantes para el manejo de reservas de items
 
-export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW' | 'EXPIRED';
+export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW' | 'EXPIRED' | 'RESCHEDULED';
 
 export type CreatedBy = 'SELLER' | 'BUYER' | 'SYSTEM';
 

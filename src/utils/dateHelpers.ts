@@ -71,11 +71,12 @@ export const getDayOfWeek = (dateString: string): number => {
  * @returns Nombre del día en inglés (sunday, monday, etc.)
  */
 export const getDayNameForBusinessHours = (dateString: string): keyof import('../types').BusinessHours => {
-  const dayOfWeek = getDayOfWeek(dateString);
-  const dayNames: Array<keyof import('../types').BusinessHours> = [
+  const date = createDateFromString(dateString);
+  const dayOfWeek = date.getDay();
+  const days: Array<keyof import('../types').BusinessHours> = [
     'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'
   ];
-  return dayNames[dayOfWeek];
+  return days[dayOfWeek];
 };
 
 /**
@@ -84,8 +85,10 @@ export const getDayNameForBusinessHours = (dateString: string): keyof import('..
  * @returns Nombre del día en español
  */
 export const getDayNameInSpanish = (dateString: string): string => {
-  const dayOfWeek = getDayOfWeek(dateString);
-  return getDayOfWeekName(dayOfWeek);
+  const date = createDateFromString(dateString);
+  const dayOfWeek = date.getDay();
+  const days = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  return days[dayOfWeek];
 };
 
 /**

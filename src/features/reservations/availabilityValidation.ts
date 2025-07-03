@@ -19,13 +19,13 @@ export const getItemAvailability = (
   date: string,
   timeSlot: { startTime: string; endTime: string },
   reservasItems: ReservaItem[],
-  allItems?: any[],
+  bundleItems?: Item[],
   allShops?: Shop[]
 ): ItemAvailability => {
   console.log(`🔍 Verificando disponibilidad para item ${itemId} en ${date} ${timeSlot.startTime}-${timeSlot.endTime}`);
   
   // Buscar el item para obtener su configuración
-  const item = allItems?.find(i => i.id === itemId);
+  const item = bundleItems?.find(i => i.id === itemId);
   if (!item) {
     return {
       itemId,
@@ -240,7 +240,7 @@ export const getItemAvailability = (
 export const getAvailableSlotsForItem = (
   itemId: string,
   date: string,
-  allItems?: any[],
+  bundleItems?: Item[],
   allShops?: Shop[],
   reservasItems: ReservaItem[] = []
 ): Array<{ 
@@ -248,7 +248,7 @@ export const getAvailableSlotsForItem = (
   availability: ItemAvailability;
 }> => {
   
-  const item = allItems?.find(i => i.id === itemId);
+  const item = bundleItems?.find(i => i.id === itemId);
   if (!item || !item.timeSlots) {
     return [];
   }
@@ -316,7 +316,7 @@ export const getAvailableSlotsForItem = (
         endTime: slot.endTime
       };
       // Usar reservasItems real
-      const availability = getItemAvailability(itemId, date, timeSlot, reservasItems, allItems, allShops);
+      const availability = getItemAvailability(itemId, date, timeSlot, reservasItems, bundleItems, allShops);
       return {
         timeSlot,
         availability

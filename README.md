@@ -1,6 +1,6 @@
 # 📅 Celebrae Calendar System
 
-**Sistema moderno de gestión de reservas multi-shop** - Base limpia y modular para nuevos desarrollos
+**Sistema técnico de gestión de reservas multi-shop** - Base modular y escalable para desarrollos avanzados
 
 ---
 
@@ -23,14 +23,14 @@ http://localhost:5173
 
 ## 🎯 Propósito del Proyecto
 
-Este proyecto es una **base limpia y optimizada** para sistemas de reservas multi-shop. Ha sido simplificado para eliminar complejidad innecesaria y proporcionar una fundación sólida y escalable para nuevos desarrollos.
+Este proyecto es una **base técnica y optimizada** para sistemas de reservas multi-shop. El código está orientado a servir como referencia y punto de partida para desarrollos que requieran lógica avanzada de validación, gestión de entidades y escalabilidad.
 
-### ¿Qué hace?
-- Gestión de múltiples shops/negocios
-- Sistema de reservas con bundles (paquetes) e items individuales
-- Calendario interactivo con vista de reservas
-- Creación y gestión dinámica de entidades del negocio (shops, bundles, items, extras)
-- Validación de disponibilidad y horarios de atención
+### Características técnicas principales
+- Gestión multi-shop: separación estricta de entidades por shop
+- Sistema de reservas basado en bundles (paquetes) e items individuales
+- Validación exhaustiva de horarios, disponibilidad y capacidad
+- Gestión de estados de reservas y reprogramaciones
+- Arquitectura modular, hooks reutilizables y tipado TypeScript completo
 
 ## 🏗️ Stack Tecnológico
 
@@ -40,35 +40,45 @@ Este proyecto es una **base limpia y optimizada** para sistemas de reservas mult
 - **Lucide Icons** para iconografía
 - **Vite** como bundler y dev server
 
-## 📱 Funcionalidades Principales
+## 📱 Funcionalidades Técnicas
 
 ### 🏪 **Multi-Shop**
-- Selector dinámico entre shops
-- Datos y reservas específicas por shop
-- Estadísticas independientes y panel de gestión
+- Selector dinámico de shop activo
+- Todas las entidades (bundles, items, extras, reservas) están asociadas a un shop
+- Los hooks y componentes filtran y gestionan datos por shop activo
 
 ### 📅 **Calendario Interactivo**
 - Vista mensual/semanal/diaria
-- Eventos de reservas en tiempo real
-- Filtros por bundle y búsqueda de clientes
+- Visualización de reservas en tiempo real (mock)
+- Filtros por bundle, estado y búsqueda de clientes
 - Visualización de días cerrados/abiertos según horarios del shop
 
 ### 📦 **Sistema de Reservas**
-- **Bundles**: Paquetes completos con múltiples servicios
-- **Items Individuales**: Servicios específicos
+- **Bundles**: Paquetes con múltiples servicios (items)
+- **Items**: Servicios individuales con horarios y capacidad configurables
 - **Extras**: Complementos opcionales y condicionales
-- Validación de disponibilidad, capacidad y horarios
-- Gestión de reservas individuales y grupales
+- Validación estricta al crear reservas:
+  - El shop debe estar abierto en la fecha/horario seleccionado
+  - El item debe estar disponible ese día y horario
+  - Se valida la capacidad/stock del item y el slot horario
+  - Se valida la cantidad máxima de extras
+- Feedback inmediato de errores de validación en la UI
+- Gestión de reservas individuales y grupales (por item)
 
 ### ⚙️ **Gestión de Entidades**
-- Creación y edición de shops, bundles, items y extras
-- Formularios intuitivos con validación y feedback
+- CRUD completo de shops, bundles, items y extras
+- Formularios con validación y feedback técnico
 - Estado reactivo y modular en toda la aplicación
 
 ### 🕒 **Gestión de Horarios de Atención**
 - Configuración detallada de horarios por día y rangos
 - Plantillas rápidas (normal, fin de semana, 24/7, cerrado)
 - Validación de solapamientos y rangos inválidos
+
+### 🔄 **Gestión de Estados de Reservas**
+- Cambio de estado manual: Confirmar, Cancelar, Completar, No Show, Reprogramar
+- Reprogramación: crea una nueva reserva y marca la original como "Reprogramada", manteniendo historial
+- Historial de acciones y modificaciones en cada reserva
 
 ## 🗂️ Arquitectura del Código
 
@@ -81,8 +91,8 @@ src/
 │   └── ui/                   # Componentes UI base (Button, Card, Input, Select)
 ├── features/reservations/     # Lógica y validaciones de reservas
 │   ├── components/           # Componentes específicos de reservas
-│   ├── availabilityValidation.ts
-│   ├── bundleValidation.ts
+│   ├── availabilityValidation.ts # Validación de horarios, disponibilidad y stock
+│   ├── bundleValidation.ts      # Validación de reservas de bundles
 │   └── types.ts
 ├── hooks/                    # Hooks personalizados y lógica de estado
 │   ├── useShopState.ts      # Estado del shop activo y reservas
@@ -93,13 +103,21 @@ src/
 └── utils/                   # Helpers de fechas, formato y validación
 ```
 
-## 🔄 Flujo de Creación y Gestión de Entidades
+## 🔄 Flujo Técnico de Creación y Gestión de Reservas
 
-1. **Crear Shop** → 2. **Crear Bundle** → 3. **Agregar Items** → 4. **Agregar Extras** → 5. **Gestionar Reservas**
+1. **El usuario (dueño/operador) selecciona el shop activo**
+2. **Crea bundles, items y extras según la configuración del negocio**
+3. **Desde el calendario o el gestor de reservas, inicia la creación de una reserva**
+   - Selecciona bundle, items, extras, fecha y horario
+   - Ingresa datos del cliente (nombre, email, teléfono)
+   - El sistema valida automáticamente horarios, disponibilidad y stock
+   - Si alguna validación falla, se muestra feedback inmediato y no se permite crear la reserva
+4. **La reserva se almacena en memoria (mock) y se visualiza en el calendario y gestor**
+5. **El usuario puede cambiar el estado de la reserva manualmente**
+   - Confirmar, Cancelar, Completar, No Show, Reprogramar
+   - Al reprogramar, se crea una nueva reserva y la original queda como "Reprogramada"
 
-- Cada shop tiene sus propios bundles, items y extras.
-- Los horarios de atención del shop determinan la disponibilidad real de reservas.
-- El sistema valida automáticamente solapamientos, capacidades y reglas de negocio.
+> **Nota:** Actualmente, todas las reservas se crean desde la interfaz de administración. No existe frontend público para clientes finales ni distinción real entre reservas "manuales" y "de cliente".
 
 ## 📊 Datos de Ejemplo
 
@@ -108,7 +126,7 @@ El sistema incluye 2 shops con datos de prueba (mock):
 - **🎯 "La vuelta del Maxi"** - Servicios variados
 - **☕ "Café Delicias"** - Experiencias gastronómicas
 
-> **Nota:** Actualmente, los datos son mock y no hay backend real. Todo es gestionado en memoria para facilitar pruebas y desarrollo frontend.
+> **Nota:** Todos los datos son mock y se gestionan en memoria. No hay backend real ni persistencia.
 
 ## 🔧 Desarrollo
 
@@ -128,7 +146,7 @@ yarn preview      # Vista previa del build
 ### **Componentes Clave**
 - `BookingCalendar`: Calendario con gestión de eventos y reservas
 - `EntitiesManager`: Panel de administración de entidades
-- `ReservationTypeSelector`: Selector moderno para crear reservas
+- `ReservationTypeSelector`: Selector para crear reservas (flujo manual)
 - `*ReservationManager`: Gestores de reservas específicos (item y bundle)
 - Componentes UI reutilizables: `Button`, `Card`, `Input`, `Select`
 
@@ -140,28 +158,29 @@ yarn preview      # Vista previa del build
 - **Estados de Carga y Feedback**: Visual para el usuario
 - **Animaciones Suaves**: Transiciones CSS optimizadas
 
-## 📈 Estado del Proyecto
+## 📈 Estado Técnico Actual
 
-### ✅ **Funcional y Estable**
+### ✅ **Funcional y Estable (Mock)**
 - Sistema multi-shop operativo
 - Reservas de bundles e items individuales
 - Calendario interactivo y validaciones de negocio
 - Gestión completa de entidades y horarios
+- Validaciones exhaustivas de horarios, disponibilidad y stock
+- Gestión manual de estados de reserva y reprogramaciones
 
-### 🔄 **Preparado para Extensión**
-- Arquitectura modular y escalable
-- Código limpio y bien documentado
-- Sistema de tipos TypeScript completo
-- Hooks reutilizables y lógica desacoplada
-- Base sólida para nuevas funcionalidades
+### ⚠️ **Limitaciones y Alcance Actual**
+- **Sin backend real**: Todo es mock/in-memory, sin persistencia
+- **Sin autenticación ni roles**: No hay control de acceso ni usuarios diferenciados
+- **No existe frontend público para clientes**: Solo gestión interna por dueño/operador
+- **No hay notificaciones, pagos ni reportes**: Solo lógica de reservas y gestión básica
 
 ## 🚀 Próximos Pasos Sugeridos
 
-Para convertir este proyecto en un sistema de producción:
+Para evolucionar este proyecto hacia un sistema de producción:
 
 1. **Backend**: Integrar con API REST/GraphQL y base de datos real
 2. **Persistencia**: Reemplazar mocks con almacenamiento persistente
-3. **Autenticación**: Sistema de usuarios y permisos
+3. **Autenticación y roles**: Sistema de usuarios y permisos
 4. **Notificaciones**: Email/SMS para reservas y recordatorios
 5. **Pagos**: Integración con pasarelas de pago
 6. **Reportes**: Dashboard de analytics y exportación de datos
@@ -185,4 +204,4 @@ Para convertir este proyecto en un sistema de producción:
 
 ---
 
-**Proyecto optimizado para ser una base de desarrollo limpia, eficiente y escalable**
+**Este README está orientado a desarrolladores y sirve como referencia técnica del estado y arquitectura actual del sistema.**

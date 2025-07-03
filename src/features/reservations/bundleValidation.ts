@@ -51,7 +51,6 @@ export const validateBundleReservation = (
   request: CreateReservaBundleRequest,
   reservasItems: ReservaItem[] = [],
   allBundles?: Bundle[],
-  allItems?: any[],
   allShops?: any[]
 ): BundleAvailabilityValidation => {
   console.log(`🎯 Validando reserva de bundle completo:`, request);
@@ -79,6 +78,7 @@ export const validateBundleReservation = (
 
   const bundle = allBundles?.find(b => b.id === request.bundleId);
   const shopId = bundle?.shopId;
+  const bundleItems = bundle?.items || [];
 
   if (shopId && allShops) {
     request.itemReservations.forEach((itemReq, index) => {
@@ -102,7 +102,7 @@ export const validateBundleReservation = (
       itemReq.date,
       itemReq.timeSlot,
       reservasItems,
-      allItems,
+      bundleItems,
       allShops
     );
     const isValid = availability.isAvailable;
@@ -206,11 +206,11 @@ const validateExtraSimplified = (
  */
 export const useCreateBundleReservation = () => {
   const { setReservasBundle, reservasItems, setReservasItems } = useReservations();
-  const { allBundles, allItems, allShops } = useEntitiesState();
+  const { allBundles, allShops } = useEntitiesState();
   return async (request: CreateReservaBundleRequest, currentUserId: string = "87IZYWdezwJQsILiU57z") => {
     console.log(`🎯 Creando reserva de bundle completo (simplificado):`, request);
     // Validar la reserva primero
-    const validation = validateBundleReservation(request, reservasItems, allBundles, allItems, allShops);
+    const validation = validateBundleReservation(request, reservasItems, allBundles, allShops);
     if (!validation.isValid) {
       return {
         success: false,
@@ -219,16 +219,16 @@ export const useCreateBundleReservation = () => {
     }
     try {
       // Obtener el bundle real para shopId
-      const bundle = allBundles.find((b: Bundle) => b.id === request.bundleId);
+      const bundleObj = allBundles.find((b: Bundle) => b.id === request.bundleId);
       // Crear las reservas individuales de items
       const createdReservaItems = request.itemReservations.map((itemReq, idx) => {
         const reservaId = `reserva_item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${idx}`;
-        const item = allItems.find((i: any) => i.id === itemReq.itemId);
+        const item = bundleObj?.items.find((i: any) => i.id === itemReq.itemId);
         return {
           id: reservaId,
           itemId: itemReq.itemId,
           bundleId: request.bundleId,
-          shopId: bundle ? bundle.shopId : '',
+          shopId: bundleObj ? bundleObj.shopId : '',
           userId: currentUserId,
           customerInfo: request.customerInfo,
           date: itemReq.date,
@@ -259,7 +259,7 @@ export const useCreateBundleReservation = () => {
       const bundleReservation: ReservaBundle = {
         id: bundleReservationId,
         bundleId: request.bundleId,
-        shopId: bundle ? bundle.shopId : '',
+        shopId: bundleObj ? bundleObj.shopId : '',
         userId: currentUserId,
         customerInfo: request.customerInfo,
         reservasItems: createdReservaItems,

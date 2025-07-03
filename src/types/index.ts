@@ -60,8 +60,8 @@ export interface Item {
   price: number;
   isForAdult: boolean;
   size?: number; // capacidad o cantidad de personas
-  bundleId: string;
-  shopId: string;
+  bundleId?: string;
+  shopId?: string;
   
   isPerGroup: boolean; // true = se cobra por grupo completo, false = se cobra por persona
   
@@ -180,8 +180,8 @@ export interface Extra {
   description: string;
   price: number;
   isForAdult: boolean;
-  bundleId: string;
-  shopId: string;
+  bundleId?: string;
+  shopId?: string;
   
   isPerGroup: boolean; // true = se cobra por grupo completo, false = se cobra por persona
   
@@ -203,7 +203,7 @@ export interface Extra {
 
 /**
  * Bundle - Conjunto de items y extras que se ofrece en un shop
- * Reemplaza conceptualmente a "Kit" pero mantiene compatibilidad
+ * Ahora los items y extras están embebidos en el documento del bundle
  */
 export interface Bundle {
   id: string;
@@ -212,13 +212,9 @@ export interface Bundle {
   shortDescription?: string;
   shopId: string;
   
-  // Contenido del bundle
-  itemIds: string[];
-  extraIds: string[];
-  /** @deprecated Usar itemIds y extraIds */
-  items?: Item[];
-  /** @deprecated Usar itemIds y extraIds */
-  extras?: Extra[];
+  // Contenido del bundle (embebido)
+  items: Item[];
+  extras: Extra[];
   
   // Configuración general del bundle
   basePrice: number; // precio base sin items/extras
@@ -276,7 +272,7 @@ export interface ReservaItem {
   isGroupReservation: boolean; // true si esta reserva es para un grupo completo
   groupSize?: number; // tamaño del grupo (solo relevante si isGroupReservation: true)
   
-  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW' | 'EXPIRED' | 'MODIFIED';
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW' | 'EXPIRED' | 'MODIFIED' | 'RESCHEDULED';
   isTemporary: boolean; // true si es una reserva temporal (ej: 15 min para completar pago)
   temporaryExpiresAt?: string; // fecha/hora de expiración para reservas temporales
   
@@ -293,6 +289,7 @@ export interface ReservaItem {
   
   // Información de reserva original (si fue modificada)
   originalReservationId?: string; // ID de la reserva original antes de modificar
+  rescheduledToReservationId?: string; // ID de la nueva reserva si fue reprogramada
   
   // Metadata
   createdAt: string;

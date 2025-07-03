@@ -2,8 +2,6 @@ import { createContext, useContext, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useShopManagement } from './useShopManagement';
 import { useBundleManagement } from './useBundleManagement';
-import { useItemManagement } from './useItemManagement';
-import { useExtraManagement } from './useExtraManagement';
 import type { Shop, Bundle, Item, Extra, BusinessHours } from '../types';
 import type { CreateShopData, CreateBundleData, CreateItemData, CreateExtraData } from './types';
 
@@ -12,8 +10,8 @@ interface EntitiesStateContextType {
   // Estados de todas las entidades
   allShops: Shop[];
   allBundles: Bundle[];
-  allItems: Item[];
-  allExtras: Extra[];
+  // allItems: Item[]; // Eliminado
+  // allExtras: Extra[]; // Eliminado
   
   // Funciones de creación
   createShop: (data: CreateShopData, userId?: string) => Shop;
@@ -26,8 +24,8 @@ interface EntitiesStateContextType {
   updateShopBusinessHours: (shopId: string, businessHours: BusinessHours) => void;
   
   // Funciones de consulta
-  getBundleWithContent: (bundleId: string) => any;
-  getShopWithBundles: (shopId: string) => any;
+  getBundleWithContent: (bundleId: string) => Bundle | null;
+  getShopWithBundles: (shopId: string) => { shop: Shop; bundles: Bundle[] } | null;
   
   // Contadores
   dynamicEntitiesCount: {
@@ -44,49 +42,47 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
   // Usar hooks específicos para cada tipo de entidad
   const shopManagement = useShopManagement();
   const bundleManagement = useBundleManagement();
-  const itemManagement = useItemManagement();
-  const extraManagement = useExtraManagement();
+  // const itemManagement = useItemManagement(); // Eliminado
+  // const extraManagement = useExtraManagement(); // Eliminado
 
-  // Obtener bundle con items y extras actualizados
+  // Obtener bundle con items y extras embebidos
   const getBundleWithContent = useCallback((bundleId: string) => {
     const bundle = bundleManagement.allBundles.find(b => b.id === bundleId);
     if (!bundle) return null;
-
-    return {
-      ...bundle,
-      items: itemManagement.allItems.filter(item => item.bundleId === bundleId),
-      extras: extraManagement.allExtras.filter(extra => extra.bundleId === bundleId)
-    };
-  }, [bundleManagement.allBundles, itemManagement.allItems, extraManagement.allExtras]);
+    return bundle;
+  }, [bundleManagement.allBundles]);
 
   // Obtener shops con bundles actualizados
   const getShopWithBundles = useCallback((shopId: string) => {
     const shop = shopManagement.allShops.find(s => s.id === shopId);
     if (!shop) return null;
-
-    const shopBundles = bundleManagement.allBundles
-      .filter(bundle => bundle.shopId === shopId)
-      .map(bundle => getBundleWithContent(bundle.id))
-      .filter(Boolean);
-
+    const shopBundles = bundleManagement.allBundles.filter(bundle => bundle.shopId === shopId);
     return {
       shop,
       bundles: shopBundles
     };
-  }, [shopManagement.allShops, bundleManagement.allBundles, getBundleWithContent]);
+  }, [shopManagement.allShops, bundleManagement.allBundles]);
 
   const value: EntitiesStateContextType = {
     // Estados actuales
     allShops: shopManagement.allShops,
     allBundles: bundleManagement.allBundles,
-    allItems: itemManagement.allItems,
-    allExtras: extraManagement.allExtras,
+    // allItems: itemManagement.allItems, // Eliminado
+    // allExtras: extraManagement.allExtras, // Eliminado
     
     // Funciones de creación
     createShop: shopManagement.createShop,
     createBundle: bundleManagement.createBundle,
-    createItem: itemManagement.createItem,
-    createExtra: extraManagement.createExtra,
+    createItem: (data, bundleId) => {
+      const item = bundleManagement.createItem(data, bundleId);
+      if (!item) throw new Error('No se pudo crear el item.');
+      return item;
+    },
+    createExtra: (data, bundleId) => {
+      const extra = bundleManagement.createExtra(data, bundleId);
+      if (!extra) throw new Error('No se pudo crear el extra.');
+      return extra;
+    },
     
     // Funciones de actualización
     updateShop: shopManagement.updateShop,
@@ -100,8 +96,8 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
     dynamicEntitiesCount: {
       shops: shopManagement.dynamicShopsCount,
       bundles: bundleManagement.dynamicBundlesCount,
-      items: itemManagement.dynamicItemsCount,
-      extras: extraManagement.dynamicExtrasCount
+      items: bundleManagement.dynamicItemsCount,
+      extras: bundleManagement.dynamicExtrasCount
     }
   };
 

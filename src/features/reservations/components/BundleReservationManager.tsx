@@ -36,9 +36,9 @@ export const BundleReservationManager: React.FC<BundleReservationManagerProps> =
   onReservationCreated,
   onClose
 }) => {
-  const { allItems, allExtras, allShops } = useEntitiesState();  
-  const bundleItems = allItems.filter(item => item.bundleId === bundle.id);
-  const bundleExtras = allExtras.filter(extra => extra.bundleId === bundle.id);
+  const { allShops } = useEntitiesState();
+  const bundleItems = bundle.items;
+  const bundleExtras = bundle.extras;
 
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [selectedExtras, setSelectedExtras] = useState<SelectedExtra[]>([]);
@@ -165,7 +165,7 @@ export const BundleReservationManager: React.FC<BundleReservationManagerProps> =
                   Reservar Bundle: {bundle.name}
                 </h2>
                 <p className="text-sm text-gray-600">
-                  Desde ${bundle.basePrice} • {bundle.itemIds.length} items • {bundle.extraIds.length} extras
+                  Desde ${bundle.basePrice} • {bundle.items.length} items • {bundle.extras.length} extras
                 </p>
               </div>
             </div>
@@ -257,8 +257,16 @@ export const BundleReservationManager: React.FC<BundleReservationManagerProps> =
                                         Horario
                                       </label>
                                       {(() => {
-                                        const availableSlots = getAvailableSlotsForItem(selectedItem.itemId, selectedItem.date, allItems, allShops, reservasItems);
-                                        return availableSlots.length === 0 ? (
+                                        const slots = getAvailableSlotsForItem(
+                                          selectedItem.itemId,
+                                          selectedItem.date,
+                                          bundleItems,
+                                          allShops,
+                                          reservasItems
+                                        )
+                                          .filter(s => s.availability.isAvailable)
+                                          .map(s => s.timeSlot);
+                                        return slots.length === 0 ? (
                                           <div className="text-xs text-gray-500 py-2">No hay horarios disponibles para esta fecha</div>
                                         ) : (
                                           <select
@@ -266,18 +274,17 @@ export const BundleReservationManager: React.FC<BundleReservationManagerProps> =
                                             value={`${selectedItem.timeSlot.startTime}-${selectedItem.timeSlot.endTime}`}
                                             onChange={e => {
                                               const val = e.target.value;
-                                              const slot = availableSlots.find(s => `${s.timeSlot.startTime}-${s.timeSlot.endTime}` === val);
-                                              handleUpdateItem(index, { timeSlot: slot ? slot.timeSlot : { startTime: '', endTime: '' } });
+                                              const slot = slots.find(s => `${s.startTime}-${s.endTime}` === val);
+                                              handleUpdateItem(index, { timeSlot: slot ? slot : { startTime: '', endTime: '' } });
                                             }}
                                           >
                                             <option value="">Selecciona un horario...</option>
-                                            {availableSlots.map(({ timeSlot, availability }, idx) => (
+                                            {slots.map((slot, idx) => (
                                               <option
                                                 key={idx}
-                                                value={`${timeSlot.startTime}-${timeSlot.endTime}`}
-                                                disabled={!availability.isAvailable}
+                                                value={`${slot.startTime}-${slot.endTime}`}
                                               >
-                                                {`${timeSlot.startTime} - ${timeSlot.endTime} (${availability.availableSpots}/${availability.totalSpots} disponibles)`}
+                                                {`${slot.startTime} - ${slot.endTime}`}
                                               </option>
                                             ))}
                                           </select>

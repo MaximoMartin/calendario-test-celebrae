@@ -33,7 +33,7 @@ const App: React.FC = () => {
     shopStats,
   } = useShopState();
 
-  const { getBundleWithContent, allItems, allShops } = useEntitiesState();
+  const { getBundleWithContent, allShops } = useEntitiesState();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('calendar');
   const [showShopSelector, setShowShopSelector] = useState(false);
@@ -101,7 +101,7 @@ const App: React.FC = () => {
         {/* Lista de Bundles */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {shopBundles.map((bundle) => {
-            const items = allItems.filter(i => bundle.itemIds.includes(i.id));
+            const items = bundle.items;
             return (
               <Card key={bundle.id} className="hover:shadow-lg transition-shadow">
                 <div className="p-6">

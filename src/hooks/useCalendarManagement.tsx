@@ -20,8 +20,11 @@ interface CalendarResource {
 }
 
 export const useCalendarManagement = (selectedShopId: string) => {
-  const { allShops, allBundles, allItems } = useEntitiesState();
+  const { allShops = [], allBundles = [] } = useEntitiesState();
   const { reservasItems } = useReservations();
+
+  // allItems ya no existe globalmente, lo calculamos localmente
+  const allItems = allBundles.flatMap(b => Array.isArray(b.items) ? b.items : []);
 
   // Reservas del shop seleccionado (sistema moderno)
   const shopReservations = useMemo(() => 
@@ -98,7 +101,7 @@ export const useCalendarManagement = (selectedShopId: string) => {
 
   // Crear recursos para el calendario basados en shops, bundles e items
   const resources = useMemo(() => {
-    const shopResources: CalendarResource[] = allShops.map(shop => ({
+    const shopResources: CalendarResource[] = (allShops || []).map(shop => ({
       id: shop.id,
       title: shop.name,
       color: '#3B82F6', // Azul para shops
@@ -108,7 +111,7 @@ export const useCalendarManagement = (selectedShopId: string) => {
       }
     }));
 
-    const bundleResources: CalendarResource[] = allBundles.map(bundle => ({
+    const bundleResources: CalendarResource[] = (allBundles || []).map(bundle => ({
       id: bundle.id,
       title: bundle.name,
       color: '#10B981', // Verde para bundles
@@ -119,7 +122,7 @@ export const useCalendarManagement = (selectedShopId: string) => {
       }
     }));
 
-    const itemResources: CalendarResource[] = allItems.map(item => ({
+    const itemResources: CalendarResource[] = (allItems || []).map(item => ({
       id: item.id,
       title: item.title,
       color: '#F59E0B', // Amarillo para items

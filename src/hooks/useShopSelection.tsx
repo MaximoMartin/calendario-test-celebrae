@@ -5,7 +5,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useEntitiesState } from './useEntitiesState';
 
 export const useShopSelection = () => {
-  const { allShops, allBundles, allItems, getShopWithBundles, getBundleWithContent } = useEntitiesState();
+  const { allShops, allBundles, getShopWithBundles, getBundleWithContent } = useEntitiesState();
   const [selectedShopId, setSelectedShopId] = useState<string>('');
 
   // Shop seleccionado (combina shops estáticos y dinámicos)
@@ -24,11 +24,10 @@ export const useShopSelection = () => {
     [selectedShopId, allBundles]
   );
 
-  // Items del shop seleccionado (a través de los bundles)
+  // Items del shop seleccionado (sumar todos los items embebidos en los bundles del shop)
   const shopItems = useMemo(() => {
-    const bundleIds = shopBundles.map(bundle => bundle.id);
-    return allItems.filter(item => bundleIds.includes(item.bundleId));
-  }, [shopBundles, allItems]);
+    return shopBundles.flatMap(bundle => bundle.items);
+  }, [shopBundles]);
 
   // Funciones helper para obtener entidades por ID
   const getShopById = useCallback((id: string) => {
@@ -40,8 +39,12 @@ export const useShopSelection = () => {
   }, [allBundles]);
 
   const getItemById = useCallback((id: string) => {
-    return allItems.find(item => item.id === id);
-  }, [allItems]);
+    for (const bundle of shopBundles) {
+      const item = bundle.items.find(item => item.id === id);
+      if (item) return item;
+    }
+    return undefined;
+  }, [shopBundles]);
 
   // Función para cambiar shop seleccionado
   const selectShop = useCallback((shopId: string) => {

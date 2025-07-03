@@ -4,7 +4,8 @@ import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
-import { useEntitiesState, type CreateShopData } from '../hooks/useEntitiesState';
+import { useEntitiesState } from '../hooks/useEntitiesState';
+import type { CreateShopData } from '../hooks/types';
 import type { Shop, BusinessHours } from '../types';
 
 interface ShopFormData extends CreateShopData {

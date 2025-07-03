@@ -7,8 +7,6 @@ export { useEntitiesState, EntitiesStateProvider } from './useEntitiesState';
 // Hooks específicos de gestión
 export { useShopManagement } from './useShopManagement';
 export { useBundleManagement } from './useBundleManagement';
-export { useItemManagement } from './useItemManagement';
-export { useExtraManagement } from './useExtraManagement';
 
 // Hook de estado de shops para calendario
 export { useShopState, ShopStateProvider } from './useShopState';
@@ -27,18 +25,14 @@ export type {
   CreateExtraData 
 } from './types';
 
-// Importar hooks para la función helper
+// Importar explícitamente los hooks usados en useAllManagementHooks
 import { useShopManagement } from './useShopManagement';
 import { useBundleManagement } from './useBundleManagement';
-import { useItemManagement } from './useItemManagement';
-import { useExtraManagement } from './useExtraManagement';
 
 // Función helper para obtener todos los hooks de gestión
 export const useAllManagementHooks = () => {
   return {
     shop: useShopManagement(),
     bundle: useBundleManagement(),
-    item: useItemManagement(),
-    extra: useExtraManagement()
   };
 }; 
