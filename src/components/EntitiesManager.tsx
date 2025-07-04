@@ -73,10 +73,6 @@ export const EntitiesManager: React.FC = () => {
   // Obtener bundles del shop seleccionado
   const shopBundles = allBundles.filter(bundle => bundle.shopId === selectedShopId);
   
-  // Calcular totales de items y extras embebidos
-  const allItems = allBundles.flatMap(bundle => bundle.items);
-  const allExtras = allBundles.flatMap(bundle => bundle.extras);
-  
   // Renderizar formulario activo
   if (activeForm === 'shop') {
     return (
@@ -168,7 +164,7 @@ export const EntitiesManager: React.FC = () => {
           
           <div className="text-center p-4 bg-green-50 rounded-lg">
             <ListTodo className="w-8 h-8 text-green-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-green-900">{allItems.length}</div>
+            <div className="text-2xl font-bold text-green-900">{dynamicEntitiesCount.items}</div>
             <div className="text-sm text-green-600">Items Totales</div>
             {dynamicEntitiesCount.items > 0 && (
               <div className="text-xs text-green-600 mt-1">
@@ -179,7 +175,7 @@ export const EntitiesManager: React.FC = () => {
           
           <div className="text-center p-4 bg-orange-50 rounded-lg">
             <Plus className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-orange-900">{allExtras.length}</div>
+            <div className="text-2xl font-bold text-orange-900">{dynamicEntitiesCount.extras}</div>
             <div className="text-sm text-orange-600">Extras Totales</div>
             {dynamicEntitiesCount.extras > 0 && (
               <div className="text-xs text-green-600 mt-1">

@@ -7,8 +7,9 @@ import { Input } from '../../../components/ui/Input';
 import { useCreateBundleReservation } from '../bundleValidation';
 import { formatDate } from '../../../utils/dateHelpers';
 import { useEntitiesState } from '../../../hooks/useEntitiesState';
-import { getAvailableSlotsForItem } from '../availabilityValidation';
-import { useReservations } from '../mockData';
+import { getAvailableSlotsForItem, validateItemAgainstShopHours } from '../availabilityValidation';
+import { useShopState } from '../../../hooks/useShopState';
+import { capitalizeFirst } from '../../../utils/formatHelpers';
 
 interface BundleReservationManagerProps {
   bundle: Bundle;
@@ -51,7 +52,7 @@ export const BundleReservationManager: React.FC<BundleReservationManagerProps> =
   const [errorMessage, setErrorMessage] = useState('');
 
   const createBundleReservation = useCreateBundleReservation();
-  const { reservasItems } = useReservations();
+  const { selectedShop } = useShopState();
 
   const handleAddItem = (itemId: string) => {
     const item = bundleItems.find(i => i.id === itemId);
@@ -151,6 +152,104 @@ export const BundleReservationManager: React.FC<BundleReservationManagerProps> =
     return selectedExtras.find(e => e.extraId === extraId)?.quantity || 0;
   };
 
+  // --- RESUMEN DE HORARIOS Y DISPONIBILIDAD ---
+  const renderItemSummary = (item: typeof bundleItems[0]) => {
+    const validation = validateItemAgainstShopHours(item, selectedShop);
+    const bookingLimits = item.timeSlots?.bookingLimits;
+    return (
+      <div key={item.id} className="mb-4 p-3 border border-gray-100 rounded bg-gray-50">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="font-semibold text-gray-900">{item.title}</span>
+          {!item.isActive && <span className="text-xs text-red-600 ml-2">(Inactivo)</span>}
+          {item.isForAdult && <span className="text-xs text-orange-600 ml-2">Solo adultos</span>}
+          {item.isPerGroup ? <span className="text-xs text-blue-600 ml-2">Por grupo</span> : <span className="text-xs text-green-600 ml-2">Por persona</span>}
+          {item.bookingConfig?.isExclusive && <span className="text-xs text-purple-600 ml-2">Exclusivo de grupo</span>}
+          {item.bookingConfig?.requiresConfirmation && <span className="text-xs text-yellow-600 ml-2">Requiere confirmación</span>}
+        </div>
+        <div className="text-xs text-gray-700 mb-1">{item.description}</div>
+        <div className="flex flex-wrap gap-4 text-xs text-gray-600 mb-1">
+          <span>💶 Precio: €{item.price}</span>
+          <span>👥 Capacidad: {item.bookingConfig?.maxCapacity || '-'} personas</span>
+          <span>⏱️ Duración: {item.bookingConfig?.duration || '-'} min</span>
+        </div>
+        {bookingLimits && (
+          <div className="flex flex-wrap gap-4 text-xs text-gray-500 mb-1">
+            <span>Anticipación mínima: {bookingLimits.minAdvanceHours}h</span>
+            <span>Anticipación máxima: {bookingLimits.maxAdvanceDays} días</span>
+            <span>{bookingLimits.sameDayBooking ? 'Permite reserva el mismo día' : 'No permite reserva el mismo día'}</span>
+            <span>{bookingLimits.lastMinuteBooking ? 'Permite última hora' : 'No permite última hora'}</span>
+          </div>
+        )}
+        <div className="text-xs text-gray-600 mb-1">
+          <span className="font-medium">Horarios configurados:</span>
+          {item.timeSlots?.weeklySchedule
+            ? (
+              <ul className="ml-2 list-disc">
+                {Object.entries(item.timeSlots.weeklySchedule).map(([day, sched]: any) => (
+                  <li key={day}>
+                    <span className="font-medium">{['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][+day]}:</span> {sched.isAvailable && sched.slots.length > 0
+                      ? sched.slots.map((slot: any, idx: number) => (
+                          <span key={idx} className="inline-block mr-2">{slot.startTime}-{slot.endTime} <span className="text-gray-400">({slot.maxBookingsPerSlot} reservas)</span></span>
+                        ))
+                      : <span className="text-gray-400">No disponible</span>}
+                  </li>
+                ))}
+              </ul>
+            ) : <span className="ml-2 text-gray-400">No configurado</span>}
+        </div>
+        {validation.conflicts.length > 0 && (
+          <div className="mt-1 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+            <div className="font-medium mb-1">Conflictos con el horario del negocio:</div>
+            <ul className="list-disc ml-4">
+              {validation.conflicts.map((conf, i) => (
+                <li key={i}>
+                  {capitalizeFirst(conf.dayName)}: {conf.reason === 'SHOP_CLOSED' ? 'Negocio cerrado' : 'Fuera del horario del negocio'}
+                  {conf.itemSlots.length > 0 && ': '}
+                  {conf.itemSlots.map((slot, idx) => (
+                    <span key={idx}>{slot.startTime}-{slot.endTime}{idx < conf.itemSlots.length-1 ? ', ' : ''}</span>
+                  ))}
+                  {conf.shopHours && (
+                    <span className="ml-2 text-gray-500">(Horario negocio: {conf.shopHours})</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderExtraSummary = (extra: typeof bundleExtras[0]) => {
+    const requiredItem = extra.requiredItemId && !bundleItems.some(i => i.id === extra.requiredItemId);
+    const requiredItemName = extra.requiredItemId && bundleItems.find(i => i.id === extra.requiredItemId)?.title;
+    return (
+      <div key={extra.id} className="mb-2 p-2 border border-gray-100 rounded bg-gray-50">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="font-semibold text-gray-900">{extra.title}</span>
+          {!extra.isActive && <span className="text-xs text-red-600 ml-2">(Inactivo)</span>}
+          {extra.isRequired && <span className="text-xs text-blue-600 ml-2">(Obligatorio)</span>}
+          {extra.isForAdult && <span className="text-xs text-orange-600 ml-2">Solo adultos</span>}
+          {extra.isPerGroup ? <span className="text-xs text-blue-600 ml-2">Por grupo</span> : <span className="text-xs text-green-600 ml-2">Por persona</span>}
+        </div>
+        <div className="text-xs text-gray-700 mb-1">{extra.description}</div>
+        <div className="flex flex-wrap gap-4 text-xs text-gray-600 mb-1">
+          <span>💶 Precio: €{extra.price}</span>
+          <span>Máx: {extra.maxQuantity || 10}</span>
+          {typeof extra.quantity === 'number' && <span>Por defecto: {extra.quantity}</span>}
+        </div>
+        {extra.requiredItemId && (
+          <div className="text-xs text-gray-500 mb-1">
+            Requiere reservar: <span className="font-medium">{requiredItemName || extra.requiredItemId}</span>
+          </div>
+        )}
+        {requiredItem && (
+          <div className="text-xs text-red-600 mt-1">⚠️ El item requerido no está en este bundle</div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="max-w-6xl w-full max-h-[90vh] overflow-y-auto">
@@ -186,6 +285,20 @@ export const BundleReservationManager: React.FC<BundleReservationManagerProps> =
                   <span>✅ Requiere aprobación</span>
                 )}
               </div>
+            </div>
+
+            <div className="mb-8">
+              <Card className="p-4 bg-blue-50 border-blue-200 mb-4">
+                <h3 className="text-base font-semibold text-blue-900 mb-2">Resumen de horarios y disponibilidad de items y extras</h3>
+                <div className="mb-2">
+                  <div className="font-medium text-blue-800 mb-1">Items:</div>
+                  {bundleItems.map(renderItemSummary)}
+                </div>
+                <div>
+                  <div className="font-medium text-blue-800 mb-1">Extras:</div>
+                  {bundleExtras.length === 0 ? <div className="text-xs text-gray-500">No hay extras configurados</div> : bundleExtras.map(renderExtraSummary)}
+                </div>
+              </Card>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -261,8 +374,7 @@ export const BundleReservationManager: React.FC<BundleReservationManagerProps> =
                                           selectedItem.itemId,
                                           selectedItem.date,
                                           bundleItems,
-                                          allShops,
-                                          reservasItems
+                                          allShops
                                         )
                                           .filter(s => s.availability.isAvailable)
                                           .map(s => s.timeSlot);

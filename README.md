@@ -4,7 +4,7 @@
 
 ---
 
-> **Última actualización: Junio 2024**
+> **Última actualización: Julio 2025**
 
 ---
 
@@ -27,7 +27,7 @@ Este proyecto es una **base técnica y optimizada** para sistemas de reservas mu
 
 ### Características técnicas principales
 - Gestión multi-shop: separación estricta de entidades por shop
-- Sistema de reservas basado en bundles (paquetes) e items individuales
+- Sistema de reservas basado en bundles (paquetes) con **items y extras embebidos**
 - Validación exhaustiva de horarios, disponibilidad y capacidad
 - Gestión de estados de reservas y reprogramaciones
 - Arquitectura modular, hooks reutilizables y tipado TypeScript completo
@@ -54,9 +54,9 @@ Este proyecto es una **base técnica y optimizada** para sistemas de reservas mu
 - Visualización de días cerrados/abiertos según horarios del shop
 
 ### 📦 **Sistema de Reservas**
-- **Bundles**: Paquetes con múltiples servicios (items)
-- **Items**: Servicios individuales con horarios y capacidad configurables
-- **Extras**: Complementos opcionales y condicionales
+- **Bundles**: Paquetes con múltiples servicios (**items y extras embebidos**)
+- **Items**: Servicios individuales, embebidos en cada bundle, con horarios y capacidad configurables
+- **Extras**: Complementos opcionales, embebidos en cada bundle
 - Validación estricta al crear reservas:
   - El shop debe estar abierto en la fecha/horario seleccionado
   - El item debe estar disponible ese día y horario
@@ -66,7 +66,7 @@ Este proyecto es una **base técnica y optimizada** para sistemas de reservas mu
 - Gestión de reservas individuales y grupales (por item)
 
 ### ⚙️ **Gestión de Entidades**
-- CRUD completo de shops, bundles, items y extras
+- CRUD completo de shops, bundles, items y extras (todo embebido en bundles)
 - Formularios con validación y feedback técnico
 - Estado reactivo y modular en toda la aplicación
 
@@ -96,7 +96,7 @@ src/
 │   └── types.ts
 ├── hooks/                    # Hooks personalizados y lógica de estado
 │   ├── useShopState.ts      # Estado del shop activo y reservas
-│   ├── useEntitiesState.ts  # CRUD de entidades
+│   ├── useEntitiesState.ts  # CRUD de shops, bundles, items y extras (embebidos)
 │   └── ...                  # Otros hooks de gestión
 ├── types/                   # Definiciones TypeScript globales
 ├── data/                    # Mock data y migradores
@@ -106,7 +106,7 @@ src/
 ## 🔄 Flujo Técnico de Creación y Gestión de Reservas
 
 1. **El usuario (dueño/operador) selecciona el shop activo**
-2. **Crea bundles, items y extras según la configuración del negocio**
+2. **Crea bundles, y dentro de cada bundle, items y extras embebidos**
 3. **Desde el calendario o el gestor de reservas, inicia la creación de una reserva**
    - Selecciona bundle, items, extras, fecha y horario
    - Ingresa datos del cliente (nombre, email, teléfono)
@@ -119,14 +119,20 @@ src/
 
 > **Nota:** Actualmente, todas las reservas se crean desde la interfaz de administración. No existe frontend público para clientes finales ni distinción real entre reservas "manuales" y "de cliente".
 
-## 📊 Datos de Ejemplo
+## 📊 Datos de Ejemplo (Mock)
 
 El sistema incluye 2 shops con datos de prueba (mock):
 
-- **🎯 "La vuelta del Maxi"** - Servicios variados
-- **☕ "Café Delicias"** - Experiencias gastronómicas
+- **🎯 "La vuelta del Maxi"** - Servicios variados (alquiler de autos, escape room, spa)
+- **☕ "Café Delicias"** - Experiencias gastronómicas (brunch, café, postres)
 
-> **Nota:** Todos los datos son mock y se gestionan en memoria. No hay backend real ni persistencia.
+### Estructura de datos mock actual:
+- **Bundles**: Cada uno contiene su propio array de `items` y `extras` embebidos.
+- **Items**: Definidos solo dentro de cada bundle, con horarios y capacidad propios.
+- **Extras**: Definidos solo dentro de cada bundle, con reglas de cantidad y disponibilidad.
+- **Reservas mock**: Simulan reservas reales, alineadas a la fecha actual (03/07/2025), cubriendo todos los estados posibles y referenciando solo items/extras embebidos.
+
+> **Nota:** Ya no existen colecciones globales de items ni extras. Todo está embebido en cada bundle.
 
 ## 🔧 Desarrollo
 
@@ -140,7 +146,7 @@ yarn preview      # Vista previa del build
 
 ### **Hooks Principales**
 - `useShopState()`: Estado del shop activo y reservas
-- `useEntitiesState()`: CRUD de shops, bundles, items y extras
+- `useEntitiesState()`: CRUD de shops, bundles, items y extras (embebidos)
 - Hooks adicionales para gestión de bundles, items, extras y selección de shop
 
 ### **Componentes Clave**
@@ -162,7 +168,7 @@ yarn preview      # Vista previa del build
 
 ### ✅ **Funcional y Estable (Mock)**
 - Sistema multi-shop operativo
-- Reservas de bundles e items individuales
+- Reservas de bundles e items individuales (solo embebidos)
 - Calendario interactivo y validaciones de negocio
 - Gestión completa de entidades y horarios
 - Validaciones exhaustivas de horarios, disponibilidad y stock

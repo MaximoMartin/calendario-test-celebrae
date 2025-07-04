@@ -9,7 +9,8 @@ import {
   createDateFromString, 
   getDayOfWeek, 
   getDayNameForBusinessHours, 
-  getDayNameInSpanish 
+  getDayNameInSpanish,
+  isTimeSlotWithinRange,
 } from '../../utils/dateHelpers';
 
 // NOTA: Todas las funciones de validación de items y disponibilidad solo se usan para validar los items seleccionados dentro de una reserva de bundle. No existe reserva individual de items.
@@ -242,88 +243,86 @@ export const getAvailableSlotsForItem = (
   date: string,
   bundleItems?: Item[],
   allShops?: Shop[],
-  reservasItems: ReservaItem[] = []
 ): Array<{ 
   timeSlot: { startTime: string; endTime: string }; 
   availability: ItemAvailability;
 }> => {
-  
-  const item = bundleItems?.find(i => i.id === itemId);
-  if (!item || !item.timeSlots) {
+  // --- LOG DE DEPURACIÓN INICIO ---
+  console.groupCollapsed(`[DEBUG] getAvailableSlotsForItem | itemId: ${itemId} | date: ${date}`);
+  const dayOfWeek = getDayOfWeek(date); // 0=domingo
+  console.log('Fecha:', date, '| dayOfWeek:', dayOfWeek);
+  if (!bundleItems) {
+    console.warn('bundleItems no provisto');
+    console.groupEnd();
     return [];
   }
-
-  const shop = allShops?.find(s => s.id === item.shopId);
+  const item = bundleItems.find((i) => i.id === itemId);
+  if (!item) {
+    console.warn('Item no encontrado en bundleItems');
+    console.groupEnd();
+    return [];
+  }
+  if (!item.timeSlots || !item.timeSlots.weeklySchedule) {
+    console.warn('Item sin timeSlots o weeklySchedule');
+    console.groupEnd();
+    return [];
+  }
+  const schedule = item.timeSlots.weeklySchedule[dayOfWeek];
+  if (!schedule || !schedule.isAvailable) {
+    console.log('No hay disponibilidad para este día en el item');
+    console.groupEnd();
+    return [];
+  }
+  const slots = schedule.slots.filter((slot) => slot.isActive);
+  console.log('Slots activos encontrados:', slots);
+  // Buscar el shop correspondiente
+  let shop: Shop | undefined = undefined;
+  if (item.shopId && allShops) {
+    shop = allShops.find((s) => s.id === item.shopId);
+  }
+  if (!shop && allShops && bundleItems[0]?.shopId) {
+    shop = allShops.find((s) => s.id === bundleItems[0].shopId);
+  }
+  if (!shop && allShops) {
+    shop = allShops[0]; // fallback
+  }
   if (!shop) {
+    console.warn('No se encontró el shop para el item');
+    console.groupEnd();
     return [];
   }
-
-  const dayOfWeek = getDayOfWeek(date);
-  
-  // Verificar si el shop está abierto en ese día
-  const dayName = getDayNameForBusinessHours(date);
-  const shopDaySchedule = shop.businessHours[dayName];
-
-  if (!shopDaySchedule.openRanges || shopDaySchedule.openRanges.length === 0) {
+  console.log('Shop encontrado:', shop.id, shop.name);
+  // Verificar que el shop esté abierto ese día
+  const shopDayName = getDayNameForBusinessHours(date);
+  const shopDayConfig = shop.businessHours[shopDayName];
+  if (!shopDayConfig || shopDayConfig.openRanges.length === 0) {
+    console.log('El shop está cerrado este día');
+    console.groupEnd();
     return [];
   }
-  
-  // Obtener slots del día específico del item
-  const daySchedule = item.timeSlots.weeklySchedule?.[dayOfWeek];
-  if (!daySchedule || !daySchedule.isAvailable) {
-    return [];
-  }
-
-  // Función para verificar si un horario está dentro del horario del shop
-  const timeToMinutes = (time: string) => {
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours * 60 + minutes;
-  };
-
-  const normalizeTime = (time: string): string => {
-    if (!time) return '';
-    const [h, m] = time.split(':');
-    const hours = h.padStart(2, '0');
-    const minutes = (m || '00').padStart(2, '0');
-    return `${hours}:${minutes}`;
-  };
-
-  const isWithinShopHours = (startTime: string, endTime: string) => {
-    const slotStart = timeToMinutes(normalizeTime(startTime));
-    const slotEnd = timeToMinutes(normalizeTime(endTime));
-
-    return shopDaySchedule.openRanges.some(range => {
-      const rangeStart = timeToMinutes(normalizeTime(range.from));
-      const rangeEnd = timeToMinutes(normalizeTime(range.to));
-      const debugMsg = `Comparando slot [${normalizeTime(startTime)}-${normalizeTime(endTime)}] con rango [${normalizeTime(range.from)}-${normalizeTime(range.to)}] => ${slotStart} >= ${rangeStart} && ${slotEnd} <= ${rangeEnd}`;
-      if (slotStart >= rangeStart && slotEnd <= rangeEnd) {
-        console.log('✅', debugMsg);
-        return true;
-      } else {
-        console.log('❌', debugMsg);
-        return false;
-      }
-    });
-  };
-
-  const availableSlots = daySchedule.slots
-    .filter((slot: { isActive: boolean; startTime: string; endTime: string }) => 
-      slot.isActive && isWithinShopHours(slot.startTime, slot.endTime)
-    )
-    .map((slot: { startTime: string; endTime: string }) => {
-      const timeSlot = {
-        startTime: slot.startTime,
-        endTime: slot.endTime
-      };
-      // Usar reservasItems real
-      const availability = getItemAvailability(itemId, date, timeSlot, reservasItems, bundleItems, allShops);
-      return {
-        timeSlot,
-        availability
-      };
-    });
-
-  return availableSlots.sort((a: { timeSlot: { startTime: string } }, b: { timeSlot: { startTime: string } }) => a.timeSlot.startTime.localeCompare(b.timeSlot.startTime));
+  console.log('Horarios del shop para el día:', shopDayConfig.openRanges);
+  // Filtrar slots que estén dentro del horario del shop
+  const validSlots = slots.filter((slot) => {
+    return shopDayConfig.openRanges.some((range) =>
+      isTimeSlotWithinRange(slot.startTime, slot.endTime, range.from, range.to)
+    );
+  });
+  console.log('Slots válidos dentro del horario del shop:', validSlots);
+  // --- LOG DE DEPURACIÓN FIN ---
+  console.groupEnd();
+  // Mapear a formato esperado
+  return validSlots.map((slot) => ({
+    timeSlot: { startTime: slot.startTime, endTime: slot.endTime },
+    availability: {
+      itemId: item.id,
+      date,
+      timeSlot: { startTime: slot.startTime, endTime: slot.endTime },
+      isAvailable: true, // Simplificado para debug
+      availableSpots: item.bookingConfig?.maxCapacity || 1,
+      totalSpots: item.bookingConfig?.maxCapacity || 1,
+      conflictingReservations: []
+    }
+  }));
 };
 
 const timeSlotsOverlap = (

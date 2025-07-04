@@ -4,9 +4,8 @@
 // Hook principal de entidades
 export { useEntitiesState, EntitiesStateProvider } from './useEntitiesState';
 
-// Hooks específicos de gestión
+// Hook específico de gestión de shops
 export { useShopManagement } from './useShopManagement';
-export { useBundleManagement } from './useBundleManagement';
 
 // Hook de estado de shops para calendario
 export { useShopState, ShopStateProvider } from './useShopState';
@@ -23,16 +22,4 @@ export type {
   CreateBundleData, 
   CreateItemData, 
   CreateExtraData 
-} from './types';
-
-// Importar explícitamente los hooks usados en useAllManagementHooks
-import { useShopManagement } from './useShopManagement';
-import { useBundleManagement } from './useBundleManagement';
-
-// Función helper para obtener todos los hooks de gestión
-export const useAllManagementHooks = () => {
-  return {
-    shop: useShopManagement(),
-    bundle: useBundleManagement(),
-  };
-}; 
+} from './types'; 
