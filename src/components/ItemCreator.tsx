@@ -6,12 +6,15 @@ import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { useEntitiesState } from '../hooks/useEntitiesState';
 import type { CreateItemData } from '../hooks/types';
+import type { Item } from '../types';
 import { useShopState } from '../hooks/useShopState';
 
 interface ItemCreatorProps {
   bundleId: string;
   bundleName: string;
+  itemToEdit?: Item; // Para edición de item existente
   onItemCreated?: (itemId: string) => void;
+  onItemUpdated?: (itemId: string) => void;
   onClose?: () => void;
 }
 
@@ -39,45 +42,90 @@ const DAY_NAMES_EN: Array<keyof import('../types').BusinessHours> = [
 export const ItemCreator: React.FC<ItemCreatorProps> = ({ 
   bundleId,
   bundleName,
+  itemToEdit,
   onItemCreated, 
+  onItemUpdated, 
   onClose 
 }) => {
-  const { createItem } = useEntitiesState();
+  const { createItem, updateItem } = useEntitiesState();
   const { selectedShop } = useShopState();
   
-  // Estado del formulario
-  const [formData, setFormData] = useState<CreateItemData>({
-    title: '',
-    description: '',
-    price: 0,
-    isPerGroup: false,
-    maxCapacity: 1,
-    duration: 60,
-    isForAdult: false,
-    isRequired: false,
-    order: 1,
-    requiresConfirmation: false,
-    advanceBookingDays: 7,
-    groupCapacity: 1,
-    isExclusive: false,
-    timeSlots: {
-      scheduleType: 'FIXED',
-      weeklySchedule: {
-        0: { isAvailable: false, slots: [] },
-        1: { isAvailable: false, slots: [] },
-        2: { isAvailable: false, slots: [] },
-        3: { isAvailable: false, slots: [] },
-        4: { isAvailable: false, slots: [] },
-        5: { isAvailable: false, slots: [] },
-        6: { isAvailable: false, slots: [] }
-      },
-      bookingLimits: {
-        minAdvanceHours: 2,
-        maxAdvanceDays: 30,
-        sameDayBooking: true,
-        lastMinuteBooking: true
+  // Función para convertir Item a CreateItemData
+  const itemToFormData = (item: Item): CreateItemData => {
+    return {
+      title: item.title,
+      description: item.description,
+      price: item.price,
+      isPerGroup: item.isPerGroup,
+      maxCapacity: item.bookingConfig?.maxCapacity || 1,
+      duration: item.bookingConfig?.duration || 60,
+      isForAdult: item.isForAdult,
+      isRequired: false, // Este campo no existe en Item
+      order: item.order,
+      requiresConfirmation: item.bookingConfig?.requiresConfirmation || false,
+      advanceBookingDays: item.bookingConfig?.advanceBookingDays || 7,
+      groupCapacity: item.bookingConfig?.groupCapacity || 1,
+      isExclusive: item.bookingConfig?.isExclusive || false,
+      timeSlots: item.timeSlots || {
+        scheduleType: 'FIXED',
+        weeklySchedule: {
+          0: { isAvailable: false, slots: [] },
+          1: { isAvailable: false, slots: [] },
+          2: { isAvailable: false, slots: [] },
+          3: { isAvailable: false, slots: [] },
+          4: { isAvailable: false, slots: [] },
+          5: { isAvailable: false, slots: [] },
+          6: { isAvailable: false, slots: [] }
+        },
+        bookingLimits: {
+          minAdvanceHours: 2,
+          maxAdvanceDays: 30,
+          sameDayBooking: true,
+          lastMinuteBooking: true
+        }
       }
+    };
+  };
+  
+  // Estado del formulario - inicializar con datos de edición si existe
+  const [formData, setFormData] = useState<CreateItemData>(() => {
+    if (itemToEdit) {
+      return itemToFormData(itemToEdit);
     }
+    
+    return {
+      title: '',
+      description: '',
+      price: 0,
+      isPerGroup: false,
+      maxCapacity: 1,
+      duration: 60,
+      isForAdult: false,
+      isRequired: false,
+      order: 1,
+      requiresConfirmation: false,
+      advanceBookingDays: 7,
+      groupCapacity: 1,
+      isExclusive: false,
+      timeSlots: {
+        scheduleType: 'FIXED',
+        weeklySchedule: {
+          0: { isAvailable: false, slots: [] },
+          1: { isAvailable: false, slots: [] },
+          2: { isAvailable: false, slots: [] },
+          3: { isAvailable: false, slots: [] },
+          4: { isAvailable: false, slots: [] },
+          5: { isAvailable: false, slots: [] },
+          6: { isAvailable: false, slots: [] }
+        },
+        bookingLimits: {
+          minAdvanceHours: 2,
+          maxAdvanceDays: 30,
+          sameDayBooking: true,
+          lastMinuteBooking: true
+        }
+      }
+    };
   });
 
   // Estados de UI
@@ -392,18 +440,25 @@ export const ItemCreator: React.FC<ItemCreatorProps> = ({
     try {
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      const newItem = createItem(formData, bundleId);
-      
-      setShowSuccess(true);
-      onItemCreated?.(newItem.id);
+      if (itemToEdit) {
+        // Modo edición
+        updateItem(bundleId, itemToEdit.id, formData);
+        setShowSuccess(true);
+        onItemUpdated?.(itemToEdit.id);
+      } else {
+        // Modo creación
+        const newItem = createItem(formData, bundleId);
+        setShowSuccess(true);
+        onItemCreated?.(newItem.id);
+      }
       
       setTimeout(() => {
         onClose?.();
       }, 1500);
       
     } catch (error) {
-      console.error('Error creando item:', error);
-      setErrors({ submit: 'Error al crear el item. Intenta nuevamente.' });
+      console.error('Error guardando item:', error);
+      setErrors({ submit: 'Error al guardar el item. Intenta nuevamente.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -456,10 +511,10 @@ export const ItemCreator: React.FC<ItemCreatorProps> = ({
           <Check className="w-8 h-8 text-green-600" />
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          ¡Item creado exitosamente!
+          {itemToEdit ? '¡Item actualizado exitosamente!' : '¡Item creado exitosamente!'}
         </h3>
         <p className="text-gray-600 mb-4">
-          El item "{formData.title}" ha sido agregado al bundle "{bundleName}".
+          El item "{formData.title}" ha sido {itemToEdit ? 'actualizado' : 'agregado al bundle "' + bundleName + '"'}.
         </p>
         <Button
           onClick={resetForm}
@@ -486,10 +541,10 @@ export const ItemCreator: React.FC<ItemCreatorProps> = ({
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
-                Agregar Nuevo Item
+                {itemToEdit ? 'Editar Item' : 'Agregar Nuevo Item'}
               </h2>
               <p className="text-sm text-gray-500">
-                Al bundle: {bundleName}
+                {itemToEdit ? `Editando: ${itemToEdit.title}` : `Al bundle: ${bundleName}`}
               </p>
             </div>
           </div>
@@ -968,10 +1023,10 @@ export const ItemCreator: React.FC<ItemCreatorProps> = ({
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Creando...
+                  Guardando...
                 </div>
               ) : (
-                'Agregar Item'
+                'Guardar Item'
               )}
             </Button>
           </div>

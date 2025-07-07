@@ -6,12 +6,15 @@ import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { useEntitiesState } from '../hooks/useEntitiesState';
 import type { CreateExtraData } from '../hooks/types';
+import type { Extra } from '../types';
 
 interface ExtraCreatorProps {
   bundleId: string;
   bundleName: string;
   availableItems?: Array<{ id: string; title: string }>; // Items del bundle para relaciones condicionales
+  extraToEdit?: Extra; // Para edición de extra existente
   onExtraCreated?: (extraId: string) => void;
+  onExtraUpdated?: (extraId: string) => void;
   onClose?: () => void;
 }
 
@@ -19,24 +22,49 @@ export const ExtraCreator: React.FC<ExtraCreatorProps> = ({
   bundleId,
   bundleName,
   availableItems = [],
+  extraToEdit,
   onExtraCreated, 
+  onExtraUpdated,
   onClose 
 }) => {
-  const { createExtra } = useEntitiesState();
+  const { createExtra, updateExtra } = useEntitiesState();
   
-  // Estado del formulario
-  const [formData, setFormData] = useState<CreateExtraData>({
-    title: '',
-    description: '',
-    price: 0,
-    isPerGroup: false,
-    isForAdult: false,
-    maxQuantity: 5,
-    isRequired: false,
-    requiredItemId: undefined,
-    order: 1,
-    defaultQuantity: 1,
-    isActive: true
+  // Función para convertir Extra a CreateExtraData
+  const extraToFormData = (extra: Extra): CreateExtraData => {
+    return {
+      title: extra.title,
+      description: extra.description,
+      price: extra.price,
+      isPerGroup: extra.isPerGroup,
+      isForAdult: extra.isForAdult,
+      maxQuantity: extra.maxQuantity || 5,
+      isRequired: extra.isRequired || false,
+      requiredItemId: extra.requiredItemId,
+      order: extra.order,
+      defaultQuantity: extra.quantity || 1,
+      isActive: extra.isActive
+    };
+  };
+  
+  // Estado del formulario - inicializar con datos de edición si existe
+  const [formData, setFormData] = useState<CreateExtraData>(() => {
+    if (extraToEdit) {
+      return extraToFormData(extraToEdit);
+    }
+    
+    return {
+      title: '',
+      description: '',
+      price: 0,
+      isPerGroup: false,
+      isForAdult: false,
+      maxQuantity: 5,
+      isRequired: false,
+      requiredItemId: undefined,
+      order: 1,
+      defaultQuantity: 1,
+      isActive: true
+    };
   });
 
   // Estados de UI
@@ -101,13 +129,17 @@ export const ExtraCreator: React.FC<ExtraCreatorProps> = ({
       // Simular delay de creación
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      const newExtra = createExtra(formData, bundleId);
-      
-      // Mostrar mensaje de éxito
-      setShowSuccess(true);
-      
-      // Callback de éxito
-      onExtraCreated?.(newExtra.id);
+      if (extraToEdit) {
+        // Modo edición
+        updateExtra(bundleId, extraToEdit.id, formData);
+        setShowSuccess(true);
+        onExtraUpdated?.(extraToEdit.id);
+      } else {
+        // Modo creación
+        const newExtra = createExtra(formData, bundleId);
+        setShowSuccess(true);
+        onExtraCreated?.(newExtra.id);
+      }
       
       // Auto-cerrar después de mostrar éxito
       setTimeout(() => {
@@ -153,10 +185,10 @@ export const ExtraCreator: React.FC<ExtraCreatorProps> = ({
           <Check className="w-8 h-8 text-green-600" />
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          ¡Extra creado exitosamente!
+          {extraToEdit ? '¡Extra actualizado exitosamente!' : '¡Extra creado exitosamente!'}
         </h3>
         <p className="text-gray-600 mb-4">
-          El extra "{formData.title}" ha sido agregado al bundle "{bundleName}".
+          El extra "{formData.title}" ha sido {extraToEdit ? 'actualizado' : 'agregado al bundle "' + bundleName + '"'}.
         </p>
         <Button
           onClick={resetForm}
@@ -183,10 +215,10 @@ export const ExtraCreator: React.FC<ExtraCreatorProps> = ({
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
-                Agregar Nuevo Extra
+                {extraToEdit ? 'Editar Extra' : 'Agregar Nuevo Extra'}
               </h2>
               <p className="text-sm text-gray-500">
-                Al bundle: {bundleName}
+                {extraToEdit ? `Editando: ${extraToEdit.title}` : `Al bundle: ${bundleName}`}
               </p>
             </div>
           </div>
@@ -498,10 +530,10 @@ export const ExtraCreator: React.FC<ExtraCreatorProps> = ({
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Creando...
+                  Guardando...
                 </div>
               ) : (
-                'Agregar Extra'
+                extraToEdit ? 'Guardar Cambios' : 'Agregar Extra'
               )}
             </Button>
           </div>

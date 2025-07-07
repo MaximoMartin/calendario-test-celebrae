@@ -3,10 +3,6 @@
 
 import type { Bundle } from '../types';
 
-// IDs de shops para referencia
-const shopMaxi = "shop_maxi";
-const shopCafe = "shop_cafe";
-
 export const mockBundles: Bundle[] = [
   // --- Bundles para La vuelta del Maxi ---
   {
@@ -23,6 +19,7 @@ export const mockBundles: Bundle[] = [
         price: 120,
         isForAdult: true,
         isPerGroup: true,
+        shopId: 'shop_maxi',
         bookingConfig: {
           maxCapacity: 5,
           duration: 180,
@@ -58,6 +55,7 @@ export const mockBundles: Bundle[] = [
         price: 100,
         isForAdult: true,
         isPerGroup: true,
+        shopId: 'shop_maxi',
         bookingConfig: {
           maxCapacity: 5,
           duration: 180,
@@ -95,6 +93,7 @@ export const mockBundles: Bundle[] = [
         price: 10,
         isForAdult: false,
         isPerGroup: true,
+        shopId: 'shop_maxi',
         isActive: true,
         order: 1,
         createdAt: new Date().toISOString(),
@@ -109,6 +108,7 @@ export const mockBundles: Bundle[] = [
         price: 25,
         isForAdult: false,
         isPerGroup: true,
+        shopId: 'shop_maxi',
         isActive: true,
         order: 2,
         createdAt: new Date().toISOString(),
@@ -123,6 +123,7 @@ export const mockBundles: Bundle[] = [
         price: 8,
         isForAdult: false,
         isPerGroup: false,
+        shopId: 'shop_maxi',
         isActive: true,
         order: 3,
         createdAt: new Date().toISOString(),
@@ -164,6 +165,7 @@ export const mockBundles: Bundle[] = [
         price: 80,
         isForAdult: false,
         isPerGroup: true,
+        shopId: 'shop_maxi',
         bookingConfig: {
           maxCapacity: 6,
           duration: 90,
@@ -201,6 +203,7 @@ export const mockBundles: Bundle[] = [
         price: 5,
         isForAdult: false,
         isPerGroup: true,
+        shopId: 'shop_maxi',
         isActive: true,
         order: 1,
         createdAt: new Date().toISOString(),
@@ -243,6 +246,7 @@ export const mockBundles: Bundle[] = [
         price: 18,
         isForAdult: false,
         isPerGroup: false,
+        shopId: 'shop_cafe',
         bookingConfig: {
           maxCapacity: 4,
           duration: 90,
@@ -278,6 +282,7 @@ export const mockBundles: Bundle[] = [
         price: 22,
         isForAdult: false,
         isPerGroup: false,
+        shopId: 'shop_cafe',
         bookingConfig: {
           maxCapacity: 4,
           duration: 90,
@@ -315,6 +320,7 @@ export const mockBundles: Bundle[] = [
         price: 6,
         isForAdult: true,
         isPerGroup: false,
+        shopId: 'shop_cafe',
         isActive: true,
         order: 1,
         createdAt: new Date().toISOString(),
@@ -329,6 +335,7 @@ export const mockBundles: Bundle[] = [
         price: 15,
         isForAdult: false,
         isPerGroup: false,
+        shopId: 'shop_cafe',
         isActive: true,
         order: 2,
         createdAt: new Date().toISOString(),
@@ -370,6 +377,7 @@ export const mockBundles: Bundle[] = [
         price: 8,
         isForAdult: false,
         isPerGroup: false,
+        shopId: 'shop_cafe',
         bookingConfig: {
           maxCapacity: 2,
           duration: 30,
@@ -405,6 +413,7 @@ export const mockBundles: Bundle[] = [
         price: 12,
         isForAdult: false,
         isPerGroup: false,
+        shopId: 'shop_cafe',
         bookingConfig: {
           maxCapacity: 4,
           duration: 30,
@@ -442,6 +451,7 @@ export const mockBundles: Bundle[] = [
         price: 15,
         isForAdult: false,
         isPerGroup: false,
+        shopId: 'shop_cafe',
         isActive: true,
         order: 1,
         createdAt: new Date().toISOString(),

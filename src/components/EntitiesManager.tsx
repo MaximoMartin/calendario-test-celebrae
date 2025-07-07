@@ -5,7 +5,8 @@ import {
   ListTodo, 
   Plus, 
   Settings,
-  Clock
+  Clock,
+  Edit3
 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
@@ -16,6 +17,7 @@ import { ExtraCreator } from './ExtraCreator';
 import { useEntitiesState } from '../hooks/useEntitiesState';
 import { useShopState } from '../hooks/useShopState';
 import type { Shop } from '../types';
+import { EditBundlesManager } from './EditBundlesManager';
 
 type EntityFormType = 'shop' | 'bundle' | 'item' | 'extra' | null;
 
@@ -37,6 +39,7 @@ export const EntitiesManager: React.FC = () => {
   const [activeForm, setActiveForm] = useState<EntityFormType>(null);
   const [selectedBundle, setSelectedBundle] = useState<SelectedBundle | null>(null);
   const [shopToEdit, setShopToEdit] = useState<Shop | null>(null);
+  const [showEditBundles, setShowEditBundles] = useState(false);
 
   // Cerrar formularios
   const closeForm = () => {
@@ -115,6 +118,16 @@ export const EntitiesManager: React.FC = () => {
         availableItems={selectedBundle.items}
         onExtraCreated={handleExtraCreated}
         onClose={closeForm}
+      />
+    );
+  }
+
+  // Renderizar vista de edición de bundles si está activa
+  if (showEditBundles) {
+    return (
+      <EditBundlesManager
+        shopId={selectedShopId}
+        onClose={() => setShowEditBundles(false)}
       />
     );
   }
@@ -292,6 +305,27 @@ export const EntitiesManager: React.FC = () => {
           >
             <Package className="w-4 h-4 mr-2" />
             Crear Bundle
+          </Button>
+        </Card>
+
+        {/* Editar Bundles */}
+        <Card className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+              <Edit3 className="w-5 h-5 text-yellow-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Editar Bundles</h3>
+              <p className="text-sm text-gray-500">Gestiona los bundles de {selectedShop.name}</p>
+            </div>
+          </div>
+          <Button
+            onClick={() => setShowEditBundles(true)}
+            className="w-full"
+            variant="outline"
+          >
+            <Edit3 className="w-4 h-4 mr-2" />
+            Editar Bundles
           </Button>
         </Card>
       </div>

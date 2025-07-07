@@ -1,4 +1,4 @@
-import { createContext, useContext, useCallback } from 'react';
+import { createContext, useContext, useCallback, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useShopManagement } from './useShopManagement';
 import type { Shop, Bundle, Item, Extra, BusinessHours } from '../types';
@@ -18,6 +18,11 @@ interface EntitiesStateContextType {
   // Funciones de actualización
   updateShop: (shopId: string, data: Partial<CreateShopData>) => void;
   updateShopBusinessHours: (shopId: string, businessHours: BusinessHours) => void;
+  updateBundle: (bundleId: string, data: Partial<Bundle>) => void;
+  updateItem: (bundleId: string, itemId: string, data: Partial<Item>) => void;
+  updateExtra: (bundleId: string, extraId: string, data: Partial<Extra>) => void;
+  deleteItem: (bundleId: string, itemId: string) => void;
+  deleteExtra: (bundleId: string, extraId: string) => void;
   // Funciones de consulta
   getBundleWithContent: (bundleId: string) => Bundle | null;
   getShopWithBundles: (shopId: string) => { shop: Shop; bundles: Bundle[] } | null;
@@ -35,8 +40,8 @@ const EntitiesStateContext = createContext<EntitiesStateContextType | undefined>
 export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => {
   // Usar hooks específicos para cada tipo de entidad
   const shopManagement = useShopManagement();
-  // Usar los bundles mock como fuente de verdad
-  const allBundles: Bundle[] = mockBundles;
+  // Usar los bundles mock como fuente de verdad inicial, pero permitir mutación
+  const [allBundles, setAllBundles] = useState<Bundle[]>(mockBundles);
 
   // Obtener bundle con items y extras embebidos
   const getBundleWithContent = useCallback((bundleId: string) => {
@@ -56,15 +61,170 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
     };
   }, [shopManagement.allShops, allBundles]);
 
-  // Funciones de creación (deben ser implementadas correctamente según la fuente de bundles)
+  // Funciones de creación
   const createBundle = (data: CreateBundleData, shopId: string): Bundle => {
-    throw new Error('Función createBundle no implementada');
+    const newBundle: Bundle = {
+      id: `bundle_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: data.name,
+      description: data.description,
+      shortDescription: data.shortDescription,
+      shopId,
+      items: [],
+      extras: [],
+      basePrice: data.basePrice,
+      maxCapacity: data.maxCapacity,
+      duration: data.duration,
+      bookingSettings: {
+        allowInstantBooking: data.allowInstantBooking,
+        requiresApproval: data.requiresApproval,
+        cancellationPolicy: data.cancellationPolicy,
+        refundPolicy: data.refundPolicy
+      },
+      imageUrls: data.imageUrls || [],
+      tags: data.tags,
+      isActive: true,
+      isFeatured: data.isFeatured || false,
+      order: data.order || 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      status: 'active',
+      deletedAt: null
+    };
+    
+    setAllBundles(prev => [...prev, newBundle]);
+    return newBundle;
   };
+
   const createItem = (data: CreateItemData, bundleId: string): Item => {
-    throw new Error('Función createItem no implementada');
+    const newItem: Item = {
+      id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      title: data.title,
+      description: data.description,
+      price: data.price,
+      isForAdult: data.isForAdult || false,
+      shopId: allBundles.find(b => b.id === bundleId)?.shopId,
+      isPerGroup: data.isPerGroup,
+      bookingConfig: {
+        maxCapacity: data.maxCapacity,
+        duration: data.duration,
+        requiresConfirmation: data.requiresConfirmation || false,
+        advanceBookingDays: data.advanceBookingDays || 7,
+        groupCapacity: data.groupCapacity,
+        isExclusive: data.isExclusive || false
+      },
+      timeSlots: data.timeSlots,
+      isActive: true,
+      order: data.order || 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      status: 'active',
+      deletedAt: null
+    };
+    
+    setAllBundles(prev => prev.map(bundle => 
+      bundle.id === bundleId 
+        ? { ...bundle, items: [...bundle.items, newItem] }
+        : bundle
+    ));
+    return newItem;
   };
+
   const createExtra = (data: CreateExtraData, bundleId: string): Extra => {
-    throw new Error('Función createExtra no implementada');
+    const newExtra: Extra = {
+      id: `extra_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      title: data.title,
+      description: data.description,
+      price: data.price,
+      isForAdult: data.isForAdult || false,
+      shopId: allBundles.find(b => b.id === bundleId)?.shopId,
+      isPerGroup: data.isPerGroup,
+      requiredItemId: data.requiredItemId,
+      quantity: data.defaultQuantity,
+      maxQuantity: data.maxQuantity,
+      isRequired: data.isRequired || false,
+      isActive: data.isActive !== false,
+      order: data.order || 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      status: 'active',
+      deletedAt: null
+    };
+    
+    setAllBundles(prev => prev.map(bundle => 
+      bundle.id === bundleId 
+        ? { ...bundle, extras: [...bundle.extras, newExtra] }
+        : bundle
+    ));
+    return newExtra;
+  };
+
+  // Funciones de actualización
+  const updateBundle = (bundleId: string, data: Partial<Bundle>) => {
+    setAllBundles(prev => prev.map(bundle => 
+      bundle.id === bundleId 
+        ? { ...bundle, ...data, updatedAt: new Date().toISOString() }
+        : bundle
+    ));
+  };
+
+  const updateItem = (bundleId: string, itemId: string, data: Partial<Item>) => {
+    setAllBundles(prev => prev.map(bundle => {
+      if (bundle.id === bundleId) {
+        return {
+          ...bundle,
+          items: bundle.items.map(item => 
+            item.id === itemId 
+              ? { ...item, ...data, updatedAt: new Date().toISOString() }
+              : item
+          ),
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return bundle;
+    }));
+  };
+
+  const updateExtra = (bundleId: string, extraId: string, data: Partial<Extra>) => {
+    setAllBundles(prev => prev.map(bundle => {
+      if (bundle.id === bundleId) {
+        return {
+          ...bundle,
+          extras: bundle.extras.map(extra => 
+            extra.id === extraId 
+              ? { ...extra, ...data, updatedAt: new Date().toISOString() }
+              : extra
+          ),
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return bundle;
+    }));
+  };
+
+  const deleteItem = (bundleId: string, itemId: string) => {
+    setAllBundles(prev => prev.map(bundle => {
+      if (bundle.id === bundleId) {
+        return {
+          ...bundle,
+          items: bundle.items.filter(item => item.id !== itemId),
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return bundle;
+    }));
+  };
+
+  const deleteExtra = (bundleId: string, extraId: string) => {
+    setAllBundles(prev => prev.map(bundle => {
+      if (bundle.id === bundleId) {
+        return {
+          ...bundle,
+          extras: bundle.extras.filter(extra => extra.id !== extraId),
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return bundle;
+    }));
   };
 
   const value: EntitiesStateContextType = {
@@ -79,6 +239,11 @@ export const EntitiesStateProvider = ({ children }: { children: ReactNode }) => 
     // Funciones de actualización
     updateShop: shopManagement.updateShop,
     updateShopBusinessHours: shopManagement.updateShopBusinessHours,
+    updateBundle,
+    updateItem,
+    updateExtra,
+    deleteItem,
+    deleteExtra,
     // Helpers
     getBundleWithContent,
     getShopWithBundles,
