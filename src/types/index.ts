@@ -3,7 +3,10 @@ export interface User {
   name: string;
   email: string;
   roles: ('SELLER' | 'ADMIN' | 'BUYER' | 'ESSENTIAL')[];
-  phoneNumber: string;
+  phoneNumber?: string;
+  isActive: boolean;
+  isFirstTime: boolean;
+  isSubscribed: boolean;
 }
 
 export type BusinessHours = {
